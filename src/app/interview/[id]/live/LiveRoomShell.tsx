@@ -193,13 +193,13 @@ function RoomLayout({ onLeave, roomTitle }: { onLeave: () => void, roomTitle: st
         
         <div className="flex items-center gap-3 pr-6 border-r border-zinc-700">
           <button 
-            onClick={toggleMic}
+            onClick={() => toggleMic()}
             className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${isMicEnabled ? 'bg-zinc-800 hover:bg-zinc-700 text-white' : 'bg-red-500/20 hover:bg-red-500/30 text-red-500 border border-red-500/30'}`}
           >
             {isMicEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
           </button>
           <button 
-            onClick={toggleCam}
+            onClick={() => toggleCam()}
             className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${isCamEnabled ? 'bg-zinc-800 hover:bg-zinc-700 text-white' : 'bg-red-500/20 hover:bg-red-500/30 text-red-500 border border-red-500/30'}`}
           >
             {isCamEnabled ? <VideoIcon className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
