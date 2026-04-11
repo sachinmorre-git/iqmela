@@ -42,10 +42,10 @@ export default function RootLayout({
                   </div>
                   <div className="flex items-center gap-4">
                     <ThemeToggle />
-                    <Show when="signedIn">
-                      <UserButton afterSignOutUrl="/" />
+                    <Show when="signed-in">
+                      <UserButton />
                     </Show>
-                    <Show when="signedOut">
+                    <Show when="signed-out">
                       <div className="text-sm font-medium hover:text-indigo-600 transition-colors cursor-pointer">
                         <SignInButton mode="modal" signUpFallbackRedirectUrl="/sign-up" />
                       </div>
