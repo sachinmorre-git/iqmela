@@ -26,7 +26,19 @@ export async function saveUserRole(role: Role) {
     // We must gracefully delete your old abandoned Database record to prevent a Unique Constraint collision!
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser && existingUser.id !== userId) {
-      console.log(`Orphaned record found! Deleting old ID ${existingUser.id} to make room for new Clerk ID ${userId}`);
+      console.log(`Orphaned record found! Purging relational locks for ${existingUser.id}...`);
+      
+      // Manually cascade-delete any lingering interviews tied to this orphaned ID to unblock Postgres
+      await prisma.interview.deleteMany({
+        where: {
+          OR: [
+            { candidateId: existingUser.id },
+            { interviewerId: existingUser.id }
+          ]
+        }
+      });
+
+      console.log(`Deleting old ID ${existingUser.id} to make room for new Clerk ID ${userId}`);
       await prisma.user.delete({ where: { email } });
     }
 
