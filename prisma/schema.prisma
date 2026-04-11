@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CANDIDATE
+  INTERVIEWER
+  ADMIN
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELED
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  name               String?
+  role               Role                @default(CANDIDATE)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  
+  // Relations
+  candidateProfile   CandidateProfile?
+  interviewerProfile InterviewerProfile?
+
+  // Interview References mapping explicitly to distinguishing relation names
+  interviewsAsCandidate   Interview[] @relation("CandidateInterviews")
+  interviewsAsInterviewer Interview[] @relation("InterviewerInterviews")
+}
+
+model CandidateProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  phone             String?
+  timezone          String?
+  skills            String?  
+  resumeUrl         String?
+  experienceSummary String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model InterviewerProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  title             String?
+  department        String?
+  timezone          String?
+  expertise         String?  
+  bio               String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Interview {
+  id               String          @id @default(cuid())
+  title            String
+  scheduledAt      DateTime
+  durationMinutes  Int             @default(60)
+  status           InterviewStatus @default(SCHEDULED)
+  roomName         String?         // Allows tracking LiveKit or external meeting IDs natively
+  notes            String?         // Added for the scheduler form
+  
+  candidateId      String
+  interviewerId    String
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  // Two-way relational mappers handling dual user intersections
+  candidate        User            @relation("CandidateInterviews", fields: [candidateId], references: [id])
+  interviewer      User            @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
+
+  feedback         InterviewFeedback?
+}
+
+model InterviewFeedback {
+  id              String   @id @default(cuid())
+  interviewId     String   @unique
+  interviewerId   String
+  rating          Int
+  recommendation  String   // "HIRE", "NO_HIRE", "STRONG_HIRE"
+  notes           String?
+  summary         String
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  interview       Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+}
