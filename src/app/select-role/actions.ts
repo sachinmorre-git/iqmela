@@ -20,6 +20,16 @@ export async function saveUserRole(role: Role) {
     if (!email) throw new Error("Processing failed: No primary email found");
 
     console.log(`3. Attempting Prisma User upsert for ${userId}...`);
+    
+    // 🛡️ THE FIX: Because you just generated brand new Clerk Keys today, 
+    // Clerk created a totally new User ID for your email! 
+    // We must gracefully delete your old abandoned Database record to prevent a Unique Constraint collision!
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser && existingUser.id !== userId) {
+      console.log(`Orphaned record found! Deleting old ID ${existingUser.id} to make room for new Clerk ID ${userId}`);
+      await prisma.user.delete({ where: { email } });
+    }
+
     await prisma.user.upsert({
       where: { id: userId },
       update: { role },
