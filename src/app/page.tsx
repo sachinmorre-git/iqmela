@@ -34,10 +34,10 @@ export default function Home() {
         {/* CTA Buttons */}
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 w-full">
           <Button asChild className="w-full sm:w-auto">
-            <Link href="#">Get Started</Link>
+            <Link href="/select-role">Get Started</Link>
           </Button>
           <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href="#">Book Demo</Link>
+            <Link href="/select-role">Book Demo</Link>
           </Button>
         </div>
       </div>
@@ -130,10 +130,10 @@ export default function Home() {
             <p className="text-lg text-indigo-100 max-w-2xl mx-auto mb-10 leading-relaxed">Join leading companies using our dashboard to source, accurately evaluate, and hire top engineering talent faster.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button asChild size="lg" className="w-full sm:w-auto bg-white text-indigo-600 hover:bg-gray-50 shadow-lg hover:shadow-xl dark:bg-white dark:text-indigo-600 dark:hover:bg-gray-100">
-                <Link href="#">Get Started for Free</Link>
+                <Link href="/select-role">Get Started for Free</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="w-full sm:w-auto bg-indigo-700/50 text-white border-indigo-400/50 hover:bg-indigo-700/80 hover:text-white hover:border-indigo-300 dark:hover:text-white backdrop-blur-sm">
-                <Link href="#">Contact Sales</Link>
+                <Link href="/select-role">Contact Sales</Link>
               </Button>
             </div>
           </div>
