@@ -38,7 +38,7 @@ export async function saveFile(
   if (USE_BLOB) {
     const blobPath = `resumes/${positionId}/${safeName}`;
     const { url } = await put(blobPath, buffer, {
-      access: "private",
+      access: "public",
       contentType: getMimeType(safeName),
     });
     return { storagePath: url };
