@@ -21,8 +21,15 @@ export interface StorageUploadResult {
   storagePath: string;
 }
 
-/** True when the Vercel Blob token is present in the environment. */
-const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
+/** Resolve whichever token Vercel injected — name varies by how the store was connected.
+ *  Check the specifically-named tokens first so the old private-store token loses priority. */
+const BLOB_TOKEN =
+  process.env.BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN ||
+  process.env.iqmela_resumes_v1_READ_WRITE_TOKEN ||
+  process.env.BLOB_READ_WRITE_TOKEN ||
+  undefined;
+
+const USE_BLOB = !!BLOB_TOKEN;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Upload
@@ -40,6 +47,7 @@ export async function saveFile(
     const { url } = await put(blobPath, buffer, {
       access: "public",
       contentType: getMimeType(safeName),
+      token: BLOB_TOKEN,
     });
     return { storagePath: url };
   }
@@ -63,7 +71,7 @@ export async function saveFile(
 
 export async function deleteFile(storagePath: string): Promise<void> {
   if (isBlobUrl(storagePath)) {
-    await del(storagePath);
+    await del(storagePath, { token: BLOB_TOKEN });
     return;
   }
 
