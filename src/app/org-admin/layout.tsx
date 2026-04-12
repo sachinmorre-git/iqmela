@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
 
 export default async function OrgAdminLayout({
   children,
@@ -17,10 +16,8 @@ export default async function OrgAdminLayout({
   if (!user) redirect('/select-role')
 
   if (user.role !== 'ADMIN') {
-    const cookieStore = await cookies()
     const roleMap: Record<string, string> = { ADMIN: 'org-admin', CANDIDATE: 'candidate', INTERVIEWER: 'interviewer' }
     const correctSegment = roleMap[user.role] ?? 'select-role'
-    cookieStore.set('user_role', correctSegment, { path: '/' })
     redirect(`/${correctSegment}/dashboard`)
   }
   // ── End Role Guard ──────────────────────────────────────────────────────
