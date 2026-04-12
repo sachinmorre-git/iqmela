@@ -1,20 +1,40 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { saveUserRole } from "./actions";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { Role } from "@prisma/client";
 
 export function RoleCards() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
+  const { openSignUp } = useClerk();
   const router = useRouter();
   const [loadingRole, setLoadingRole] = useState<string | null>(null);
+
+  // Auto-resume role selection if user just completed the sign-up flow
+  useEffect(() => {
+    if (isLoaded && user) {
+      const pendingRole = localStorage.getItem("pending_iqmela_role") as Role | null;
+      if (pendingRole && !loadingRole) {
+        localStorage.removeItem("pending_iqmela_role");
+        handleRoleSelect(pendingRole);
+      }
+    }
+  }, [isLoaded, user]);
 
   async function handleRoleSelect(role: Role) {
     if (loadingRole) return;
     setLoadingRole(role);
+
+    // If the user isn't logged in yet, queue the role and force them through the auth gate!
+    if (isLoaded && !user) {
+      localStorage.setItem("pending_iqmela_role", role);
+      openSignUp({ fallbackRedirectUrl: "/select-role" });
+      setLoadingRole(null); // Stop spinner, wait for Clerk modal
+      return;
+    }
 
     try {
       // 1. Tell backend to update DB and Clerk APIs
