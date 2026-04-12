@@ -1,10 +1,29 @@
 import Link from 'next/link'
+import { auth } from '@clerk/nextjs/server'
+import { prisma } from '@/lib/prisma'
+import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 
 export default function OrgAdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // ── Role Guard ───────────────────────────────────────────────────────
+  const { userId } = await auth()
+  if (!userId) redirect('/select-role')
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+  if (!user) redirect('/select-role')
+
+  if (user.role !== 'ADMIN') {
+    const cookieStore = await cookies()
+    const roleMap: Record<string, string> = { ADMIN: 'org-admin', CANDIDATE: 'candidate', INTERVIEWER: 'interviewer' }
+    const correctSegment = roleMap[user.role] ?? 'select-role'
+    cookieStore.set('user_role', correctSegment, { path: '/' })
+    redirect(`/${correctSegment}/dashboard`)
+  }
+  // ── End Role Guard ──────────────────────────────────────────────────────
   return (
     <div className="flex flex-col md:flex-row min-h-[85vh] w-full max-w-7xl mx-auto rounded-[2rem] overflow-hidden border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-2xl shadow-teal-500/5 mt-6 mb-16">
       {/* Sidebar */}
