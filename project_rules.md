@@ -1,5 +1,38 @@
 # IQMela-v2 AI Hiring Workflow Implementation Rules
 
+---
+
+## ⚠️ Mandatory Workflow Rules (Follow for EVERY prompt)
+
+### 1. Git — Always Ask Before Pushing
+- **Never** run `git add`, `git commit`, or `git push` automatically.
+- After completing changes, **always stop and ask**:
+  > "Changes are ready. Shall I commit and push to git?"
+- Wait for explicit approval before executing any git command.
+
+### 2. Change Summary — Always Provide After Every Step
+
+After every code change, output **all four** of the following:
+
+#### Files Changed
+List every file that was created, modified, or deleted with a one-line description of what changed.
+
+#### End-User Impact
+Explain what is now different **from the user's perspective** — what they will see, feel, or be able to do that they couldn't before.
+
+#### How to Validate (User-Facing)
+Step-by-step instructions a non-technical person could follow to confirm the change works:
+- Which URL to visit
+- What to click or do
+- What should appear on screen
+
+#### Environment Variables Required
+List any new `.env` keys this step needs. Write `None` if not applicable.
+
+---
+
+
+
 We are extending the existing **Interview Platform (IQMela-v2)** by implementing the **AI layer for the Organization Hiring Workflow** under the **org admin experience**, in very small, incremental steps.
 
 ## Scope and Change Control

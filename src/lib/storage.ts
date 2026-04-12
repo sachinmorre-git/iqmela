@@ -1,53 +1,123 @@
 /**
- * Storage abstraction for uploaded files.
+ * Storage abstraction for uploaded resume files.
  *
- * Current implementation: local filesystem under public/uploads/
- * Swap this file's implementation (or the STORAGE_DRIVER env var) to use
- * Vercel Blob, AWS S3, or any other provider in production.
+ * Driver selection is automatic:
+ *   - If BLOB_READ_WRITE_TOKEN is set → Vercel Blob (production)
+ *   - Otherwise → local public/uploads/ filesystem (development)
+ *
+ * The upload route never needs to know which driver is active.
  */
 
 import fs from "fs/promises";
 import path from "path";
+import { put, del } from "@vercel/blob";
 
 export interface StorageUploadResult {
-  /** Relative web-accessible path, e.g. "/uploads/resumes/abc123/cv.pdf" */
+  /**
+   * The canonical reference to the saved file.
+   * - Local:  relative path  e.g. "/uploads/resumes/pos123/cv.pdf"
+   * - Blob:   absolute URL   e.g. "https://xxx.blob.vercel-storage.com/resumes/pos123/cv.pdf"
+   */
   storagePath: string;
 }
 
-/**
- * Save a single file buffer to local public/uploads directory.
- * Files are stored at: public/uploads/resumes/[positionId]/[fileName]
- * They become publicly accessible at /uploads/resumes/[positionId]/[fileName]
- */
+/** True when the Vercel Blob token is present in the environment. */
+const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Upload
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function saveFile(
   buffer: Buffer,
   positionId: string,
   fileName: string
 ): Promise<StorageUploadResult> {
-  // Sanitise the filename — strip directory traversal chars
   const safeName = path.basename(fileName).replace(/[^a-zA-Z0-9._-]/g, "_");
 
-  // Absolute path on disk
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "resumes", positionId);
+  if (USE_BLOB) {
+    const blobPath = `resumes/${positionId}/${safeName}`;
+    const { url } = await put(blobPath, buffer, {
+      access: "private",
+      contentType: getMimeType(safeName),
+    });
+    return { storagePath: url };
+  }
+
+  // ── Local filesystem fallback ────────────────────────────────────────────
+  const uploadDir = path.join(
+    process.cwd(),
+    "public",
+    "uploads",
+    "resumes",
+    positionId
+  );
   await fs.mkdir(uploadDir, { recursive: true });
-
-  const filePath = path.join(uploadDir, safeName);
-  await fs.writeFile(filePath, buffer);
-
-  // Relative path served by Next.js static file middleware
-  const storagePath = `/uploads/resumes/${positionId}/${safeName}`;
-  return { storagePath };
+  await fs.writeFile(path.join(uploadDir, safeName), buffer);
+  return { storagePath: `/uploads/resumes/${positionId}/${safeName}` };
 }
 
-/**
- * Delete a file from local storage.
- * No-ops gracefully if the file does not exist.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Delete
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function deleteFile(storagePath: string): Promise<void> {
+  if (isBlobUrl(storagePath)) {
+    await del(storagePath);
+    return;
+  }
+
   const filePath = path.join(process.cwd(), "public", storagePath);
   try {
     await fs.unlink(filePath);
   } catch {
     // File may already be gone — that is acceptable
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Download (used by the secure viewer API route)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch the raw file content for a stored resume.
+ * Returns a Web API Response that can be forwarded directly to the client.
+ * Only works for Blob-backed files; local files are served via Next.js static.
+ */
+export async function downloadBlobFile(storagePath: string): Promise<Response> {
+  if (!isBlobUrl(storagePath)) {
+    throw new Error(
+      "downloadBlobFile() is only for Vercel Blob URLs. " +
+        "Local files are served via /uploads/ static route."
+    );
+  }
+  // Blobs are publicly accessible via their unguessable URLs
+  // The download still goes through our auth-protected server route for added control
+  const response = await fetch(storagePath);
+  if (!response.ok) {
+    throw new Error(`Blob fetch failed: ${response.status} ${response.statusText}`);
+  }
+  return response;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function isBlobUrl(storagePath: string): boolean {
+  return storagePath.startsWith("https://");
+}
+
+function getMimeType(fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "pdf":
+      return "application/pdf";
+    case "docx":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    case "doc":
+      return "application/msword";
+    default:
+      return "application/octet-stream";
   }
 }

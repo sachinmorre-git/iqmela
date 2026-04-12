@@ -92,8 +92,9 @@ export async function POST(req: NextRequest) {
         uploaded.push({ id: resume.id, originalFileName: resume.originalFileName });
         console.log(`[upload] Saved resume ${resume.id} — "${file.name}" → ${storagePath}`);
       } catch (fileErr) {
-        console.error(`[upload] Failed to process ${file.name}:`, fileErr);
-        errors.push(`${file.name}: failed to save`);
+        const msg = fileErr instanceof Error ? fileErr.message : String(fileErr);
+        console.error(`[upload] Failed to process ${file.name}:`, msg);
+        errors.push(`${file.name}: ${msg}`);
       }
     }
 
