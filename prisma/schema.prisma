@@ -21,6 +21,40 @@ enum InterviewStatus {
   CANCELED
 }
 
+enum PositionStatus {
+  DRAFT
+  OPEN
+  PAUSED
+  CLOSED
+  ARCHIVED
+}
+
+enum ResumeParsingStatus {
+  UPLOADED
+  QUEUED_FOR_AI
+  EXTRACTING
+  EXTRACTED
+  RANKING
+  RANKED
+  FAILED
+}
+
+enum InviteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+}
+
+enum BatchActionType {
+  EXTRACTION
+  RANKING
+  INVITE_DRAFTS
+  INVITE_SEND
+  FULL_PIPELINE
+  SHORTLIST_UPDATE
+}
+
 model User {
   id                 String              @id @default(cuid())
   email              String              @unique
@@ -32,10 +66,14 @@ model User {
   // Relations
   candidateProfile   CandidateProfile?
   interviewerProfile InterviewerProfile?
+  orgAdminProfile    OrgAdminProfile?
 
   // Interview References mapping explicitly to distinguishing relation names
   interviewsAsCandidate   Interview[] @relation("CandidateInterviews")
   interviewsAsInterviewer Interview[] @relation("InterviewerInterviews")
+
+  // Positions created by this user (Org Admin)
+  positionsCreated        Position[]  @relation("PositionCreator")
 }
 
 model CandidateProfile {
@@ -64,6 +102,105 @@ model InterviewerProfile {
   updatedAt         DateTime @updatedAt
 
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OrgAdminProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  orgName      String?
+  timezone     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Position {
+  id             String         @id @default(cuid())
+  title          String
+  department     String?
+  location       String?
+  employmentType String?        // e.g. FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP
+  description    String?        // Short public-facing summary
+  jdText         String?        // Full job description text (long-form)
+  status         PositionStatus @default(DRAFT)
+
+  createdById    String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  createdBy      User           @relation("PositionCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  // Resumes uploaded against this position
+  resumes        Resume[]
+  invites        InterviewInvite[]
+  batchRuns      PositionBatchRun[]
+}
+
+model Resume {
+  id                String               @id @default(cuid())
+  positionId        String
+  originalFileName  String               // The filename as uploaded by the admin
+  storagePath       String               // Path/key in the storage bucket (e.g. S3 key)
+  mimeType          String               // e.g. "application/pdf"
+  fileSize          Int                  // File size in bytes
+  uploadedAt        DateTime             @default(now()) // When the file was received
+  extractedText     String?              // Raw text extracted from the CV
+  
+  // Extracted Candidate Info
+  candidateName          String?
+  candidateEmail         String?
+  phoneNumber            String?
+  linkedinUrl            String?
+  parsingNotes           String?
+  location               String?
+  skillsJson             Json?
+  experienceYears        Float?
+  educationJson          Json?
+  companiesJson          Json?
+  extractionProvider     String?
+  extractionConfidence   Float?
+  validationWarningsJson Json?
+  
+  // AI Ranking Info
+  matchScore             Int?
+  matchLabel             String?
+  matchedSkillsJson      Json?
+  missingSkillsJson      Json?
+  rankingExplanation     String?
+  notableStrengthsJson   Json?
+  possibleGapsJson       Json?
+  rankingStatus          String?              @default("UNRANKED")
+  rankedAt               DateTime?
+  aiRawOutputJson        Json?
+
+  parsingStatus          ResumeParsingStatus  @default(UPLOADED)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  // Recruiter Workflow
+  isShortlisted          Boolean              @default(false)
+  recruiterNotes         String?
+  overrideName           String?
+  overrideEmail          String?
+  overridePhone          String?
+  overrideLinkedinUrl    String?
+
+  position               Position             @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  invite                 InterviewInvite?
+}
+
+model InterviewInvite {
+  id             String       @id @default(cuid())
+  resumeId       String       @unique
+  positionId     String
+  targetEmail    String
+  status         InviteStatus @default(DRAFT)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  resume         Resume       @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  position       Position     @relation(fields: [positionId], references: [id], onDelete: Cascade)
 }
 
 model Interview {
@@ -101,4 +238,19 @@ model InterviewFeedback {
   updatedAt       DateTime @updatedAt
 
   interview       Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+}
+
+model PositionBatchRun {
+  id             String          @id @default(cuid())
+  positionId     String
+  actionType     BatchActionType
+  status         String          // "COMPLETED", "PARTIAL_SUCCESS", "FAILED"
+  totalProcessed Int
+  succeeded      Int
+  failed         Int
+  skipped        Int
+  detailsJson    Json?           // Error logs or specific details
+  createdAt      DateTime        @default(now())
+
+  position       Position        @relation(fields: [positionId], references: [id], onDelete: Cascade)
 }

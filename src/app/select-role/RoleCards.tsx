@@ -27,7 +27,9 @@ export function RoleCards() {
       // 3. Now it is completely safe to navigate!
       // We use window.location.href instead of router.push to force a HARD navigation.
       // This forces Next.js to bypass the App Router cache and hit middleware.ts fresh, guaranteeing it reads our new cookie!
-      window.location.href = `/${role.toLowerCase()}/dashboard`;
+      // Map the Prisma Role enum to the URL segment (must match cookie value in actions.ts).
+      const urlSegment = role === "ADMIN" ? "org-admin" : role.toLowerCase();
+      window.location.href = `/${urlSegment}/dashboard`;
     } catch (error) {
       console.error(error);
       setLoadingRole(null);
@@ -35,7 +37,7 @@ export function RoleCards() {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-10 w-full max-w-4xl">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10 w-full max-w-6xl">
       {/* Candidate Card */}
       <button 
         type="button" 
@@ -79,6 +81,30 @@ export function RoleCards() {
           <CardContent className="px-0 pb-0">
             <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
               I want to source engineering talent, construct technical evaluations, and conduct live coding sessions.
+            </p>
+          </CardContent>
+        </Card>
+      </button>
+
+      {/* Admin Card */}
+      <button 
+        type="button" 
+        onClick={() => handleRoleSelect("ADMIN")} 
+        className="w-full text-left group outline-none h-full focus:ring-2 focus:ring-teal-500 rounded-xl"
+        disabled={!!loadingRole}
+      >
+        <Card className={`w-full h-full flex flex-col items-center text-center p-10 transition-all duration-300 ${loadingRole === "ADMIN" ? 'opacity-50 scale-95' : 'hover:bg-teal-50/50 dark:hover:bg-teal-950/20 hover:shadow-2xl shadow-lg hover:-translate-y-2 border-2 border-gray-100 dark:border-zinc-800 hover:border-teal-400 dark:hover:border-teal-600'}`}>
+          <div className="w-24 h-24 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center mb-8 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform duration-500 ease-out">
+            {loadingRole === "ADMIN" ? (
+                <div className="w-8 h-8 rounded-full border-4 border-teal-600 border-t-transparent animate-spin"></div>
+            ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            )}
+          </div>
+          <CardTitle className="text-2xl sm:text-3xl mb-4 font-bold">I&apos;m an Org Admin</CardTitle>
+          <CardContent className="px-0 pb-0">
+            <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+              I want to manage teams, analyze platform metrics, and oversee the entire recruitment process.
             </p>
           </CardContent>
         </Card>

@@ -2,7 +2,6 @@
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
 
 export async function saveUserRole(role: Role) {
@@ -67,13 +66,19 @@ export async function saveUserRole(role: Role) {
         update: {}, 
         create: { userId },
       });
+    } else if (role === "ADMIN") {
+      await prisma.orgAdminProfile.upsert({
+        where: { userId },
+        update: {},
+        create: { userId },
+      });
     }
     console.log(`6. Profile upsert SUCCESS.`);
 
     console.log(`7. Pushing metadata to Clerk APIs...`);
     await client.users.updateUserMetadata(userId, {
       publicMetadata: {
-        role: role.toString().toLowerCase(),
+        role: role.toLowerCase() as UserPublicMetadata["role"],
       },
     });
     console.log(`8. Clerk metadata SUCCESS.`);
@@ -82,7 +87,10 @@ export async function saveUserRole(role: Role) {
     // Instead, we set a standard Next.js HTTP cookie with the role!
     // The middleware will read this instantly!
     const { cookies } = await import("next/headers");
-    (await cookies()).set("user_role", role.toString().toLowerCase(), { path: '/' });
+    // Map the Prisma Role enum to the URL segment used by the middleware redirect.
+    // ADMIN maps to "org-admin" so the redirect lands on /org-admin/dashboard.
+    const cookieValue = role === "ADMIN" ? "org-admin" : role.toLowerCase();
+    (await cookies()).set("user_role", cookieValue, { path: '/' });
     console.log(`9. Custom HTTP cookie injected.`);
     
     // Return success instead of redirecting so the client can reload the auth token before navigating

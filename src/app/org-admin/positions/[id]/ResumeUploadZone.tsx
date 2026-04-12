@@ -1,0 +1,279 @@
+"use client";
+
+import { useRef, useState, useCallback, DragEvent, ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const ACCEPTED_MIME = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
+const ACCEPTED_EXT = ".pdf,.doc,.docx";
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function mergeFiles(existing: File[], incoming: File[]): File[] {
+  const names = new Set(existing.map((f) => f.name));
+  const filtered = incoming.filter((f) => ACCEPTED_MIME.includes(f.type) && !names.has(f.name));
+  return [...existing, ...filtered];
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type UploadState = "idle" | "uploading" | "done" | "error";
+
+interface ResumeUploadZoneProps {
+  positionId: string;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export function ResumeUploadZone({ positionId }: ResumeUploadZoneProps) {
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadState, setUploadState] = useState<UploadState>("idle");
+  const [result, setResult] = useState<{ uploaded: number; errors: string[] } | null>(null);
+
+  // ── Drag handlers ───────────────────────────────────────────────────────────
+
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const dropped = Array.from(e.dataTransfer.files);
+    setFiles((prev) => mergeFiles(prev, dropped));
+  }, []);
+
+  // ── Input handler ───────────────────────────────────────────────────────────
+
+  const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files ?? []);
+    setFiles((prev) => mergeFiles(prev, selected));
+    e.target.value = "";
+  }, []);
+
+  // ── Remove ──────────────────────────────────────────────────────────────────
+
+  const removeFile = (name: string) =>
+    setFiles((prev) => prev.filter((f) => f.name !== name));
+
+  // ── Upload ──────────────────────────────────────────────────────────────────
+
+  const handleUpload = async () => {
+    if (!files.length || uploadState === "uploading") return;
+
+    setUploadState("uploading");
+    setResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("positionId", positionId);
+      for (const file of files) {
+        formData.append("files", file);
+      }
+
+      const res = await fetch("/api/org-admin/resumes/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setUploadState("error");
+        setResult({ uploaded: 0, errors: [data.error ?? "Upload failed"] });
+        return;
+      }
+
+      setUploadState("done");
+      setResult({ uploaded: data.count, errors: data.errors ?? [] });
+      setFiles([]); // clear queue on success
+
+      // Re-fetch the server component so the uploaded resumes list refreshes
+      router.refresh();
+
+    } catch {
+      setUploadState("error");
+      setResult({ uploaded: 0, errors: ["Network error — please try again"] });
+    }
+  };
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Drop zone */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="Upload resume files"
+        onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`
+          relative flex flex-col items-center justify-center gap-3
+          rounded-2xl border-2 border-dashed px-6 py-12
+          cursor-pointer transition-all duration-200 select-none
+          ${isDragging
+            ? "border-teal-500 bg-teal-50/60 dark:bg-teal-900/20 scale-[1.005]"
+            : "border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/30 hover:border-teal-400 hover:bg-teal-50/40 dark:hover:bg-teal-900/10"
+          }
+        `}
+      >
+        {/* Upload icon */}
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${isDragging ? "bg-teal-100 dark:bg-teal-800/40 text-teal-600" : "bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500"}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+
+        <div className="text-center pointer-events-none">
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            {isDragging ? "Drop files here" : "Drag & drop resumes here"}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">
+            or <span className="text-teal-600 dark:text-teal-400 font-medium">click to browse</span>
+          </p>
+          <p className="text-xs text-gray-400 dark:text-zinc-500 mt-2">
+            Supported: PDF, DOC, DOCX · Max 10 MB per file
+          </p>
+        </div>
+
+        {/* Hidden file input */}
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          accept={ACCEPTED_EXT}
+          className="hidden"
+          onChange={handleChange}
+          aria-hidden="true"
+        />
+      </div>
+
+      {/* File queue */}
+      {files.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {files.length} file{files.length !== 1 ? "s" : ""} queued
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            {files.map((file) => (
+              <li
+                key={file.name}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{file.name}</p>
+                  <p className="text-xs text-gray-400 dark:text-zinc-500">{formatBytes(file.size)}</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label={`Remove ${file.name}`}
+                  onClick={(e) => { e.stopPropagation(); removeFile(file.name); }}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-gray-300 dark:text-zinc-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Result feedback */}
+      {result && (
+        <div className={`flex items-start gap-3 rounded-xl px-4 py-3 text-sm font-medium
+          ${uploadState === "done"
+            ? "bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 border border-teal-100 dark:border-teal-800/50"
+            : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/50"
+          }`}
+        >
+          <span>
+            {uploadState === "done"
+              ? `✓ ${result.uploaded} file${result.uploaded !== 1 ? "s" : ""} uploaded successfully.`
+              : "Upload failed."}
+            {result.errors.length > 0 && (
+              <span className="block mt-1 text-xs opacity-80">
+                {result.errors.join(" · ")}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Action row */}
+      <div className="flex items-center gap-3 pt-1">
+        <Button
+          type="button"
+          disabled={files.length === 0 || uploadState === "uploading"}
+          onClick={handleUpload}
+          className={`rounded-xl shadow-md shadow-teal-600/20 bg-teal-600 hover:bg-teal-700 text-white border-transparent hover:-translate-y-0.5 transition-transform
+            ${(files.length === 0 || uploadState === "uploading") ? "opacity-40 cursor-not-allowed" : ""}`}
+        >
+          {uploadState === "uploading" ? (
+            <>
+              <svg className="mr-2 animate-spin" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+              Uploading…
+            </>
+          ) : (
+            <>
+              <svg className="mr-2" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              {files.length === 0
+                ? "Upload Resumes"
+                : `Upload ${files.length} Resume${files.length !== 1 ? "s" : ""}`}
+            </>
+          )}
+        </Button>
+
+        {files.length > 0 && uploadState !== "uploading" && (
+          <button
+            type="button"
+            onClick={() => { setFiles([]); setResult(null); setUploadState("idle"); }}
+            className="text-xs text-gray-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-colors font-medium"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
