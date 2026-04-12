@@ -16,8 +16,7 @@ export default clerkMiddleware(async (auth, req) => {
   if (userId) {
     // Rely primarily on Clerk's cryptographically secure session claims.
     // If the token is freshly issued, it contains the correct role natively!
-    // We fall back to the generic cookie ONLY if necessary (for rapid client-side transitions before tokens refresh)
-    const tokenRole = sessionClaims?.publicMetadata?.role as string | undefined;
+    const tokenRole = (sessionClaims?.publicMetadata as Record<string, any>)?.role as string | undefined;
     const cookieRole = req.cookies.get("user_role")?.value;
     
     // Normalize mapping (e.g. "ADMIN" in prisma is "org-admin" in URL)
