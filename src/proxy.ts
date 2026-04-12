@@ -12,32 +12,43 @@ const isProtectedRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
 
-  // Handle post-login redirection based on assigned roles
   if (userId) {
-    // Rely primarily on Clerk's cryptographically secure session claims.
-    // If the token is freshly issued, it contains the correct role natively!
+    // Clerk's session token is the authoritative source of truth.
+    // It is cryptographically signed by Clerk and cannot be spoofed.
     const tokenRole = (sessionClaims?.publicMetadata as Record<string, any>)?.role as string | undefined;
-    const cookieRole = req.cookies.get("user_role")?.value;
-    
-    // Normalize mapping (e.g. "ADMIN" in prisma is "org-admin" in URL)
-    const activeRole = tokenRole === "admin" ? "org-admin" : (tokenRole || cookieRole);
 
-    // 1. If user visits /select-role but already has an ACTIVE role tied EXACTLY to this identity, redirect them
+    // Normalize: Prisma enum "admin" → URL segment "org-admin"
+    const normalizedTokenRole = tokenRole === "admin" ? "org-admin" : tokenRole;
+
+    const cookieRole = req.cookies.get("user_role")?.value;
+
+    // 🔥 THE CORE FIX: If Clerk says one role but the cookie says another,
+    // the cookie is STALE (e.g. from a previous account session or role change).
+    // Overwrite it immediately and redirect so the next request is clean.
+    if (normalizedTokenRole && cookieRole && normalizedTokenRole !== cookieRole) {
+      const response = NextResponse.redirect(req.nextUrl);
+      response.cookies.set("user_role", normalizedTokenRole, { path: "/" });
+      return response;
+    }
+
+    // Determine the active role — prefer the verified token, fall back to cookie
+    const activeRole = normalizedTokenRole || cookieRole;
+
+    // 1. If visiting /select-role but already has a role, redirect to their dashboard
     if (req.nextUrl.pathname === '/select-role' && activeRole) {
-      const urlSegment = activeRole.toLowerCase() === "admin" ? "org-admin" : activeRole.toLowerCase();
-      // Allow overriding if they append ?force=true
+      // Allow overriding with ?force=true (e.g. to switch roles)
       if (!req.nextUrl.searchParams.has('force')) {
-        return NextResponse.redirect(new URL(`/${urlSegment}/dashboard`, req.url));
+        return NextResponse.redirect(new URL(`/${activeRole}/dashboard`, req.url));
       }
     }
 
-    // 2. If user tries to access a protected route but has NO role, force them to select one
+    // 2. If hitting a protected route with no role, send to select-role
     if (isProtectedRoute(req) && !activeRole) {
       return NextResponse.redirect(new URL('/select-role', req.url));
     }
   }
 
-  // Enforce global auth protection
+  // Enforce global auth protection on all dashboard routes
   if (isProtectedRoute(req)) {
     await auth.protect();
   }
