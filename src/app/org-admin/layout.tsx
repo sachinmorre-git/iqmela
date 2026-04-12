@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 
-export default function OrgAdminLayout({
+export default async function OrgAdminLayout({
   children,
 }: {
   children: React.ReactNode

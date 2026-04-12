@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 
-export default function InterviewerLayout({
+export default async function InterviewerLayout({
   children,
 }: {
   children: React.ReactNode
