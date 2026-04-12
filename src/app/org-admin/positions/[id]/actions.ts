@@ -216,7 +216,10 @@ export async function bulkRankAllAction(positionId: string): Promise<{ success: 
         data: { parsingStatus: "RANKING" },
       })
 
-      const rankData = await resumeAiService.rankResumeAgainstJD(resume.extractedText, position.jdText)
+      const rankData = await resumeAiService.rankResumeAgainstJD(
+        resume.extractedText || "", 
+        position.jdText || ""
+      )
 
       await prisma.resume.update({
         where: { id: resume.id },
