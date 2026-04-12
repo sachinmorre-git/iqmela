@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { resumeParser } from "@/lib/resume-parser"
 import { mailService } from "@/lib/mail"
 import { revalidatePath } from "next/cache"
@@ -110,8 +111,8 @@ export async function bulkExtractAllAction(positionId: string): Promise<{ succes
           companiesJson:          extracted.companies,
           extractionProvider:     provider,
           extractionConfidence:   null,
-          aiRawOutputJson:        extracted.rawOutput ?? null,
-          validationWarningsJson: warnings.length > 0 ? warnings : null,
+          aiRawOutputJson:        extracted.rawOutput ?? Prisma.JsonNull,
+          validationWarningsJson: warnings.length > 0 ? warnings : Prisma.JsonNull,
           parsingNotes:           warnings.length > 0 ? `${warnings.length} validation warning(s)` : null,
         },
       })
