@@ -196,6 +196,7 @@ model InterviewInvite {
   positionId     String
   targetEmail    String
   status         InviteStatus @default(DRAFT)
+  lastDeliveryStatus String?  // Stores Resend webhook events (e.g. delivered, bounced)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 

@@ -17,6 +17,38 @@ export interface BulkExtractionResult {
   errors: Array<{ fileName: string; error: string }>
 }
 
+export async function deletePositionAction(positionId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { userId } = await auth()
+    if (!userId) return { success: false, error: "Unauthorized" }
+
+    const position = await prisma.position.findUnique({ where: { id: positionId } })
+    if (!position || position.createdById !== userId) return { success: false, error: "Not found or unauthorized" }
+
+    await prisma.position.delete({ where: { id: positionId } })
+    revalidatePath("/org-admin/positions")
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+  }
+}
+
+export async function archivePositionAction(positionId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { userId } = await auth()
+    if (!userId) return { success: false, error: "Unauthorized" }
+
+    const position = await prisma.position.findUnique({ where: { id: positionId } })
+    if (!position || position.createdById !== userId) return { success: false, error: "Not found or unauthorized" }
+
+    await prisma.position.update({ where: { id: positionId }, data: { status: "ARCHIVED" } })
+    revalidatePath("/org-admin/positions")
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+  }
+}
+
 export async function bulkExtractAllAction(positionId: string): Promise<{ success: boolean; result?: BulkExtractionResult; error?: string }> {
   const { userId } = await auth()
   if (!userId) return { success: false, error: "Unauthorized" }
@@ -509,23 +541,43 @@ export async function bulkSendInvitesAction(positionId: string, resumeIds: strin
 
       const candidateName = resume.overrideName || resume.candidateName || "Candidate"
 
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://iqmela.com"
+      const inviteLink = `${baseUrl}/interview/${invite.id}`
+
+      // ── IDEMPOTENCY LOCK: Prevent Duplicate Sends ──────────────────────────
+      // Atomically attempt to transition this specific invite from DRAFT to SENT.
+      // If of 5 concurrent rapid clicks only 1 succeeds, it locks out the others.
+      const lockClaim = await prisma.interviewInvite.updateMany({
+        where: { id: invite.id, status: "DRAFT" },
+        data: { status: "SENT" }
+      })
+
+      if (lockClaim.count === 0) {
+        skipped++
+        failedLog.push(`Skipped: ${resume.originalFileName} (Race condition intercepted - already processing)`)
+        continue
+      }
+      // ───────────────────────────────────────────────────────────────────────
+
       const mailRes = await mailService.sendInterviewInvite({
         to: invite.targetEmail,
         candidateName,
         positionTitle: position.title,
+        inviteLink,
+        inviteId: invite.id,
       })
 
       if (!mailRes.success) {
+        // Revert the lock if the network provider completely failed
+        await prisma.interviewInvite.update({
+          where: { id: invite.id },
+          data: { status: "DRAFT" }
+        })
         skipped++
         failedLog.push(`Failed sending to ${invite.targetEmail} (${resume.originalFileName}): ${mailRes.error}`)
         continue
       }
 
-      // Success – update DB
-      await prisma.interviewInvite.update({
-        where: { id: invite.id },
-        data: { status: "SENT" }
-      })
       sent++
     }
 

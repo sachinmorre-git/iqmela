@@ -353,3 +353,49 @@ Step 50 — Add post-interview feedback form
 ## Step 100 — Finalize the Org Admin bulk hiring control center
 
 -> Refine the Org Admin Position Details page and related review pages so the full hiring workflow is clearly optimized for bulk processing. The final experience should support: uploading resumes for a position, extracting all candidate data with one action, ranking all candidates with one action, running the full AI pipeline with one action, reviewing ranked candidates in a recruiter-friendly table, shortlisting candidates directly from the table, creating invite drafts in bulk, and sending invites in bulk. Make the primary actions prominent and ensure the Position Details page feels like a true hiring workflow control center.
+
+
+## Step 101 — Add email architecture shell
+-> Add a provider-agnostic email architecture to the existing IQMela project. Create a clean email service layer, define a generic email sender interface, prepare the app for a first real provider implementation using Resend, keep everything server-side and Vercel-friendly, and do not send real emails yet.
+
+## Step 102 — Add required dependencies
+-> Add all required libraries and dependencies for the IQMela email system, including the main Resend SDK and the React Email dependencies needed for reusable email templates. Update package.json cleanly, and do not implement real sending yet.
+
+## Step 103 — Add environment variable configuration
+-> Add environment-variable based configuration for the email system. Support a provider selector, Resend API key, default from email, default reply-to email, app base URL, and webhook secret placeholder. Update .env.local.example and do not expose secrets in the UI.
+
+## Step 104 — Implement Resend provider
+-> Implement the first real email provider for IQMela using Resend. Implement the generic email sender interface using Resend, keep all sending logic in server-side code, support subject, to, cc, bcc, html, text, and reply-to where appropriate, and preserve the ability to replace Resend later.
+
+## Step 105 — Add React Email template foundation
+-> Create a reusable email template foundation for IQMela using React Email. Create a shared base email layout component, add a consistent header and footer style for all emails, include IQMela branding, and keep templates modular and reusable.
+
+## Step 106 — Add invite email template
+-> Create a real interview invitation email template for IQMela using the React Email template system. Include candidate name placeholder, position title, company or org placeholder, a call-to-action button, invite link placeholder, and fallback plain-text-friendly content in a clean and professional layout.
+
+## Step 107 — Add email preview and test route
+-> Add a safe development-only route or preview page to render and inspect IQMela email templates in the browser. Support previewing the interview invite template with sample data, keep the route protected or disabled appropriately for production, and do not send real emails from this route.
+
+## Step 108 — Add email send test endpoint or action
+-> Add a safe server-side email send test action or endpoint for IQMela. Send a real test email using the configured Resend provider, use the interview invitation template or a minimal test template, require a test recipient input or controlled sample email, and keep it separate from the org-admin invite workflow.
+
+## Step 109 — Add Org Admin email settings UI
+-> Create an Org Admin or system settings UI section for email configuration visibility. Show current provider name, whether API key is configured, default from email, default reply-to email, and environment readiness indicators without revealing secrets in plaintext.
+
+## Step 110 — Wire single invite draft to real email sending
+-> Integrate the real Resend email provider into the existing IQMela invite workflow for single invite sending. When Org Admin sends an invite draft, use the real configured provider, use the React Email invite template, pass dynamic invite data into the template, update invite status on success, and handle failures cleanly.
+
+## Step 111 — Wire batch invite sending
+-> Integrate the real email provider into the batch invite sending workflow. Support sending selected invite drafts in batch, continue even if one invite fails, update each invite record independently, show a batch success and failure summary, and keep the sending logic reusable and provider-agnostic.
+
+## Step 112 — Add idempotency and duplicate-send protection
+-> Add duplicate-send protection to the IQMela email sending flow. Prevent accidental duplicate invite sends from repeated clicks or retries, add idempotency or equivalent protection at the application layer, and preserve correct status updates in the database for both single and batch sending.
+
+## Step 113 — Add delivery event and webhook handling
+-> Add webhook handling for email events in IQMela. Prepare a secure webhook endpoint for the email provider, support the core event types needed for invite tracking, verify webhook authenticity using environment-based secrets, and update invite or email tracking records in the database when events arrive.
+
+## Step 114 — Add email activity UI
+-> Create an email activity view in IQMela for Org Admins. Show sent status, failed status, and key delivery-related states if available, link activity to invite records, and make it easy to understand which candidates were emailed successfully.
+
+## Step 115 — Prepare production deployment instructions for Vercel and domain email
+-> Prepare the final production-ready email deployment setup for IQMela on Vercel using the current provider. Document all required environment variables for Vercel, document DNS records required for the sending domain, clearly separate app domain setup and email domain setup, explain how to verify the sending domain, explain how to test production safely, and keep the setup easy to reconfigure later for another provider.
