@@ -61,7 +61,8 @@ export function OverrideCandidateAction({
   return (
     <>
       <button
-        onClick={handleOpen}
+        type="button"
+        onClick={(e) => { e.stopPropagation(); handleOpen(); }}
         disabled={isPending}
         className="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 dark:text-zinc-500 hover:text-teal-600 dark:hover:text-teal-400 transition-colors ml-1 shrink-0"
         title="Override AI Extracted Details"
@@ -70,8 +71,14 @@ export function OverrideCandidateAction({
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-2xl shadow-xl border border-gray-100 dark:border-zinc-800 p-6 flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-2xl shadow-xl border border-gray-100 dark:border-zinc-800 p-6 flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div>
               <h3 className="font-bold text-gray-900 dark:text-white text-base">Edit Candidate Details</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
@@ -127,14 +134,16 @@ export function OverrideCandidateAction({
             
             <div className="flex items-center justify-end gap-2 mt-2">
               <button
-                onClick={() => setIsOpen(false)}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
                 className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-zinc-800 transition-colors"
                 disabled={isPending}
               >
                 Cancel
               </button>
               <button
-                onClick={handleSave}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleSave(); }}
                 disabled={isPending}
                 className="px-4 py-2 rounded-xl text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50"
               >
