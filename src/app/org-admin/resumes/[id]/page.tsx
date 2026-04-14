@@ -7,7 +7,7 @@ import Link from "next/link"
 import { ExtractTextButton } from "./ExtractTextButton"
 import { RunAiExtractionButton } from "./RunAiExtractionButton"
 import { RawAiOutputDebug } from "./RawAiOutputDebug"
-import { CandidateFitCard } from "../positions/[id]/CandidateFitCard"
+import { CandidateFitCard } from "../../positions/[id]/CandidateFitCard"
 
 export async function generateMetadata({
   params,
