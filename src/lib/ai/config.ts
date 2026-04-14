@@ -8,6 +8,9 @@ export interface AiConfig {
   /** Which AI provider to use: "deepseek" | "gemini" | "mock" */
   provider: "deepseek" | "gemini" | "mock";
 
+  /** Whether fallback logic is enabled */
+  fallbackEnabled: boolean;
+
   /** Fallback provider if the primary fails or lacks a key */
   fallbackProvider: "gemini" | "mock";
 
@@ -26,6 +29,9 @@ export interface AiConfig {
   /** Temperature for structured extraction (lower = more deterministic) */
   temperature:        number;
 
+  /** Max output tokens (optional limit) */
+  maxOutputTokens?:   number;
+
   /** Whether the current configuration is considered production-ready */
   isReady: boolean;
 
@@ -40,6 +46,7 @@ function loadAiConfig(): AiConfig {
   const deepseekKey = process.env.DEEPSEEK_API_KEY || null;
   const geminiKey = process.env.GEMINI_API_KEY || null;
   
+  const fallbackEnabled = process.env.AI_FALLBACK_ENABLED !== "false";
   const fallbackProvider = (rawFallback === "gemini" && geminiKey) ? "gemini" : "mock";
 
   // Resolve effective provider
@@ -56,6 +63,7 @@ function loadAiConfig(): AiConfig {
   }
 
   const temperature = process.env.AI_TEMPERATURE ? parseFloat(process.env.AI_TEMPERATURE) : 0.1;
+  const maxOutputTokens = process.env.AI_MAX_OUTPUT_TOKENS ? parseInt(process.env.AI_MAX_OUTPUT_TOKENS) : undefined;
 
   const isReady = (provider === "deepseek" && !!deepseekKey) || (provider === "gemini" && !!geminiKey);
 
@@ -65,6 +73,7 @@ function loadAiConfig(): AiConfig {
 
   return {
     provider,
+    fallbackEnabled,
     fallbackProvider,
     deepseek: {
       apiKey: deepseekKey,
@@ -77,6 +86,7 @@ function loadAiConfig(): AiConfig {
       model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     },
     temperature,
+    maxOutputTokens,
     isReady,
     statusMessage,
   };

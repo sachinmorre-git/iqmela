@@ -104,6 +104,7 @@ export interface InterviewQuestion {
 export interface InterviewPrepResult {
   focusAreas: InterviewFocusArea[];
   questions: InterviewQuestion[];
+  usage?: AiUsageData;
 }
 
 export interface RedFlag {
@@ -113,6 +114,7 @@ export interface RedFlag {
 
 export interface RedFlagAnalysisResult {
   flags: RedFlag[];
+  usage?: AiUsageData;
 }
 
 // ── Provider Interface ──────────────────────────────────────────────────────

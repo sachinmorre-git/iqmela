@@ -9,9 +9,9 @@ import type {
   RecommendationResult,
 } from "../types";
 
-const MODEL_EXTRACTION = aiConfig.models.extractionModel;
-const MODEL_RANKING    = aiConfig.models.rankingModel;
-const MODEL_SUMMARY    = aiConfig.models.summaryModel;
+const MODEL_EXTRACTION = aiConfig.deepseek.chatModel;
+const MODEL_RANKING    = aiConfig.deepseek.reasonerModel;
+const MODEL_SUMMARY    = aiConfig.deepseek.chatModel;
 const TEMPERATURE      = aiConfig.temperature;
 
 /**

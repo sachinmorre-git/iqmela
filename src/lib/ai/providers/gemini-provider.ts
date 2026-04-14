@@ -9,9 +9,9 @@ import type {
   RecommendationResult,
 } from "../types";
 
-const MODEL_EXTRACTION = aiConfig.models.extractionModel;
-const MODEL_RANKING    = aiConfig.models.rankingModel;
-const MODEL_SUMMARY    = aiConfig.models.summaryModel;
+const MODEL_EXTRACTION = aiConfig.gemini.model;
+const MODEL_RANKING    = aiConfig.gemini.model;
+const MODEL_SUMMARY    = aiConfig.gemini.model;
 const TEMPERATURE      = aiConfig.temperature;
 
 /**

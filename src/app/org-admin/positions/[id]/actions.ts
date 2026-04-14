@@ -411,7 +411,7 @@ export async function bulkRankAllAction(positionId: string): Promise<{ success: 
           preferredSkills: (position.jdPreferredSkillsJson as string[]) || [],
           seniority: null,
           roleType: null,
-          structuredJd: position.structuredJdJson || {}
+          structuredJd: (position.structuredJdJson as Record<string, any>) || {}
         };
       }
 

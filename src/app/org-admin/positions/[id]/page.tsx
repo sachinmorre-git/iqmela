@@ -191,7 +191,7 @@ export default async function PositionDetailPage({
                   <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Required Skills</h4>
                   <div className="flex flex-wrap gap-2">
                     {Array.isArray(position.jdRequiredSkillsJson) && position.jdRequiredSkillsJson.length > 0 ? (
-                      position.jdRequiredSkillsJson.map((skill: string) => (
+                      (position.jdRequiredSkillsJson as string[]).map((skill: string) => (
                         <span key={skill} className="px-2 py-1 rounded-md text-xs font-semibold bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 border border-violet-100 dark:border-violet-800/30">
                           {skill}
                         </span>
@@ -205,7 +205,7 @@ export default async function PositionDetailPage({
                   <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Core Keywords</h4>
                   <div className="flex flex-wrap gap-2">
                     {Array.isArray(position.jdKeywordsJson) && position.jdKeywordsJson.length > 0 ? (
-                      position.jdKeywordsJson.map((kw: string) => (
+                      (position.jdKeywordsJson as string[]).map((kw: string) => (
                         <span key={kw} className="px-2 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400 border border-gray-200 dark:border-zinc-700">
                           {kw}
                         </span>
