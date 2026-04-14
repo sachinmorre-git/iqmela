@@ -1,6 +1,7 @@
 import type {
   HiringAiProvider,
   ExtractedResumeData,
+  ExtractedJdData,
   JdAnalysisResult,
   ResumeRankingResult,
   CandidateSummaryResult,
@@ -33,6 +34,19 @@ export class MockHiringAiProvider implements HiringAiProvider {
       validationWarnings: [],
       extractionConfidence: 0.95,
       rawOutput: { mock: true, provider: "MockHiringAiProvider" },
+    };
+  }
+
+  async extractJdFromText(rawText: string): Promise<ExtractedJdData> {
+    console.log("[MockAI] extractJdFromText");
+    await this._delay(400);
+    return {
+      title:          "Mock Senior Engineer",
+      department:     "Engineering",
+      location:       "Remote",
+      employmentType: "FULL_TIME",
+      description:    "A mock position for testing the JD auto-fill feature.",
+      jdText:         rawText,
     };
   }
 

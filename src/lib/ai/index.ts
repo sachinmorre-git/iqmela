@@ -54,6 +54,10 @@ class ProxyHiringAiProvider implements HiringAiProvider {
     return this.withFallback(p => p.extractResumeJson(rawText, fileName), "extractResumeJson");
   }
 
+  async extractJdFromText(rawText: string) {
+    return this.withFallback(p => p.extractJdFromText(rawText), "extractJdFromText");
+  }
+
   async analyzeJdJson(jdText: string, positionTitle?: string) {
     return this.withFallback(p => p.analyzeJdJson(jdText, positionTitle), "analyzeJdJson");
   }
@@ -93,6 +97,7 @@ export const hiringAi: HiringAiProvider = new ProxyHiringAiProvider();
 export type {
   HiringAiProvider,
   ExtractedResumeData,
+  ExtractedJdData,
   JdAnalysisResult,
   ResumeRankingResult,
   CandidateSummaryResult,

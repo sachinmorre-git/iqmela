@@ -54,6 +54,17 @@ export interface JdAnalysisResult {
   usage?:           AiUsageData;
 }
 
+/** Structured data extracted from a raw JD file for form auto-population */
+export interface ExtractedJdData {
+  title:          string | null;
+  department:     string | null;
+  location:       string | null;
+  employmentType: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP" | null;
+  description:    string | null;  // short public-facing summary (1-2 sentences)
+  jdText:         string;         // full cleaned JD text
+  usage?:         AiUsageData;
+}
+
 // ── Ranking ────────────────────────────────────────────────────────────────
 
 export interface ResumeRankingResult {
@@ -128,6 +139,9 @@ export interface HiringAiProvider {
 
   /** Extract structured candidate data from raw resume text */
   extractResumeJson(rawText: string, fileName?: string): Promise<ExtractedResumeData>;
+
+  /** Extract structured fields from raw JD text for form auto-population */
+  extractJdFromText(rawText: string): Promise<ExtractedJdData>;
 
   /** Parse and structure a job description for downstream use */
   analyzeJdJson(jdText: string, positionTitle?: string): Promise<JdAnalysisResult>;

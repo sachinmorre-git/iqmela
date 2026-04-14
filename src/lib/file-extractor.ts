@@ -38,6 +38,11 @@ export interface ResumeFileTextExtractor {
    * fetch the file and return the extracted plain text.
    */
   extractText(storagePath: string, mimeType: string, fileName?: string): Promise<TextExtractionResult>;
+
+  /**
+   * Extract text from an in-memory Buffer (for API routes receiving direct uploads).
+   */
+  extractTextFromBuffer(buffer: Buffer, mimeType: string, fileName?: string): Promise<TextExtractionResult>;
 }
 
 // ── File Fetcher ─────────────────────────────────────────────────────────────
@@ -166,6 +171,43 @@ export class ResumeFileExtractor implements ResumeFileTextExtractor {
       return { text: "", success: false, parser: "error", charCount: 0, warnings: [], error };
     }
   }
+
+  /** Extract text from an in-memory Buffer (used by API routes that receive file uploads directly) */
+  async extractTextFromBuffer(buffer: Buffer, mimeType: string, fileName?: string): Promise<TextExtractionResult> {
+    console.log(`[FileExtractor] Extracting from buffer — file: ${fileName ?? "unknown"}, mime: ${mimeType}`);
+    try {
+      let extracted: { text: string; warnings: string[] };
+      let parser: string;
+
+      if (mimeType === "application/pdf") {
+        extracted = await extractPdf(buffer);
+        parser = "pdf-parse";
+      } else if (
+        mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        mimeType === "application/msword"
+      ) {
+        extracted = await extractDocx(buffer);
+        parser = "mammoth";
+      } else if (mimeType === "text/plain") {
+        extracted = await extractPlainText(buffer);
+        parser = "plaintext";
+      } else {
+        return {
+          text: "", success: false, parser: "unsupported", charCount: 0, warnings: [],
+          error: `Unsupported MIME type: ${mimeType}. Supported: PDF, DOCX, TXT.`,
+        };
+      }
+
+      const cleanText = extracted.text.trim();
+      if (cleanText.length === 0) {
+        return { text: "", success: false, parser, charCount: 0, warnings: extracted.warnings, error: "Empty extraction." };
+      }
+      return { text: cleanText, success: true, parser, charCount: cleanText.length, warnings: extracted.warnings };
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      return { text: "", success: false, parser: "error", charCount: 0, warnings: [], error };
+    }
+  }
 }
 
 // ── Mock Implementation ──────────────────────────────────────────────────────
@@ -209,6 +251,10 @@ TypeScript, React, Node.js, PostgreSQL, Redis, Docker, AWS, GraphQL, REST APIs, 
       charCount: mockText.length,
       warnings: [],
     };
+  }
+
+  async extractTextFromBuffer(buffer: Buffer, mimeType: string, fileName?: string): Promise<TextExtractionResult> {
+    return this.extractText("mock://buffer", mimeType, fileName ?? "buffer");
   }
 }
 

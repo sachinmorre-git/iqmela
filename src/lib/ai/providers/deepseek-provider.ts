@@ -3,6 +3,7 @@ import { aiConfig } from "../config";
 import type {
   HiringAiProvider,
   ExtractedResumeData,
+  ExtractedJdData,
   JdAnalysisResult,
   ResumeRankingResult,
   CandidateSummaryResult,
@@ -114,6 +115,48 @@ ${rawText}`;
       validationWarnings:  [],
       extractionConfidence: typeof parsed.extractionConfidence === "number" ? parsed.extractionConfidence : 0.9,
       rawOutput:           parsed,
+      usage,
+    };
+  }
+
+  // ── JD Auto-Fill Extraction ──────────────────────────────────────────────
+
+  async extractJdFromText(rawText: string): Promise<ExtractedJdData> {
+    const prompt = `You are an expert HR data parser. Extract structured information from the following job description text.
+Return strictly a JSON object with this schema:
+{
+  "title": string | null,
+  "department": string | null,
+  "location": string | null,
+  "employmentType": string | null,
+  "description": string | null,
+  "jdText": string
+}
+Rules:
+- title: The exact job title (e.g. "Senior Data Engineer")
+- department: Department or team (e.g. "Engineering", "Data & Analytics")
+- location: Work location (e.g. "Remote", "New York, NY", "Hybrid - London")
+- employmentType: Must be exactly one of: "FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP", or null
+- description: A 1-2 sentence public-facing summary suitable for a job listings page
+- jdText: The full cleaned job description text, preserving all details
+Return only factual information visible in the text. Do not infer or hallucinate data.
+
+Job Description:
+${rawText}`;
+
+    const { raw, usage } = await this._generate(prompt, MODEL_EXTRACTION, true, "jd-autofill-v1");
+    const parsed = this.parseJsonFromOutput(raw);
+
+    const validTypes = ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP"];
+    const rawType = (parsed.employmentType ?? "").toUpperCase().replace(/[\s-]/g, "_");
+
+    return {
+      title:          parsed.title          ?? null,
+      department:     parsed.department     ?? null,
+      location:       parsed.location       ?? null,
+      employmentType: validTypes.includes(rawType) ? rawType as ExtractedJdData["employmentType"] : null,
+      description:    parsed.description    ?? null,
+      jdText:         parsed.jdText         ?? rawText,
       usage,
     };
   }
