@@ -8,6 +8,9 @@ export interface AiConfig {
   /** Which AI provider to use: "deepseek" | "gemini" | "mock" */
   provider: "deepseek" | "gemini" | "mock";
 
+  /** Execution mode: "dev" (sequential/delayed) or "prod" (parallel/fast/advanced models) */
+  mode: "dev" | "prod";
+
   /** Whether fallback logic is enabled */
   fallbackEnabled: boolean;
 
@@ -49,6 +52,8 @@ function loadAiConfig(): AiConfig {
   const fallbackEnabled = process.env.AI_FALLBACK_ENABLED !== "false";
   const fallbackProvider = (rawFallback === "gemini" && geminiKey) ? "gemini" : "mock";
 
+  const mode: AiConfig["mode"] = process.env.AI_EXECUTION_MODE?.toLowerCase() === "prod" ? "prod" : "dev";
+
   // Resolve effective provider
   let provider: AiConfig["provider"];
   if (rawProvider === "mock") {
@@ -73,17 +78,18 @@ function loadAiConfig(): AiConfig {
 
   return {
     provider,
+    mode,
     fallbackEnabled,
     fallbackProvider,
     deepseek: {
       apiKey: deepseekKey,
       baseUrl: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
       chatModel: process.env.DEEPSEEK_CHAT_MODEL || "deepseek-chat",
-      reasonerModel: process.env.DEEPSEEK_REASONER_MODEL || "deepseek-reasoner",
+      reasonerModel: mode === "prod" ? "deepseek-chat" : (process.env.DEEPSEEK_REASONER_MODEL || "deepseek-reasoner"),
     },
     gemini: {
       apiKey: geminiKey,
-      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      model: mode === "prod" ? "gemini-1.5-pro" : (process.env.GEMINI_MODEL || "gemini-2.5-flash"),
     },
     temperature,
     maxOutputTokens,

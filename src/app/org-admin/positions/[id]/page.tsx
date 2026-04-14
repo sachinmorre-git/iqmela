@@ -308,27 +308,8 @@ export default async function PositionDetailPage({
               })()}
             </div>
             <div className="flex flex-col sm:items-end gap-5 shrink-0 min-w-[240px]">
-              <div className="w-full">
+              <div className="w-full mt-auto">
                 <BulkProcessButton positionId={position.id} totalResumes={position.resumes.length} hasJd={!!position.jdText && position.jdText.trim() !== ""} />
-              </div>
-              
-              <div className="flex items-center gap-2 w-full mt-1 mb-1 opacity-70">
-                 <div className="h-px bg-violet-200 dark:bg-violet-800/40 flex-1"></div>
-                 <span className="text-[10px] text-violet-500 dark:text-violet-400 font-bold uppercase tracking-widest">or manually</span>
-                 <div className="h-px bg-violet-200 dark:bg-violet-800/40 flex-1"></div>
-              </div>
-              <div className="w-full flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider text-right">Step 1 — Parse Files</span>
-                <BulkExtractTextButton positionId={position.id} totalResumes={position.resumes.length} alreadyExtracted={position.resumes.filter(r => r.extractedText || r.rawExtractedText).length} />
-              </div>
-              <div className="w-full flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider text-right">Step 2 — AI Extract</span>
-                <BulkExtractButton positionId={position.id} totalResumes={position.resumes.length} />
-              </div>
-              <div className="w-full flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider text-right">Step 3 — AI Rank</span>
-                <BulkRankButton positionId={position.id} totalToRank={position.resumes.filter(r => r.extractedText && (r.parsingStatus === "EXTRACTED" || r.parsingStatus === "RANKED")).length} totalResumes={position.resumes.length} />
-                <BulkAdvancedJudgmentButton positionId={position.id} totalRanked={position.resumes.filter(r => r.rankingStatus === "RANKED").length} />
               </div>
             </div>
           </div>

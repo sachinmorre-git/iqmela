@@ -71,12 +71,13 @@ export async function bulkExtractTextAction(positionId: string): Promise<{ succe
 
   const result: TextExtractionResult = { total: position.resumes.length, succeeded: 0, failed: 0, skipped: 0, errors: [] }
 
-  for (const resume of position.resumes) {
+  const { aiConfig } = await import("@/lib/ai/config");
+  const processResume = async (resume: typeof position.resumes[0]) => {
     try {
       // Skip resumes that already have raw text extracted
       if (resume.rawExtractedText || resume.extractedText) {
         result.skipped++
-        continue
+        return
       }
 
       // Mark as extracting
@@ -102,7 +103,7 @@ export async function bulkExtractTextAction(positionId: string): Promise<{ succe
         })
         result.failed++
         result.errors.push({ fileName: resume.originalFileName, error: textResult.error || "Text extraction failed" })
-        continue
+        return
       }
 
       // Save raw text — both fields for backward compat + new schema
@@ -135,6 +136,12 @@ export async function bulkExtractTextAction(positionId: string): Promise<{ succe
       result.failed++
       result.errors.push({ fileName: resume.originalFileName, error: errMsg })
     }
+  }
+
+  if (aiConfig.mode === "prod") {
+    await Promise.all(position.resumes.map(processResume))
+  } else {
+    for (const r of position.resumes) await processResume(r)
   }
 
   // Update position-level AI timestamp
@@ -186,12 +193,12 @@ export async function bulkExtractAllAction(positionId: string, forceReExtract: b
   const { validateAndNormalizeExtraction } = await import("@/lib/ai/extraction-validator")
   const provider = aiConfig.provider
 
-  // Process each resume sequentially — safe for serverless, avoids rate-limit bursts
-  for (const resume of position.resumes) {
+  // Process each resume (sequential in dev, parallel in prod)
+  const processResume = async (resume: typeof position.resumes[0]) => {
     try {
       if (!forceReExtract && (resume.parsingStatus === "EXTRACTED" || resume.parsingStatus === "RANKED") && resume.candidateName) {
         result.skipped++
-        continue
+        return
       }
 
       // ── Step 1: Extract raw text if not already done ──────────────────
@@ -222,7 +229,7 @@ export async function bulkExtractAllAction(positionId: string, forceReExtract: b
           })
           result.failed++
           result.errors.push({ fileName: resume.originalFileName, error: textResult.error || "Text extraction failed" })
-          continue
+          return
         }
 
         rawText = textResult.text
@@ -306,6 +313,12 @@ export async function bulkExtractAllAction(positionId: string, forceReExtract: b
     }
   }
 
+  if (aiConfig.mode === "prod") {
+    await Promise.all(position.resumes.map(processResume))
+  } else {
+    for (const r of position.resumes) await processResume(r)
+  }
+
   // Log the batch run
   await prisma.positionBatchRun.create({
     data: {
@@ -383,7 +396,7 @@ export async function bulkRankAllAction(positionId: string): Promise<{ success: 
   const emailMap = new Set<string>();
   const phoneMap = new Set<string>();
 
-  for (const resume of resumesToRank) {
+  const processResume = async (resume: typeof resumesToRank[0]) => {
     try {
       await prisma.resume.update({
         where: { id: resume.id },
@@ -483,6 +496,12 @@ export async function bulkRankAllAction(positionId: string): Promise<{ success: 
     }
   }
 
+  if (aiConfig.mode === "prod") {
+    await Promise.all(resumesToRank.map(processResume))
+  } else {
+    for (const r of resumesToRank) await processResume(r)
+  }
+
   // Log the batch run
   await prisma.positionBatchRun.create({
     data: {
@@ -555,10 +574,10 @@ export async function bulkAdvancedJudgmentAction(positionId: string, limit: numb
 
     const usageLogs: any[] = []
 
-    for (const resume of resumesToJudge) {
+    const processResume = async (resume: typeof resumesToJudge[0]) => {
       if (!force && resume.advancedJudgmentAt) {
         result.skipped++
-        continue
+        return
       }
       try {
         const extractedBase = {
@@ -586,14 +605,26 @@ export async function bulkAdvancedJudgmentAction(positionId: string, limit: numb
           possibleGaps:         Array.isArray(resume.possibleGapsJson) ? resume.possibleGapsJson as string[] : [],
         };
 
-        const recommendationData = await hiringAi.runAdvancedCandidateJudgment(rankData, extractedBase);
-        if (provider === "gemini") await new Promise((r) => setTimeout(r, 4100));
+        let recommendationData, interviewPrepData, redFlagsData;
 
-        const interviewPrepData = await hiringAi.generateInterviewPrep(extractedBase, rankData, position.jdText || "");
-        if (provider === "gemini") await new Promise((r) => setTimeout(r, 4100));
+        if (aiConfig.mode === "prod") {
+          // PROD: Run all 3 heavy sub-tasks concurrently to cut advanced judgment time from 120s down to 40s
+          [recommendationData, interviewPrepData, redFlagsData] = await Promise.all([
+            hiringAi.runAdvancedCandidateJudgment(rankData, extractedBase),
+            hiringAi.generateInterviewPrep(extractedBase, rankData, position.jdText || ""),
+            hiringAi.analyzeRedFlags(extractedBase, resume.extractedText || "")
+          ]);
+        } else {
+          // DEV: Sequential with strict 4s throttles for free-tier protection
+          recommendationData = await hiringAi.runAdvancedCandidateJudgment(rankData, extractedBase);
+          if (provider === "gemini") await new Promise((r) => setTimeout(r, 4100));
 
-        const redFlagsData = await hiringAi.analyzeRedFlags(extractedBase, resume.extractedText || "");
-        if (provider === "gemini") await new Promise((r) => setTimeout(r, 4100));
+          interviewPrepData = await hiringAi.generateInterviewPrep(extractedBase, rankData, position.jdText || "");
+          if (provider === "gemini") await new Promise((r) => setTimeout(r, 4100));
+
+          redFlagsData = await hiringAi.analyzeRedFlags(extractedBase, resume.extractedText || "");
+          if (provider === "gemini") await new Promise((r) => setTimeout(r, 4100));
+        }
 
         const logsToAdd = [recommendationData, interviewPrepData, redFlagsData];
         logsToAdd.forEach((logItem) => {
@@ -634,6 +665,12 @@ export async function bulkAdvancedJudgmentAction(positionId: string, limit: numb
         result.failed++
         result.errors.push({ fileName: resume.originalFileName, error: err.message })
       }
+    }
+
+    if (aiConfig.mode === "prod") {
+      await Promise.all(resumesToJudge.map(processResume))
+    } else {
+      for (const r of resumesToJudge) await processResume(r)
     }
 
     if (usageLogs.length > 0) {
