@@ -1,5 +1,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
+import { AiTestButton } from "./AiTestButton"
+import { AiCostDashboard } from "./AiCostDashboard"
 
 export const metadata = {
   title: "System Settings | Org Admin",
@@ -39,6 +41,11 @@ export default async function OrgAdminSettingsPage() {
       </span>
     )
   }
+
+  const aiProvider = process.env.AI_PROVIDER || "mock"
+  const aiFallback = process.env.AI_FALLBACK_PROVIDER || "mock"
+  const deepseekPresent = !!process.env.DEEPSEEK_API_KEY
+  const geminiPresent = !!process.env.GEMINI_API_KEY
 
   return (
     <div className="flex-1 space-y-8 max-w-4xl">
@@ -136,7 +143,64 @@ export default async function OrgAdminSettingsPage() {
 
           </div>
         </div>
+
+        {/* AI Configuration Section */}
+        <div className="border-t border-gray-200 dark:border-zinc-800 px-6 py-5 bg-indigo-50/50 dark:bg-indigo-900/10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2a2 2 0 0 1-2-2c0-1.1.9-2 2-2"/><path d="M4 8h16"/><path d="M4 14h16"/><path d="M4 20h16"/><path d="M6 8v12"/><path d="M18 8v12"/></svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">AI Intelligence Infrastructure</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Review your default AI providers, fallbacks, and keys.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-950/50">
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Primary Provider</div>
+              <div className="text-base font-semibold text-gray-900 dark:text-white uppercase tracking-wider">{aiProvider}</div>
+            </div>
+            
+            <div className="p-4 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-950/50">
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Fallback Provider</div>
+              <div className="text-base font-semibold text-gray-900 dark:text-white uppercase tracking-wider">{aiFallback}</div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 dark:border-zinc-800 pt-6 mt-6">
+            <dl className="divide-y divide-gray-100 dark:divide-zinc-800">
+              <div className="py-4 grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">DeepSeek Key Configured</dt>
+                <dd className="text-sm text-gray-900 dark:text-white col-span-2 flex items-center gap-2">
+                  {deepseekPresent ? <><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Yes</> : <><span className="w-2 h-2 rounded-full bg-rose-500"></span> No</>}
+                </dd>
+              </div>
+              <div className="py-4 grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Gemini Key Configured</dt>
+                <dd className="text-sm text-gray-900 dark:text-white col-span-2 flex items-center gap-2">
+                  {geminiPresent ? <><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Yes</> : <><span className="w-2 h-2 rounded-full bg-rose-500"></span> No</>}
+                </dd>
+              </div>
+              <div className="py-4 grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Extraction Model</dt>
+                <dd className="text-sm text-gray-900 dark:text-white col-span-2 font-mono">{process.env.DEEPSEEK_CHAT_MODEL || process.env.GEMINI_MODEL}</dd>
+              </div>
+              <div className="py-4 grid grid-cols-3 gap-4">
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Reasoner Model</dt>
+                <dd className="text-sm text-gray-900 dark:text-white col-span-2 font-mono">{process.env.DEEPSEEK_REASONER_MODEL || process.env.GEMINI_MODEL}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <AiTestButton />
+        </div>
+
       </div>
+
+      <AiCostDashboard />
     </div>
   )
 }

@@ -17,13 +17,14 @@ export function BulkProcessButton({
   const [result, setResult] = useState<{ extract?: BulkExtractionResult; rank?: BulkRankingResult } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
+  const [forceReExtract, setForceReExtract] = useState(false)
 
   const handleClick = () => {
     setResult(null)
     setError(null)
     setWarning(null)
     startTransition(async () => {
-      const res = await bulkProcessAllAction(positionId)
+      const res = await bulkProcessAllAction(positionId, forceReExtract)
       if (!res.success) {
         setError(res.error ?? "Unknown error")
       } else {
@@ -65,6 +66,18 @@ export function BulkProcessButton({
           </>
         )}
       </button>
+
+      {/* Force re-extract toggle */}
+      <label className="flex items-center gap-2 mt-0.5 -mr-1 text-[11px] font-medium text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-300 cursor-pointer">
+        <input 
+          type="checkbox" 
+          checked={forceReExtract} 
+          onChange={(e) => setForceReExtract(e.target.checked)} 
+          disabled={isPending}
+          className="rounded border-gray-300 text-violet-600 focus:ring-violet-500 shadow-sm disabled:opacity-50"
+        />
+        Force AI re-extraction
+      </label>
 
       {/* Helper text for prerequisite */}
       {!hasJd && !result && !isPending && (

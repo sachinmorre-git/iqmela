@@ -39,6 +39,13 @@ enum ResumeParsingStatus {
   FAILED
 }
 
+enum ExtractionStatus {
+  PENDING
+  EXTRACTING
+  EXTRACTED
+  FAILED
+}
+
 enum InviteStatus {
   DRAFT
   SENT
@@ -49,6 +56,7 @@ enum InviteStatus {
 enum BatchActionType {
   EXTRACTION
   RANKING
+  ADVANCED_JUDGMENT
   INVITE_DRAFTS
   INVITE_SEND
   FULL_PIPELINE
@@ -129,12 +137,25 @@ model Position {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
+  // AI JD Analysis — populated when AI parses the job description
+  structuredJdJson        Json?   // Full structured breakdown of the JD produced by AI
+  jdKeywordsJson          Json?   // Key terms and phrases extracted from the JD
+  jdRequiredSkillsJson    Json?   // Must-have skills as parsed by AI
+  jdPreferredSkillsJson   Json?   // Nice-to-have skills as parsed by AI
+
+  // AI Pipeline Timestamps — updated after each bulk operation
+  aiLastExtractionRunAt   DateTime?  // When the last bulk extraction was triggered
+  aiLastRankingRunAt      DateTime?  // When the last bulk ranking was triggered
+  aiLastPipelineRunAt     DateTime?  // When the last full pipeline run was triggered
+  aiPipelineSummaryJson   Json?      // Summary of latest full pipeline run (counts, status, errors)
+
   createdBy      User           @relation("PositionCreator", fields: [createdById], references: [id], onDelete: Cascade)
 
   // Resumes uploaded against this position
   resumes        Resume[]
   invites        InterviewInvite[]
   batchRuns      PositionBatchRun[]
+  aiUsageLogs    AiUsageLog[]
 }
 
 model Resume {
@@ -145,7 +166,8 @@ model Resume {
   mimeType          String               // e.g. "application/pdf"
   fileSize          Int                  // File size in bytes
   uploadedAt        DateTime             @default(now()) // When the file was received
-  extractedText     String?              // Raw text extracted from the CV
+  extractedText     String?              // Raw text extracted from the CV (legacy compat)
+  rawExtractedText  String?              // Full raw text from PDF/DOCX parser before any AI processing
   
   // Extracted Candidate Info
   candidateName          String?
@@ -161,10 +183,15 @@ model Resume {
   extractionProvider     String?
   extractionConfidence   Float?
   validationWarningsJson Json?
+  aiSummaryJson          Json?            // Overall AI-generated summary/profile of the candidate
+  extractionStatus       ExtractionStatus? @default(PENDING) // Granular AI extraction lifecycle
+  extractedAt            DateTime?         // Timestamp when AI extraction last completed successfully
   
   // AI Ranking Info
-  matchScore             Int?
-  matchLabel             String?
+  matchScore             Int?             // Legacy: kept for backward compat
+  matchLabel             String?          // Legacy: kept for backward compat
+  jdMatchScore           Int?             // Explicit JD-based match score (0-100)
+  jdMatchLabel           String?          // e.g. "Strong Match", "Partial Match", "Low Match"
   matchedSkillsJson      Json?
   missingSkillsJson      Json?
   rankingExplanation     String?
@@ -173,6 +200,23 @@ model Resume {
   rankingStatus          String?              @default("UNRANKED")
   rankedAt               DateTime?
   aiRawOutputJson        Json?
+
+  // Advanced AI Intelligence
+  aiRecommendationLabel     String?   // "STRONG_HIRE", "HIRE", "MAYBE", "NO_HIRE"
+  aiRecommendationRationale String?
+  aiInterviewFocusJson      Json?     // Array of focus areas (topics, strengths to validate, gaps to probe)
+  aiInterviewQuestionsJson  Json?     // Array of structured interview questions
+  aiRedFlagsJson            Json?     // Array of structured inconsistencies/warnings
+  
+  advancedJudgmentJson      Json?
+  advancedJudgmentProvider  String?
+  advancedJudgmentAt        DateTime?
+  finalRecommendationLabel  String?
+  finalRecommendationReason String?
+  recruiterReviewNeeded     Boolean   @default(false)
+
+  isNearDuplicate           Boolean   @default(false)
+  duplicateReason           String?
 
   parsingStatus          ResumeParsingStatus  @default(UPLOADED)
   createdAt              DateTime             @default(now())
@@ -188,6 +232,7 @@ model Resume {
 
   position               Position             @relation(fields: [positionId], references: [id], onDelete: Cascade)
   invite                 InterviewInvite?
+  aiUsageLogs            AiUsageLog[]
 }
 
 model InterviewInvite {
@@ -254,4 +299,22 @@ model PositionBatchRun {
   createdAt      DateTime        @default(now())
 
   position       Position        @relation(fields: [positionId], references: [id], onDelete: Cascade)
+}
+
+model AiUsageLog {
+  id             String   @id @default(cuid())
+  positionId     String?
+  resumeId       String?
+  provider       String
+  model          String
+  taskType       String   // e.g. EXTRACTION, RANKING, JD_ANALYSIS, ADVANCED_JUDGMENT
+  inputTokens    Int      @default(0)
+  outputTokens   Int      @default(0)
+  totalTokens    Int      @default(0)
+  estimatedCost  Float    @default(0)
+  promptVersion  String?
+  createdAt      DateTime @default(now())
+
+  position       Position? @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  resume         Resume?   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
 }

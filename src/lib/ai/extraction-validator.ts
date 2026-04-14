@@ -4,7 +4,7 @@
  * Does NOT block extraction — only populates validationWarnings.
  */
 
-import type { ExtractedResumeData } from "./resume-ai-service"
+import type { ExtractedResumeData } from "./types"
 
 export interface NormalizationResult {
   data: ExtractedResumeData

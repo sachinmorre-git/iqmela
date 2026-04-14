@@ -137,7 +137,8 @@ export async function runAiExtractionAction(resumeId: string) {
   }
 
   // Determine which provider is active (for audit logging)
-  const provider = process.env.GEMINI_API_KEY ? "gemini" : "mock"
+  const { aiConfig } = await import("@/lib/ai/config")
+  const provider = aiConfig.provider
 
   try {
     // Flip to EXTRACTING state so the button disables and status badge transitions
@@ -148,10 +149,10 @@ export async function runAiExtractionAction(resumeId: string) {
     revalidatePath(`/org-admin/resumes/${resumeId}`)
 
     // Dynamically import (server-only, avoids client bundle pollution)
-    const { resumeAiService } = await import("@/lib/ai/resume-ai-service")
+    const { hiringAi } = await import("@/lib/ai")
     const { validateAndNormalizeExtraction } = await import("@/lib/ai/extraction-validator")
 
-    const rawExtracted = await resumeAiService.extractResumeStructuredData(resume.extractedText)
+    const rawExtracted = await hiringAi.extractResumeJson(resume.extractedText)
     const { data: extracted, warnings } = validateAndNormalizeExtraction(rawExtracted)
 
     await prisma.resume.update({
@@ -168,7 +169,7 @@ export async function runAiExtractionAction(resumeId: string) {
         educationJson:         extracted.education,
         companiesJson:         extracted.companies,
         extractionProvider:    provider,
-        extractionConfidence:  null,
+        extractionConfidence:  extracted.extractionConfidence ?? null,
         aiRawOutputJson:       extracted.rawOutput ?? Prisma.JsonNull,
         validationWarningsJson: warnings.length > 0 ? warnings : Prisma.JsonNull,
         parsingNotes:          warnings.length > 0 ? `${warnings.length} validation warning(s)` : null,

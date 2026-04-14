@@ -6,14 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PositionStatus } from "@prisma/client"
 import Link from "next/link"
 import { ResumeUploadZone } from "./ResumeUploadZone"
+import { BulkExtractTextButton } from "./BulkExtractTextButton"
 import { BulkExtractButton } from "./BulkExtractButton"
 import { BulkRankButton } from "./BulkRankButton"
+import { BulkAdvancedJudgmentButton } from "./BulkAdvancedJudgmentButton"
 import { BulkProcessButton } from "./BulkProcessButton"
 import { ShortlistAction } from "./ShortlistAction"
 import { OverrideCandidateAction } from "./OverrideCandidateAction"
 import { BulkInviteForm } from "./BulkInviteForm"
 import { BatchActivityPanel } from "./BatchActivityPanel"
 import { SelectAllCheckbox } from "./SelectAllCheckbox"
+import { AnalyzeJdButton } from "./AnalyzeJdButton"
+import { Fragment } from "react"
+import { TopCandidatesComparison } from "./TopCandidatesComparison"
+import { CandidateFitCard } from "./CandidateFitCard"
 
 // ── Status badge colour map ──────────────────────────────────────────────────
 const STATUS_STYLES: Record<PositionStatus, string> = {
@@ -169,15 +175,61 @@ export default async function PositionDetailPage({
       {/* ── Full JD ─────────────────────────────────────────────── */}
       {position.jdText ? (
         <Card className="border-gray-100 dark:border-zinc-800 shadow-sm">
-          <CardHeader className="border-b border-gray-100 dark:border-zinc-800/60 pb-4">
+          <CardHeader className="border-b border-gray-100 dark:border-zinc-800/60 pb-4 flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
               Full Job Description
             </CardTitle>
+            <AnalyzeJdButton positionId={position.id} hasJdAnalysis={!!position.jdKeywordsJson} />
           </CardHeader>
           <CardContent className="pt-4 pb-6 px-6">
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm whitespace-pre-wrap">
               {position.jdText}
             </p>
+            {position.jdKeywordsJson && (
+              <div className="mt-6 pt-6 border-t border-gray-100 dark:border-zinc-800/60 flex flex-col gap-4">
+                <div>
+                  <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Required Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(position.jdRequiredSkillsJson) && position.jdRequiredSkillsJson.length > 0 ? (
+                      position.jdRequiredSkillsJson.map((skill: string) => (
+                        <span key={skill} className="px-2 py-1 rounded-md text-xs font-semibold bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 border border-violet-100 dark:border-violet-800/30">
+                          {skill}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">None identified</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Core Keywords</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(position.jdKeywordsJson) && position.jdKeywordsJson.length > 0 ? (
+                      position.jdKeywordsJson.map((kw: string) => (
+                        <span key={kw} className="px-2 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400 border border-gray-200 dark:border-zinc-700">
+                          {kw}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">None identified</span>
+                    )}
+                  </div>
+                </div>
+                {/* Scoring Rubric / Additional JD info */}
+                {position.structuredJdJson && (position.structuredJdJson as any).scoringRubric && (
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Scoring Rubric</h4>
+                    <div className="bg-gray-50 dark:bg-zinc-800 p-3 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+                      <pre className="whitespace-pre-wrap font-sans">
+                        {typeof (position.structuredJdJson as any).scoringRubric === 'string' 
+                          ? (position.structuredJdJson as any).scoringRubric 
+                          : JSON.stringify((position.structuredJdJson as any).scoringRubric, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -217,6 +269,7 @@ export default async function PositionDetailPage({
                 Run bulk AI operations across all {position.resumes.length} uploaded resume{position.resumes.length !== 1 ? "s" : ""} for this position. Individual controls remain accessible from each resume&apos;s detail page.
               </p>
               {position.resumes.length > 0 && (() => {
+                const hasText   = position.resumes.filter(r => r.extractedText || r.rawExtractedText).length
                 const extracted = position.resumes.filter(r => r.parsingStatus === "EXTRACTED" || r.parsingStatus === "RANKED").length
                 const ranked    = position.resumes.filter(r => r.parsingStatus === "RANKED").length
                 const failed    = position.resumes.filter(r => r.parsingStatus === "FAILED").length
@@ -229,6 +282,9 @@ export default async function PositionDetailPage({
                     <div className="flex flex-wrap gap-2">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-gray-300">
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />{position.resumes.length} total
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-50 dark:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />{hasText} text ready
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-400">
                       <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />{extracted} extracted
@@ -262,12 +318,17 @@ export default async function PositionDetailPage({
                  <div className="h-px bg-violet-200 dark:bg-violet-800/40 flex-1"></div>
               </div>
               <div className="w-full flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider text-right">Step 1</span>
+                <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider text-right">Step 1 — Parse Files</span>
+                <BulkExtractTextButton positionId={position.id} totalResumes={position.resumes.length} alreadyExtracted={position.resumes.filter(r => r.extractedText || r.rawExtractedText).length} />
+              </div>
+              <div className="w-full flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider text-right">Step 2 — AI Extract</span>
                 <BulkExtractButton positionId={position.id} totalResumes={position.resumes.length} />
               </div>
               <div className="w-full flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider text-right">Step 2</span>
+                <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider text-right">Step 3 — AI Rank</span>
                 <BulkRankButton positionId={position.id} totalToRank={position.resumes.filter(r => r.extractedText && (r.parsingStatus === "EXTRACTED" || r.parsingStatus === "RANKED")).length} totalResumes={position.resumes.length} />
+                <BulkAdvancedJudgmentButton positionId={position.id} totalRanked={position.resumes.filter(r => r.rankingStatus === "RANKED").length} />
               </div>
             </div>
           </div>
@@ -294,11 +355,12 @@ export default async function PositionDetailPage({
       {/* ── Upload + Resumes Table ────────────────────────────────── */}
       <Card className="border-gray-100 dark:border-zinc-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-zinc-800/60 pb-4 flex flex-row items-start justify-between gap-4">
-          <div>
+          <div className="w-full">
             <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">Uploaded Resumes</CardTitle>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               Click a resume to view details or run individual actions.
             </p>
+            <TopCandidatesComparison resumes={position.resumes} />
           </div>
         </CardHeader>
         <CardContent className="pt-0 pb-6 flex flex-col gap-6">
@@ -334,10 +396,12 @@ export default async function PositionDetailPage({
                     const hasEmailOverride = !!resume.overrideEmail
 
                     const inviteStatus = resume.invite?.status
+                    
+                    const hasAnalysis = resume.matchScore !== null || resume.aiInterviewFocusJson || resume.aiRedFlagsJson
 
                     return (
+                      <Fragment key={resume.id}>
                       <tr
-                        key={resume.id}
                         className={`transition-colors ${
                           isFailed
                             ? "bg-red-50/40 dark:bg-red-900/10 hover:bg-red-50/70"
@@ -386,9 +450,16 @@ export default async function PositionDetailPage({
                                   overrideName={resume.overrideName} overrideEmail={resume.overrideEmail} overridePhone={resume.overridePhone} overrideLinkedin={resume.overrideLinkedinUrl}
                                 />
                               </div>
-                              <p className="text-xs text-gray-400 dark:text-zinc-500 truncate max-w-[180px]">
-                                {resume.candidateName ? resume.originalFileName : `${(resume.fileSize / 1024).toFixed(1)} KB`}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs text-gray-400 dark:text-zinc-500 truncate max-w-[180px]">
+                                  {resume.candidateName ? resume.originalFileName : `${(resume.fileSize / 1024).toFixed(1)} KB`}
+                                </p>
+                                {resume.phoneNumber && (
+                                  <span className="text-[10px] text-gray-400 dark:text-zinc-500 border border-gray-200 dark:border-zinc-700 px-1 rounded truncate max-w-[100px]" title={resume.phoneNumber}>
+                                    {resume.phoneNumber}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -477,6 +548,14 @@ export default async function PositionDetailPage({
                                 {warnings.length}
                               </span>
                             )}
+                            {resume.extractionConfidence && (
+                              <span
+                                title={`AI Confidence: ${(resume.extractionConfidence * 100).toFixed(0)}%`}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-50 dark:bg-zinc-800/50 text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-700"
+                              >
+                                {(resume.extractionConfidence * 100).toFixed(0)}%
+                              </span>
+                            )}
                             {inviteStatus && (
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-800/40 dark:text-indigo-400">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2z"/></svg>
@@ -495,6 +574,22 @@ export default async function PositionDetailPage({
                           </div>
                         </td>
                       </tr>
+                      {hasAnalysis && (
+                          <tr className="border-x border-b border-gray-100 dark:border-zinc-800 bg-gray-50/20 dark:bg-zinc-900/20">
+                            <td colSpan={8} className="p-0">
+                               <details className="group">
+                                 <summary className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer p-2 flex items-center justify-center gap-1 transition-colors select-none">
+                                   <span>Expand Deep AI Intelligence</span>
+                                   <svg className="w-3 h-3 opacity-60 transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                 </summary>
+                                 <div className="border-t border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-inner rounded-b-xl overflow-hidden">
+                                   <CandidateFitCard resume={resume} />
+                                 </div>
+                               </details>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     )
                   })}
                 </tbody>

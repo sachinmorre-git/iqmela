@@ -7,6 +7,7 @@ import Link from "next/link"
 import { ExtractTextButton } from "./ExtractTextButton"
 import { RunAiExtractionButton } from "./RunAiExtractionButton"
 import { RawAiOutputDebug } from "./RawAiOutputDebug"
+import { CandidateFitCard } from "../positions/[id]/CandidateFitCard"
 
 export async function generateMetadata({
   params,
@@ -121,6 +122,19 @@ export default async function ResumeDetailPage({
           </Button>
         </div>
       </div>
+
+      {/* ── Advanced AI Fit Card ─────────────────────────────────────── */}
+      {(resume.matchScore !== null || resume.aiInterviewFocusJson || resume.aiRedFlagsJson) && (
+        <Card className="border-indigo-100 dark:border-indigo-900/60 shadow-sm overflow-hidden -mt-2">
+          <CardHeader className="bg-gradient-to-r from-indigo-50/50 to-teal-50/50 dark:from-indigo-900/10 dark:to-teal-900/10 border-b border-indigo-100 dark:border-indigo-900/20 pb-4">
+             <CardTitle className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+               Deep AI Analysis Profile
+             </CardTitle>
+          </CardHeader>
+          <CandidateFitCard resume={resume} />
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
