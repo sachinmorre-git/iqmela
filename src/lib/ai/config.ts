@@ -89,7 +89,7 @@ function loadAiConfig(): AiConfig {
     },
     gemini: {
       apiKey: geminiKey,
-      model: mode === "prod" ? "gemini-1.5-pro" : (process.env.GEMINI_MODEL || "gemini-2.5-flash"),
+      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     },
     temperature,
     maxOutputTokens,
