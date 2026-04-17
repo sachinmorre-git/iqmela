@@ -35,7 +35,7 @@ export default function RootLayout({
        <ClerkProvider>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <header className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur">
-              <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 items-center justify-between">
                   <div className="flex-shrink-0">
                     <span className="text-xl font-bold tracking-tight">Interview Platform</span>
@@ -54,7 +54,7 @@ export default function RootLayout({
                 </div>
               </div>
             </header>
-          <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-8 flex flex-col">
+          <main className="flex-1 w-full flex flex-col">
             {children}
           </main>
           <footer className="w-full border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/60 py-12 mt-auto">

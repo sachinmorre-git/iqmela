@@ -7,11 +7,13 @@ import type { BulkExtractionResult, BulkRankingResult } from "./actions"
 export function BulkProcessButton({
   positionId,
   totalResumes,
-  hasJd
+  hasJd,
+  compact,
 }: {
   positionId: string
   totalResumes: number
   hasJd: boolean
+  compact?: boolean
 }) {
   const [isPending, startTransition] = useTransition()
   const [result, setResult] = useState<{ extract?: BulkExtractionResult; rank?: BulkRankingResult } | null>(null)
@@ -37,11 +39,34 @@ export function BulkProcessButton({
     })
   }
 
-  const tooltipText = totalResumes === 0 
-    ? "No resumes uploaded" 
-    : !hasJd 
-      ? "Position is missing a Job Description" 
+  const tooltipText = totalResumes === 0
+    ? "No resumes uploaded"
+    : !hasJd
+      ? "Position is missing a Job Description"
       : "Extract & Rank all resumes in one click"
+
+  if (compact) {
+    return (
+      <button
+        onClick={handleClick}
+        disabled={isPending || totalResumes === 0 || !hasJd}
+        title={tooltipText}
+        className="inline-flex items-center gap-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white px-3 py-2 text-sm font-semibold shadow-sm shadow-violet-500/20 disabled:opacity-40 disabled:cursor-not-allowed hover:-translate-y-0.5 transition-all"
+      >
+        {isPending ? (
+          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+          </svg>
+        )}
+        {isPending ? "Running…" : "Run AI Pipeline"}
+      </button>
+    )
+  }
 
   return (
     <div className="flex flex-col items-end gap-3 w-full">

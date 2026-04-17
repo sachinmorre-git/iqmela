@@ -905,7 +905,12 @@ export async function bulkSendInvitesAction(positionId: string, resumeIds: strin
         resumes: { 
           where: { id: { in: resumeIds } },
           include: { invite: true }
-        } 
+        },
+        // Step 224: detect AI interview config to choose correct invite route
+        aiInterviewConfigs: {
+          where: { interviewId: null },
+          take: 1,
+        }
       }
     })
 
@@ -934,7 +939,11 @@ export async function bulkSendInvitesAction(positionId: string, resumeIds: strin
       const candidateName = resume.overrideName || resume.candidateName || "Candidate"
 
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://iqmela.com"
-      const inviteLink = `${baseUrl}/interview/${invite.id}`
+      // Step 224: Route to AI pre-check page when position has AI interview enabled
+      const hasAiInterview = (position.aiInterviewConfigs?.length ?? 0) > 0
+      const inviteLink = hasAiInterview
+        ? `${baseUrl}/candidate/ai-interview/pre-check?inviteId=${invite.id}`
+        : `${baseUrl}/interview/${invite.id}`
 
       // ── IDEMPOTENCY LOCK: Prevent Duplicate Sends ──────────────────────────
       // Atomically attempt to transition this specific invite from DRAFT to SENT.
@@ -951,13 +960,22 @@ export async function bulkSendInvitesAction(positionId: string, resumeIds: strin
       }
       // ───────────────────────────────────────────────────────────────────────
 
-      const mailRes = await mailService.sendInterviewInvite({
-        to: invite.targetEmail,
-        candidateName,
-        positionTitle: position.title,
-        inviteLink,
-        inviteId: invite.id,
-      })
+      // Step 223/224: Use AI-specific email when position has AI interview enabled
+      const mailRes = hasAiInterview
+        ? await mailService.sendAiInterviewInvite({
+            to: invite.targetEmail,
+            candidateName,
+            positionTitle: position.title,
+            inviteLink,
+            inviteId: invite.id,
+          })
+        : await mailService.sendInterviewInvite({
+            to: invite.targetEmail,
+            candidateName,
+            positionTitle: position.title,
+            inviteLink,
+            inviteId: invite.id,
+          })
 
       if (!mailRes.success) {
         // Revert the lock if the network provider completely failed

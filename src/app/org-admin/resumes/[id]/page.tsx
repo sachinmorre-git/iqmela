@@ -8,6 +8,7 @@ import { ExtractTextButton } from "./ExtractTextButton"
 import { RunAiExtractionButton } from "./RunAiExtractionButton"
 import { RawAiOutputDebug } from "./RawAiOutputDebug"
 import { CandidateFitCard } from "../../positions/[id]/CandidateFitCard"
+import { AiReviewPanel } from "../../positions/[id]/AiReviewPanel"
 
 export async function generateMetadata({
   params,
@@ -77,6 +78,31 @@ export default async function ResumeDetailPage({
 
   if (!resume || resume.position.createdById !== userId) notFound()
 
+  // Fetch AI interview session for this resume (if any)
+  const aiSession = await prisma.aiInterviewSession.findFirst({
+    where: { resumeId: resume.id },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      status: true,
+      overallScore: true,
+      recommendation: true,
+      finalScoreJson: true,
+      completedAt: true,
+      cameraConsentGiven: true,
+      // Step 227: recruiter review fields
+      recruiterNotes: true,
+      recruiterRecommendation: true,
+      reviewedAt: true,
+      reviewedByUserId: true,
+      turns: { orderBy: { turnIndex: "asc" }, select: {
+        turnIndex: true, category: true, question: true,
+        candidateAnswer: true, scoreRaw: true, scoreFeedback: true,
+        answerDurationMs: true, suspiciousFlags: true, transcriptWarnings: true,
+      }},
+    }
+  });
+
   const skills        = Array.isArray(resume.skillsJson)          ? (resume.skillsJson as string[]) : []
   const companies     = Array.isArray(resume.companiesJson)        ? (resume.companiesJson as Array<{ company: string; role: string; duration?: string | null }>) : []
   const education     = Array.isArray(resume.educationJson)        ? (resume.educationJson as Array<{ degree: string; institution: string; year?: string | null }>) : []
@@ -133,6 +159,161 @@ export default async function ResumeDetailPage({
              </CardTitle>
           </CardHeader>
           <CandidateFitCard resume={resume} />
+        </Card>
+      )}
+
+      {/* ── AI Interview Results ─────────────────────────────────────────── */}
+      {aiSession && (
+        <Card className="border-violet-100 dark:border-violet-900/40 shadow-sm overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-violet-50/60 to-indigo-50/40 dark:from-violet-900/10 dark:to-indigo-900/10 border-b border-violet-100 dark:border-violet-900/30 pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-violet-500"><circle cx="12" cy="8" r="5"/><path d="M3 21a9 9 0 0 1 18 0"/></svg>
+                AI Interview Results
+              </CardTitle>
+              <div className="flex items-center gap-3">
+                {aiSession.status === "COMPLETED" ? (
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/30">
+                    Completed {aiSession.completedAt ? new Date(aiSession.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-100 dark:border-amber-800/30">
+                    In Progress
+                  </span>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-5">
+            {aiSession.status === "COMPLETED" && aiSession.overallScore !== null ? (
+              <>
+                {/* Score + Recommendation */}
+                <div className="flex items-center gap-6 p-4 bg-violet-50/50 dark:bg-violet-950/20 rounded-2xl border border-violet-100 dark:border-violet-900/20 flex-wrap">
+                  <div className="flex items-center gap-6">
+                    {/* Resume Match Score */}
+                    <div className="text-center shrink-0 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-violet-100 dark:border-zinc-800 shadow-sm">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Resume Match</p>
+                      <p className="text-3xl font-black text-teal-600 dark:text-teal-400">{resume.matchScore != null ? resume.matchScore : "—"}</p>
+                    </div>
+
+                    <div className="text-xl font-bold text-violet-200">vs</div>
+
+                    {/* AI Interview Score */}
+                    <div className="text-center shrink-0 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-violet-100 dark:border-zinc-800 shadow-sm">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">AI Interview</p>
+                      <p className="text-3xl font-black text-violet-700 dark:text-violet-300">{aiSession.overallScore}</p>
+                    </div>
+                  </div>
+                  <div className="w-px h-12 bg-violet-100 dark:bg-violet-900/30 shrink-0 hidden sm:block" />
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">AI Recommendation</p>
+                    <p className={`text-lg font-black ${
+                      aiSession.recommendation === "STRONG_HIRE" ? "text-emerald-600 dark:text-emerald-400" :
+                      aiSession.recommendation === "HIRE" ? "text-blue-600 dark:text-blue-400" :
+                      aiSession.recommendation === "MAYBE" ? "text-amber-600 dark:text-amber-400" :
+                      "text-red-600 dark:text-red-400"
+                    }`}>
+                      {aiSession.recommendation?.replace("_", " ")}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Per-question breakdown */}
+                {aiSession.turns.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Question Breakdown</p>
+                    {aiSession.turns.map((turn) => (
+                      <div key={turn.turnIndex} className="p-4 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-xl space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500">{turn.category}</span>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{turn.question}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            {turn.scoreRaw !== null && (
+                              <span className={`text-lg font-black ${
+                                (turn.scoreRaw ?? 0) >= 8 ? "text-emerald-500" :
+                                (turn.scoreRaw ?? 0) >= 6 ? "text-blue-500" :
+                                (turn.scoreRaw ?? 0) >= 4 ? "text-amber-500" : "text-red-500"
+                              }`}>
+                                {turn.scoreRaw}<span className="text-xs font-medium text-gray-400">/10</span>
+                              </span>
+                            )}
+                            {/* Step 217: timing */}
+                            {turn.answerDurationMs != null && (
+                              <span className="text-[10px] text-gray-400 dark:text-zinc-500">
+                                ⏱️ {Math.round(turn.answerDurationMs / 1000)}s
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {turn.candidateAnswer && (
+                          <p className="text-xs text-gray-500 dark:text-zinc-400 italic leading-relaxed border-l-2 border-gray-200 dark:border-zinc-700 pl-3">
+                            &ldquo;{turn.candidateAnswer.slice(0, 200)}{turn.candidateAnswer.length > 200 ? "…" : ""}&rdquo;
+                          </p>
+                        )}
+                        {turn.scoreFeedback && (
+                          <p className="text-xs text-gray-700 dark:text-zinc-300 leading-relaxed">{turn.scoreFeedback}</p>
+                        )}
+                        {/* Step 218/219: flags and warnings */}
+                        {(Array.isArray(turn.suspiciousFlags) && (turn.suspiciousFlags as string[]).length > 0) && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {(turn.suspiciousFlags as string[]).map(f => (
+                              <span key={f} className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
+                                ⚠️ {f.replace(/_/g, " ")}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {(Array.isArray(turn.transcriptWarnings) && (turn.transcriptWarnings as string[]).length > 0) && (
+                          <div className="flex flex-wrap gap-1">
+                            {(turn.transcriptWarnings as string[]).map(w => (
+                              <span key={w} className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30">
+                                {w.replace(/_/g, " ")}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-zinc-400 italic">
+                The candidate has started an AI interview session but has not completed it yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 227 — Recruiter Review Panel */}
+      {aiSession && aiSession.status === "COMPLETED" && (
+        <Card className="border-indigo-100 dark:border-indigo-900/40 shadow-sm overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-indigo-50/60 to-violet-50/40 dark:from-indigo-900/10 dark:to-violet-900/10 border-b border-indigo-100 dark:border-indigo-900/30 pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Recruiter Review
+              </CardTitle>
+              {aiSession.reviewedAt && (
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/30">
+                  Reviewed {new Date(aiSession.reviewedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </span>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <AiReviewPanel
+              sessionId={aiSession.id}
+              positionId={resume.positionId}
+              aiRecommendation={aiSession.recommendation}
+              initialNotes={aiSession.recruiterNotes}
+              initialRecommendation={aiSession.recruiterRecommendation}
+              reviewedAt={aiSession.reviewedAt}
+            />
+          </CardContent>
         </Card>
       )}
 

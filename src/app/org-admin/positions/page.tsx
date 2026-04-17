@@ -29,7 +29,7 @@ export default async function PositionsPage() {
   })
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
+    <div className="flex flex-col gap-8 w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-gray-100 dark:border-zinc-800 pb-6 mt-2">
         <div>

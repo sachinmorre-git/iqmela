@@ -63,16 +63,46 @@ enum BatchActionType {
   SHORTLIST_UPDATE
 }
 
+enum AiSessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum AiQuestionCategory {
+  INTRO
+  TECHNICAL
+  BEHAVIORAL
+  CLOSING
+}
+
+enum InterviewMode {
+  HUMAN
+  AI_AVATAR
+}
+
+enum AiInterviewDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
 model User {
-  id                 String              @id @default(cuid())
-  email              String              @unique
-  name               String?
-  role               Role                @default(CANDIDATE)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(CANDIDATE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String?
+  departmentId   String?
+  isDeleted      Boolean   @default(false)
+  deletedAt      DateTime?
+
   // Relations
   candidateProfile   CandidateProfile?
+  department         Department?         @relation(fields: [departmentId], references: [id])
   interviewerProfile InterviewerProfile?
   orgAdminProfile    OrgAdminProfile?
 
@@ -81,7 +111,12 @@ model User {
   interviewsAsInterviewer Interview[] @relation("InterviewerInterviews")
 
   // Positions created by this user (Org Admin)
-  positionsCreated        Position[]  @relation("PositionCreator")
+  positionsCreated Position[] @relation("PositionCreator")
+
+  // AI Avatar Interview Sessions
+  aiInterviewSessions AiInterviewSession[] @relation("CandidateAiSessions")
+
+  @@index([organizationId, createdAt])
 }
 
 model CandidateProfile {
@@ -89,86 +124,98 @@ model CandidateProfile {
   userId            String   @unique
   phone             String?
   timezone          String?
-  skills            String?  
+  skills            String?
   resumeUrl         String?
   experienceSummary String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model InterviewerProfile {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  title             String?
-  department        String?
-  timezone          String?
-  expertise         String?  
-  bio               String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  title      String?
+  department String?
+  timezone   String?
+  expertise  String?
+  bio        String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model OrgAdminProfile {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  orgName      String?
-  timezone     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  orgName   String?
+  timezone  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Position {
   id             String         @id @default(cuid())
+  organizationId String?
   title          String
   department     String?
+  departmentId   String?
   location       String?
-  employmentType String?        // e.g. FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP
-  description    String?        // Short public-facing summary
-  jdText         String?        // Full job description text (long-form)
+  employmentType String? // e.g. FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP
+  description    String? // Short public-facing summary
+  jdText         String? // Full job description text (long-form)
   status         PositionStatus @default(DRAFT)
 
-  createdById    String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // AI JD Analysis — populated when AI parses the job description
-  structuredJdJson        Json?   // Full structured breakdown of the JD produced by AI
-  jdKeywordsJson          Json?   // Key terms and phrases extracted from the JD
-  jdRequiredSkillsJson    Json?   // Must-have skills as parsed by AI
-  jdPreferredSkillsJson   Json?   // Nice-to-have skills as parsed by AI
+  structuredJdJson      Json? // Full structured breakdown of the JD produced by AI
+  jdKeywordsJson        Json? // Key terms and phrases extracted from the JD
+  jdRequiredSkillsJson  Json? // Must-have skills as parsed by AI
+  jdPreferredSkillsJson Json? // Nice-to-have skills as parsed by AI
 
   // AI Pipeline Timestamps — updated after each bulk operation
-  aiLastExtractionRunAt   DateTime?  // When the last bulk extraction was triggered
-  aiLastRankingRunAt      DateTime?  // When the last bulk ranking was triggered
-  aiLastPipelineRunAt     DateTime?  // When the last full pipeline run was triggered
-  aiPipelineSummaryJson   Json?      // Summary of latest full pipeline run (counts, status, errors)
+  aiLastExtractionRunAt DateTime? // When the last bulk extraction was triggered
+  aiLastRankingRunAt    DateTime? // When the last bulk ranking was triggered
+  aiLastPipelineRunAt   DateTime? // When the last full pipeline run was triggered
+  aiPipelineSummaryJson Json? // Summary of latest full pipeline run (counts, status, errors)
 
-  createdBy      User           @relation("PositionCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy User @relation("PositionCreator", fields: [createdById], references: [id], onDelete: Cascade)
 
   // Resumes uploaded against this position
-  resumes        Resume[]
-  invites        InterviewInvite[]
-  batchRuns      PositionBatchRun[]
-  aiUsageLogs    AiUsageLog[]
+  resumes              Resume[]
+  invites              InterviewInvite[]
+  batchRuns            PositionBatchRun[]
+  aiUsageLogs          AiUsageLog[]
+  aiInterviewSessions  AiInterviewSession[]
+  aiInterviewConfigs   AiInterviewConfig[]   @relation("PositionAiConfig")
+  aiInterviewQuestions AiInterviewQuestion[]
+
+  departmentRel Department? @relation(fields: [departmentId], references: [id])
+  isDeleted     Boolean     @default(false)
+  deletedAt     DateTime?
+
+  @@index([organizationId, createdAt])
 }
 
 model Resume {
-  id                String               @id @default(cuid())
-  positionId        String
-  originalFileName  String               // The filename as uploaded by the admin
-  storagePath       String               // Path/key in the storage bucket (e.g. S3 key)
-  mimeType          String               // e.g. "application/pdf"
-  fileSize          Int                  // File size in bytes
-  uploadedAt        DateTime             @default(now()) // When the file was received
-  extractedText     String?              // Raw text extracted from the CV (legacy compat)
-  rawExtractedText  String?              // Full raw text from PDF/DOCX parser before any AI processing
-  
+  id               String   @id @default(cuid())
+  organizationId   String?
+  positionId       String
+  originalFileName String // The filename as uploaded by the admin
+  storagePath      String // Path/key in the storage bucket (e.g. S3 key)
+  mimeType         String // e.g. "application/pdf"
+  fileSize         Int // File size in bytes
+  uploadedAt       DateTime @default(now()) // When the file was received
+  extractedText    String? // Raw text extracted from the CV (legacy compat)
+  rawExtractedText String? // Full raw text from PDF/DOCX parser before any AI processing
+
   // Extracted Candidate Info
   candidateName          String?
   candidateEmail         String?
@@ -183,31 +230,31 @@ model Resume {
   extractionProvider     String?
   extractionConfidence   Float?
   validationWarningsJson Json?
-  aiSummaryJson          Json?            // Overall AI-generated summary/profile of the candidate
+  aiSummaryJson          Json? // Overall AI-generated summary/profile of the candidate
   extractionStatus       ExtractionStatus? @default(PENDING) // Granular AI extraction lifecycle
-  extractedAt            DateTime?         // Timestamp when AI extraction last completed successfully
-  
+  extractedAt            DateTime? // Timestamp when AI extraction last completed successfully
+
   // AI Ranking Info
-  matchScore             Int?             // Legacy: kept for backward compat
-  matchLabel             String?          // Legacy: kept for backward compat
-  jdMatchScore           Int?             // Explicit JD-based match score (0-100)
-  jdMatchLabel           String?          // e.g. "Strong Match", "Partial Match", "Low Match"
-  matchedSkillsJson      Json?
-  missingSkillsJson      Json?
-  rankingExplanation     String?
-  notableStrengthsJson   Json?
-  possibleGapsJson       Json?
-  rankingStatus          String?              @default("UNRANKED")
-  rankedAt               DateTime?
-  aiRawOutputJson        Json?
+  matchScore           Int? // Legacy: kept for backward compat
+  matchLabel           String? // Legacy: kept for backward compat
+  jdMatchScore         Int? // Explicit JD-based match score (0-100)
+  jdMatchLabel         String? // e.g. "Strong Match", "Partial Match", "Low Match"
+  matchedSkillsJson    Json?
+  missingSkillsJson    Json?
+  rankingExplanation   String?
+  notableStrengthsJson Json?
+  possibleGapsJson     Json?
+  rankingStatus        String?   @default("UNRANKED")
+  rankedAt             DateTime?
+  aiRawOutputJson      Json?
 
   // Advanced AI Intelligence
-  aiRecommendationLabel     String?   // "STRONG_HIRE", "HIRE", "MAYBE", "NO_HIRE"
+  aiRecommendationLabel     String? // "STRONG_HIRE", "HIRE", "MAYBE", "NO_HIRE"
   aiRecommendationRationale String?
-  aiInterviewFocusJson      Json?     // Array of focus areas (topics, strengths to validate, gaps to probe)
-  aiInterviewQuestionsJson  Json?     // Array of structured interview questions
-  aiRedFlagsJson            Json?     // Array of structured inconsistencies/warnings
-  
+  aiInterviewFocusJson      Json? // Array of focus areas (topics, strengths to validate, gaps to probe)
+  aiInterviewQuestionsJson  Json? // Array of structured interview questions
+  aiRedFlagsJson            Json? // Array of structured inconsistencies/warnings
+
   advancedJudgmentJson      Json?
   advancedJudgmentProvider  String?
   advancedJudgmentAt        DateTime?
@@ -215,106 +262,258 @@ model Resume {
   finalRecommendationReason String?
   recruiterReviewNeeded     Boolean   @default(false)
 
-  isNearDuplicate           Boolean   @default(false)
-  duplicateReason           String?
+  isNearDuplicate Boolean @default(false)
+  duplicateReason String?
 
-  parsingStatus          ResumeParsingStatus  @default(UPLOADED)
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
+  parsingStatus ResumeParsingStatus @default(UPLOADED)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 
   // Recruiter Workflow
-  isShortlisted          Boolean              @default(false)
-  recruiterNotes         String?
-  overrideName           String?
-  overrideEmail          String?
-  overridePhone          String?
-  overrideLinkedinUrl    String?
+  isShortlisted       Boolean @default(false)
+  recruiterNotes      String?
+  overrideName        String?
+  overrideEmail       String?
+  overridePhone       String?
+  overrideLinkedinUrl String?
 
-  position               Position             @relation(fields: [positionId], references: [id], onDelete: Cascade)
-  invite                 InterviewInvite?
-  aiUsageLogs            AiUsageLog[]
+  position            Position             @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  invite              InterviewInvite?
+  aiUsageLogs         AiUsageLog[]
+  aiInterviewSessions AiInterviewSession[]
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  @@index([organizationId, createdAt])
 }
 
 model InterviewInvite {
-  id             String       @id @default(cuid())
-  resumeId       String       @unique
-  positionId     String
-  targetEmail    String
-  status         InviteStatus @default(DRAFT)
-  lastDeliveryStatus String?  // Stores Resend webhook events (e.g. delivered, bounced)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                 String       @id @default(cuid())
+  resumeId           String       @unique
+  positionId         String
+  targetEmail        String
+  status             InviteStatus @default(DRAFT)
+  lastDeliveryStatus String? // Stores Resend webhook events (e.g. delivered, bounced)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
-  resume         Resume       @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-  position       Position     @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  resume   Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
 }
 
 model Interview {
-  id               String          @id @default(cuid())
-  title            String
-  scheduledAt      DateTime
-  durationMinutes  Int             @default(60)
-  status           InterviewStatus @default(SCHEDULED)
-  roomName         String?         // Allows tracking LiveKit or external meeting IDs natively
-  notes            String?         // Added for the scheduler form
-  
-  candidateId      String
-  interviewerId    String
+  id              String          @id @default(cuid())
+  title           String
+  scheduledAt     DateTime
+  durationMinutes Int             @default(60)
+  status          InterviewStatus @default(SCHEDULED)
+  interviewMode   InterviewMode   @default(HUMAN) // Step 176
+  roomName        String? // LiveKit or external meeting ID
+  notes           String?
 
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  candidateId   String
+  interviewerId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Two-way relational mappers handling dual user intersections
-  candidate        User            @relation("CandidateInterviews", fields: [candidateId], references: [id])
-  interviewer      User            @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
+  candidate   User @relation("CandidateInterviews", fields: [candidateId], references: [id])
+  interviewer User @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
 
-  feedback         InterviewFeedback?
+  feedback InterviewFeedback?
+  aiConfig AiInterviewConfig? // Step 177 — only set when interviewMode = AI_AVATAR
 }
 
 model InterviewFeedback {
-  id              String   @id @default(cuid())
-  interviewId     String   @unique
-  interviewerId   String
-  rating          Int
-  recommendation  String   // "HIRE", "NO_HIRE", "STRONG_HIRE"
-  notes           String?
-  summary         String
+  id             String  @id @default(cuid())
+  interviewId    String  @unique
+  interviewerId  String
+  rating         Int
+  recommendation String // "HIRE", "NO_HIRE", "STRONG_HIRE"
+  notes          String?
+  summary        String
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  interview       Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+}
+
+// ── Step 177: AI Interview Configuration ────────────────────────────────────
+
+model AiInterviewConfig {
+  id String @id @default(cuid())
+
+  // Linked to a specific interview (1:1, optional)
+  interviewId String? @unique
+  // Linked to a position as the default config for all AI interviews for that role
+  positionId  String?
+
+  difficulty      AiInterviewDifficulty @default(MEDIUM)
+  durationMinutes Int                   @default(30)
+
+  // Question counts
+  introQuestions      Int @default(2)
+  technicalQuestions  Int @default(4)
+  behavioralQuestions Int @default(3)
+
+  // Provider slugs — resolved at runtime via env vars if null
+  avatarProvider  String? // "mock" | "tavus" | "heygen"
+  visualMode      String? @default("orb") // "orb" | "tavus" | "did" | "simli"
+  voiceProvider   String? // "browser" | "mock" | "deepgram"
+  scoringProvider String? // "gemini" | "openai" | "mock"
+  scoringModel    String? // model override
+
+  // Behaviour flags
+  followUpEnabled Boolean @default(false)
+  cameraRequired  Boolean @default(false)
+  retriesAllowed  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  interview Interview? @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  position  Position?  @relation("PositionAiConfig", fields: [positionId], references: [id], onDelete: Cascade)
 }
 
 model PositionBatchRun {
   id             String          @id @default(cuid())
   positionId     String
   actionType     BatchActionType
-  status         String          // "COMPLETED", "PARTIAL_SUCCESS", "FAILED"
+  status         String // "COMPLETED", "PARTIAL_SUCCESS", "FAILED"
   totalProcessed Int
   succeeded      Int
   failed         Int
   skipped        Int
-  detailsJson    Json?           // Error logs or specific details
+  detailsJson    Json? // Error logs or specific details
   createdAt      DateTime        @default(now())
 
-  position       Position        @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
 }
 
 model AiUsageLog {
+  id            String   @id @default(cuid())
+  positionId    String?
+  resumeId      String?
+  aiSessionId   String? // AI Avatar Interview session
+  provider      String
+  model         String
+  taskType      String // e.g. EXTRACTION, RANKING, JD_ANALYSIS, ADVANCED_JUDGMENT, AI_INTERVIEW_SCORE
+  inputTokens   Int      @default(0)
+  outputTokens  Int      @default(0)
+  totalTokens   Int      @default(0)
+  estimatedCost Float    @default(0)
+  promptVersion String?
+  createdAt     DateTime @default(now())
+
+  position  Position?           @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  resume    Resume?             @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  aiSession AiInterviewSession? @relation("AiSessionUsage", fields: [aiSessionId], references: [id], onDelete: SetNull)
+}
+
+// ── AI Avatar Interview ─────────────────────────────────────────────────────
+
+model AiInterviewSession {
+  id              String          @id @default(cuid())
+  organizationId  String?
+  resumeId        String? // nullable — can be standalone
+  positionId      String?
+  candidateId     String
+  status          AiSessionStatus @default(IN_PROGRESS)
+  questionSetJson Json? // Full question plan generated upfront by AI
+  finalScoreJson  Json? // Per-answer scores + overall summary JSON
+  overallScore    Int? // 0-100 aggregate score
+  recommendation  String? // "STRONG_HIRE" | "HIRE" | "MAYBE" | "WEAK_FIT" | "NEEDS_HUMAN_REVIEW" | "NO_HIRE"
+  avatarSessionId String? // ID from Tavus/HeyGen to correlate streams
+  // Epic 3: Frictionless Candidate Auth
+  magicLinkToken  String?         @unique
+
+  // Step 226: camera consent
+  cameraConsentGiven      Boolean   @default(false)
+  // Step 227: recruiter review
+  recruiterNotes          String?
+  recruiterRecommendation String? // Org Admin override (same enum as recommendation)
+  reviewedAt              DateTime?
+  reviewedByUserId        String?
+  startedAt               DateTime  @default(now())
+  completedAt             DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  candidate   User              @relation("CandidateAiSessions", fields: [candidateId], references: [id], onDelete: Cascade)
+  resume      Resume?           @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+  position    Position?         @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  turns       AiInterviewTurn[]
+  aiUsageLogs AiUsageLog[]      @relation("AiSessionUsage")
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  @@index([organizationId, createdAt])
+}
+
+model AiInterviewTurn {
+  id                 String             @id @default(cuid())
+  sessionId          String
+  turnIndex          Int // 0-based ordering
+  category           AiQuestionCategory
+  question           String
+  candidateAnswer    String? // Filled after the candidate speaks
+  scoreRaw           Int? // 0-10 per-answer score
+  scoreFeedback      String? // AI-generated feedback for this answer
+  spokenAt           DateTime? // When the AI spoke the question
+  answeredAt         DateTime? // When the candidate finished answering
+  speechProvider     String? // e.g. 'browser', 'deepgram'
+  speechConfidence   Float? // 0.0 to 1.0 mapping
+  answerDurationMs   Int? // How long the candidate spoke in ms
+  suspiciousFlags    Json? // Array of AI tags (e.g. ['TOO_SHORT', 'ROBOTIC_TONE'])
+  transcriptWarnings Json? // Array of hardware warnings (e.g. ['LOW_CONFIDENCE'])
+  createdAt          DateTime           @default(now())
+
+  session AiInterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model AiInterviewQuestion {
+  id              String             @id @default(cuid())
+  positionId      String
+  questionText    String
+  category        AiQuestionCategory // INTRO, TECHNICAL, BEHAVIORAL, CLOSING
+  expectedSignals String? // Expected answer context or signals
+  rationale       String? // Why this question was generated
+  isApproved      Boolean            @default(false)
+  sortOrder       Int                @default(0)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+}
+
+// ── Epic 3: Multi-tenant & RBAC ──────────────────────────────────────────────
+
+model Department {
   id             String   @id @default(cuid())
-  positionId     String?
-  resumeId       String?
-  provider       String
-  model          String
-  taskType       String   // e.g. EXTRACTION, RANKING, JD_ANALYSIS, ADVANCED_JUDGMENT
-  inputTokens    Int      @default(0)
-  outputTokens   Int      @default(0)
-  totalTokens    Int      @default(0)
-  estimatedCost  Float    @default(0)
-  promptVersion  String?
+  organizationId String?
+  name           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  positions Position[]
+  users     User[]
+
+  @@index([organizationId, createdAt])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String?
+  userId         String
+  action         String
+  resourceType   String
+  resourceId     String
+  metadata       Json?
   createdAt      DateTime @default(now())
 
-  position       Position? @relation(fields: [positionId], references: [id], onDelete: Cascade)
-  resume         Resume?   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  @@index([organizationId, createdAt])
 }

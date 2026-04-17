@@ -34,3 +34,38 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Visual Provider Selection (AI Interviews)
+
+The AI Interview environment defaults to a high-performance **Animated Orb** (`VISUAL_MODE=orb`).
+To switch to a premium live video avatar, set the `VISUAL_MODE` environment variable and provide the corresponding API key. 
+
+### Supported Modes:
+
+1. **Orb Visual (Default, Free, Zero-latency)**
+   ```env
+   VISUAL_MODE=orb
+   # No keys required.
+   ```
+
+2. **Tavus (Live WebRTC Video Avatar)**
+   ```env
+   VISUAL_MODE=tavus
+   TAVUS_API_KEY=your_key
+   TAVUS_PERSONA_ID=your_persona_id
+   ```
+
+3. **D-ID (REST-based Video Avatar)**
+   ```env
+   VISUAL_MODE=did
+   DID_API_KEY=your_key
+   ```
+
+4. **Simli (WebRTC Video Avatar)**
+   ```env
+   VISUAL_MODE=simli
+   SIMLI_API_KEY=your_key
+   SIMLI_FACE_ID=your_face_id
+   ```
+
+To apply changes, update the environment variable in Vercel or `.env` and restart the application/redeploy.

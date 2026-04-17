@@ -1,101 +1,103 @@
 import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
-import Link from "next/link"
 
-function getRelativeTime(date: Date) {
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
-  const diffInSeconds = Math.round((date.getTime() - new Date().getTime()) / 1000)
-  const diffInMinutes = Math.round(diffInSeconds / 60)
-  const diffInHours = Math.round(diffInMinutes / 60)
-  const diffInDays = Math.round(diffInHours / 24)
-
-  if (Math.abs(diffInDays) > 0) return rtf.format(diffInDays, 'day')
-  if (Math.abs(diffInHours) > 0) return rtf.format(diffInHours, 'hour')
-  if (Math.abs(diffInMinutes) > 0) return rtf.format(diffInMinutes, 'minute')
-  return "just now"
+export const metadata = {
+  title: "Audit Logs | Org Admin",
 }
 
-export const dynamic = "force-dynamic"
+export default async function ActivityDashboard() {
+  const { userId, orgId, orgRole } = await auth()
+  
+  if (!userId) redirect("/sign-in")
+  if (!orgId) redirect("/select-org")
 
-export default async function OrgAdminActivityLogPage() {
-  const { userId } = await auth()
-  if (!userId) redirect("/")
+  // Strict Authorization: Only an Org Admin can view immutable organization activity
+  if (orgRole !== "org:admin") {
+    redirect("/org-admin/dashboard")
+  }
 
-  const logs = await prisma.positionBatchRun.findMany({
-    where: { position: { createdById: userId } },
+  // Fetch the latest 50 audit logs chronologically
+  const logs = await prisma.auditLog.findMany({
+    where: { organizationId: orgId },
     orderBy: { createdAt: "desc" },
-    include: { position: true },
-    take: 100
-  })
+    take: 50
+  });
+
+  // Extract all distinct userIds from logs to attempt to fetch their names
+  const uniqueUserIds = Array.from(new Set(logs.map(log => log.userId)));
+  const users = await prisma.user.findMany({
+    where: { id: { in: uniqueUserIds } },
+    select: { id: true, name: true, email: true }
+  });
+
+  const userMap = new Map(users.map(u => [u.id, u.name || u.email || "Unknown User"]));
+
+  const getActionTheme = (action: string) => {
+    switch(action) {
+      case "CREATED": case "STARTED": return "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400";
+      case "DELETED": return "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400";
+      case "UPDATED": case "EVALUATED": return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
+      case "INVITED": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+      default: return "bg-gray-100 text-gray-800 dark:bg-zinc-800 dark:text-zinc-300";
+    }
+  }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-8 flex flex-col gap-8">
-      <div className="flex items-center justify-between">
+    <div className="flex-1 space-y-8 max-w-6xl mx-auto w-full p-4 md:p-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-gray-100 dark:border-zinc-800 pb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">Global Activity Log</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Audit trail of all automated workflows and bulk actions across your positions.</p>
+          <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-teal-600"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+            Audit Logs
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400 mt-1.5 text-base">
+            Immutable chronological record of administrative and data mutations.
+          </p>
         </div>
-        <Link href="/org-admin" className="px-4 py-2 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-zinc-700 transition shadow-sm text-gray-700 dark:text-gray-200">
-          Back to Dashboard
-        </Link>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-white dark:bg-zinc-900/50 rounded-2xl border border-gray-200 dark:border-zinc-800 shadow-sm overflow-hidden">
         {logs.length === 0 ? (
-          <div className="p-16 flex flex-col items-center justify-center text-center">
-            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-            </div>
-            <h3 className="font-bold text-gray-900 dark:text-white">No activity recorded</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">When bulk actions are triggered, they will appear here.</p>
+          <div className="p-12 text-center">
+            <p className="text-zinc-500 dark:text-zinc-400">No activity logged in this workspace yet.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-zinc-800/50 border-b border-gray-200 dark:border-zinc-800">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800">
                 <tr>
-                  <th className="px-5 py-3 font-semibold w-40">Timestamp</th>
-                  <th className="px-5 py-3 font-semibold">Position</th>
-                  <th className="px-5 py-3 font-semibold">Action Executed</th>
-                  <th className="px-5 py-3 font-semibold text-center w-36">Status</th>
-                  <th className="px-5 py-3 font-semibold text-right w-48">Throughput Metrics</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 dark:text-zinc-100">Timestamp</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 dark:text-zinc-100">Actor</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 dark:text-zinc-100">Action</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 dark:text-zinc-100">Resource</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 dark:text-zinc-100">Context</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/80">
-                {logs.map(log => (
-                  <tr key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/40 transition-colors group">
-                    <td className="px-5 py-4 whitespace-nowrap">
-                      <p className="font-semibold text-[13px] text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{getRelativeTime(log.createdAt)}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 uppercase font-bold tracking-wider">{log.createdAt.toLocaleDateString()} • {log.createdAt.toLocaleTimeString()}</p>
+              <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
+                {logs.map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800/40 transition-colors">
+                    <td className="px-6 py-4 text-gray-500 dark:text-zinc-400 whitespace-nowrap">
+                      {new Date(log.createdAt).toLocaleString(undefined, {
+                        month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+                      })}
                     </td>
-                    <td className="px-5 py-4">
-                      <Link href={`/org-admin/positions/${log.positionId}`} className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:underline inline-flex items-center gap-1.5 focus:outline-none">
-                        {log.position.title}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all"><polyline points="9 18 15 12 9 6"/></svg>
-                      </Link>
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-zinc-200 whitespace-nowrap">
+                      {userMap.get(log.userId) || <span className="font-mono text-xs text-zinc-500">{log.userId.slice(0,10)}...</span>}
                     </td>
-                    <td className="px-5 py-4">
-                      <span className="font-bold text-[10px] tracking-widest text-gray-700 dark:text-gray-300 uppercase px-2 py-1 bg-gray-100 dark:bg-zinc-800 rounded-lg">
-                        {log.actionType.replace(/_/g, " ")}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2.5 py-1 text-xs font-bold rounded uppercase tracking-wider ${getActionTheme(log.action)}`}>
+                        {log.action}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-center">
-                      <span className={`inline-flex items-center text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
-                        log.status === "COMPLETED" ? "bg-teal-100/60 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 border border-teal-200/50 dark:border-teal-800/30" :
-                        log.status === "PARTIAL_SUCCESS" ? "bg-amber-100/60 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/30" :
-                        "bg-red-100/60 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200/50 dark:border-red-800/30"
-                      }`}>
-                        {log.status.replace("_", " ")}
-                      </span>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-gray-900 dark:text-zinc-300">{log.resourceType.replace(/_/g, " ")}</span>
+                        <span className="text-gray-400 dark:text-zinc-600 font-mono text-[10px] truncate max-w-[80px]" title={log.resourceId}>{log.resourceId}</span>
+                      </div>
                     </td>
-                    <td className="px-5 py-4 text-right">
-                      <p className="font-black text-[15px] text-gray-900 dark:text-gray-100 leading-none">{log.totalProcessed} <span className="font-bold text-gray-400 text-[9px] tracking-wider uppercase ml-1">TOTAL</span></p>
-                      <p className="text-[10px] font-bold text-gray-400 mt-1.5 flex items-center justify-end gap-2.5">
-                        <span className="text-teal-600 dark:text-teal-500 inline-flex items-center gap-0.5">{log.succeeded} ✓</span>
-                        {log.skipped > 0 && <span className="text-amber-600 dark:text-amber-500 inline-flex items-center gap-0.5">{log.skipped} ⚠</span>}
-                        {log.failed > 0 && <span className="text-red-600 dark:text-red-500 inline-flex items-center gap-0.5">{log.failed} ✗</span>}
-                      </p>
+                    <td className="px-6 py-4 text-xs font-mono text-gray-500 dark:text-zinc-400 max-w-xs truncate">
+                      {log.metadata ? JSON.stringify(log.metadata) : "—"}
                     </td>
                   </tr>
                 ))}

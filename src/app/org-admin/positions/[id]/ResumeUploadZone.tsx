@@ -32,11 +32,12 @@ type UploadState = "idle" | "uploading" | "done" | "error";
 
 interface ResumeUploadZoneProps {
   positionId: string;
+  compact?: boolean;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ResumeUploadZone({ positionId }: ResumeUploadZoneProps) {
+export function ResumeUploadZone({ positionId, compact }: ResumeUploadZoneProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -117,7 +118,82 @@ export function ResumeUploadZone({ positionId }: ResumeUploadZoneProps) {
     }
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // ── Compact inline mode — vertical mini-card in header ─────────────────────
+
+  if (compact) {
+    return (
+      <div className="flex flex-col gap-2.5 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 shadow-sm p-3 min-w-[220px]">
+        {/* Title row */}
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-500 dark:text-gray-400 shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <p className="text-xs font-bold text-gray-800 dark:text-white">Upload Candidates</p>
+        </div>
+
+        {/* Drag-drop zone */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => inputRef.current?.click()}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`
+            flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed
+            px-3 py-4 cursor-pointer transition-all duration-200 select-none
+            ${isDragging
+              ? "border-teal-500 bg-teal-50/60 dark:bg-teal-900/20"
+              : "border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/30 hover:border-teal-400 hover:bg-teal-50/30 dark:hover:bg-teal-900/10"
+            }
+          `}
+        >
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${isDragging ? "bg-teal-100 dark:bg-teal-800/40 text-teal-600" : "bg-gray-100 dark:bg-zinc-800 text-gray-400"}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div className="text-center pointer-events-none">
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+              {isDragging ? "Drop files here" : files.length > 0 ? `${files.length} file${files.length !== 1 ? "s" : ""} ready` : "Drag & drop resumes here"}
+            </p>
+            <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">
+              or <span className="text-teal-600 dark:text-teal-400 font-medium">click to browse</span>
+            </p>
+            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1">PDF, DOC, DOCX · Max 10 MB</p>
+          </div>
+          <input ref={inputRef} type="file" multiple accept={ACCEPTED_EXT} className="hidden" onChange={handleChange} />
+        </div>
+
+        {/* Result banner */}
+        {result && (
+          <div className={`text-[11px] px-2.5 py-1.5 rounded-lg font-medium text-center ${uploadState === "done" ? "bg-teal-50 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400" : "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400"}`}>
+            {uploadState === "done" ? `✓ ${result.uploaded} file${result.uploaded !== 1 ? "s" : ""} uploaded` : result.errors[0]}
+          </div>
+        )}
+
+        {/* Upload Resumes button */}
+        <button
+          type="button"
+          disabled={files.length === 0 || uploadState === "uploading"}
+          onClick={handleUpload}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 shadow-sm shadow-teal-600/20 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0"
+        >
+          {uploadState === "uploading" ? (
+            <><svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Uploading…</>
+          ) : (
+            <><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>Upload Resumes</>
+          )}
+        </button>
+      </div>
+    )
+  }
+
+  // ── Full drop zone render ────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-5">

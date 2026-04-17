@@ -3,6 +3,7 @@ import { MockEmailProvider } from "./providers/mock-provider";
 import { ResendEmailProvider } from "./providers/resend-provider";
 import { render } from "@react-email/render";
 import InterviewInviteTemplate from "./templates/InterviewInvite";
+import AiInterviewInviteTemplate from "./templates/AiInterviewInvite";
 import * as React from "react";
 
 // Resolve provider based on environment variables
@@ -64,6 +65,40 @@ export const emailService = {
     return await provider.sendEmail({
       to: options.to,
       subject: `Invitation to Interview - ${options.positionTitle}`,
+      html,
+      text,
+      tags
+    });
+  },
+
+  /**
+   * Sends an AI-interview-specific invite email.
+   * Routes candidates to the AI pre-check page and explains the process.
+   */
+  sendAiInterviewInvite: async (options: {
+    to: string;
+    candidateName: string;
+    positionTitle: string;
+    orgName?: string;
+    inviteLink: string;
+    inviteId?: string;
+  }) => {
+    const html = await render(
+      <AiInterviewInviteTemplate
+        candidateName={options.candidateName}
+        positionTitle={options.positionTitle}
+        orgName={options.orgName || "Our Organization"}
+        inviteLink={options.inviteLink}
+      />
+    );
+
+    const text = `Hi ${options.candidateName},\n\nYou've been shortlisted for ${options.positionTitle} at ${options.orgName || "our organization"}.\n\nPlease complete your AI-led interview here: ${options.inviteLink}\n\nNo scheduling needed — complete it at your convenience.`;
+
+    const tags = options.inviteId ? [{ name: "invite_id", value: options.inviteId }] : undefined;
+
+    return await provider.sendEmail({
+      to: options.to,
+      subject: `Your AI Interview Invitation — ${options.positionTitle}`,
       html,
       text,
       tags

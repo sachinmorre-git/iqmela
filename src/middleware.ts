@@ -10,9 +10,15 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId, sessionClaims } = await auth();
+  const { userId, orgId, sessionClaims } = await auth();
 
   if (userId) {
+    // 0. Enforce B2B Organization boundary
+    // If accessing an internal org dashboard but the user isn't in an org, redirect to selection
+    if (req.nextUrl.pathname.startsWith('/org-admin') && !orgId) {
+      return NextResponse.redirect(new URL('/select-org', req.url));
+    }
+
     // Clerk's session token is the authoritative source of truth.
     // It is cryptographically signed by Clerk and cannot be spoofed.
     const tokenRole = (sessionClaims?.publicMetadata as Record<string, any>)?.role as string | undefined;

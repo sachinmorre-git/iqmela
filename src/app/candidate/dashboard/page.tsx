@@ -4,6 +4,8 @@ import { InterviewCard } from "@/components/interview-card"
 import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
+import Link from "next/link"
+import { Bot } from "lucide-react"
 
 export const metadata = {
   title: 'Candidate Dashboard | Interview Platform',
@@ -19,18 +21,35 @@ export default async function CandidateDashboard() {
     select: { name: true }
   });
 
-  const upcomingInterviews = await prisma.interview.findMany({
-    where: { 
-      candidateId: userId,
-      status: "SCHEDULED"
-    },
-    orderBy: { scheduledAt: 'asc' },
-    include: {
-      interviewer: {
-        select: { name: true, email: true }
+  const [upcomingInterviews, aiSessions] = await Promise.all([
+    prisma.interview.findMany({
+      where: { 
+        candidateId: userId,
+        status: "SCHEDULED"
+      },
+      orderBy: { scheduledAt: 'asc' },
+      include: {
+        interviewer: {
+          select: { name: true, email: true }
+        }
       }
-    }
-  });
+    }),
+    prisma.aiInterviewSession.findMany({
+      where: { candidateId: userId },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      select: {
+        id: true,
+        status: true,
+        overallScore: true,
+        recommendation: true,
+        position: { select: { title: true } },
+        createdAt: true,
+      }
+    })
+  ]);
+
+  const pendingAiSessions = aiSessions.filter(s => s.status === "IN_PROGRESS");
 
   return (
     <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
@@ -58,10 +77,10 @@ export default async function CandidateDashboard() {
         
         <Card className="border-gray-100 dark:border-zinc-800 shadow-sm">
           <CardHeader className="pb-2">
-             <CardTitle className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Assessments Completed</CardTitle>
+             <CardTitle className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">AI Sessions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-black text-gray-900 dark:text-white mt-2">0</div>
+            <div className="text-5xl font-black text-gray-900 dark:text-white mt-2">{aiSessions.length}</div>
           </CardContent>
         </Card>
         
@@ -107,29 +126,66 @@ export default async function CandidateDashboard() {
           </CardContent>
         </Card>
 
-        {/* Recommended Practice */}
-        <Card className="col-span-1 shadow-sm border-gray-100 dark:border-zinc-800 min-h-[380px]">
-          <CardHeader className="border-b border-gray-100 dark:border-zinc-800/60 pb-5">
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">Recommended Practice</CardTitle>
+        {/* AI Interview Widget */}
+        <Card className="col-span-1 shadow-sm border-gray-100 dark:border-zinc-800 flex flex-col min-h-[380px]">
+          <CardHeader className="border-b border-gray-100 dark:border-zinc-800/60 pb-5 flex flex-row items-center justify-between">
+            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Bot className="w-5 h-5 text-indigo-500" />
+              AI Interview
+            </CardTitle>
+            <Link href="/candidate/ai-interview" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+              View all →
+            </Link>
           </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            {[1, 2].map((i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-zinc-950 border border-gray-100 dark:border-zinc-800 shadow-sm hover:border-indigo-200 dark:hover:border-indigo-800/50 transition duration-200">
-                <div>
-                  <h4 className="font-bold text-gray-900 dark:text-white">Algorithm Challenge #{i * 14}</h4>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md ${i % 2 === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                      {i % 2 === 0 ? 'Medium' : 'Hard'}
-                    </span>
-                    <span className="text-xs text-gray-500 font-medium tracking-wide">ARRAYS & HASHING</span>
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" className="font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg">Solve</Button>
+          <CardContent className="flex-1 p-6 flex flex-col gap-4">
+            {pendingAiSessions.length > 0 && (
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-400">
+                  You have {pendingAiSessions.length} in-progress session{pendingAiSessions.length > 1 ? "s" : ""}
+                </p>
+                <Link href={`/ai-interview/${pendingAiSessions[0].id}`} className="ml-auto text-xs text-amber-700 dark:text-amber-300 font-bold hover:underline shrink-0">
+                  Resume →
+                </Link>
               </div>
-            ))}
+            )}
+
+            {aiSessions.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center gap-4 py-4">
+                <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex items-center justify-center border border-indigo-100 dark:border-indigo-800/30">
+                  <Bot className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                  Practice with our AI interviewer — it asks real technical and behavioral questions and scores your answers.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {aiSessions.slice(0, 3).map((s) => (
+                  <Link key={s.id} href={`/ai-interview/${s.id}`} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-all group">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{s.position?.title ?? "General AI Interview"}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {s.status === "COMPLETED" ? `Score: ${s.overallScore}/100` : "In progress"}
+                      </p>
+                    </div>
+                    <span className={`text-xs font-bold px-2 py-1 rounded-lg ${s.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"}`}>
+                      {s.status === "COMPLETED" ? "Done" : "Resume"}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            <Link href="/candidate/ai-interview" className="mt-auto">
+              <Button className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold shadow-md shadow-indigo-600/10">
+                Start AI Interview
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
     </div>
   )
 }
+
