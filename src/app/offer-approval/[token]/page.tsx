@@ -8,13 +8,13 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  params: {
+  params: Promise<{
     token: string;
-  };
+  }>;
 }
 
 export default async function OfferApprovalPage({ params }: PageProps) {
-  const { token } = params;
+  const { token } = await params;
 
   const res = await getApprovalDetailsAction(token);
 

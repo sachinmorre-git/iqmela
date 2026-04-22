@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   title: "Your Offer from RelyOnAI",
 };
 
-export default async function CandidateOfferPage({ params }: { params: { token: string } }) {
-  const { token } = params;
+export default async function CandidateOfferPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
 
   // Retrieve the frozen/approved offer using the unique candidate token
   const offer = await prisma.jobOffer.findUnique({
