@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { getCallerPermissions } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,16 +8,9 @@ export const metadata = {
 }
 
 export default async function BillingDashboard() {
-  const { userId, orgId, orgRole } = await auth()
-  
-  if (!userId) redirect("/sign-in")
-  if (!orgId) redirect("/select-org")
-
-  // Explicit RBAC protection: Only Admin & Billing Admin allowed.
-  const isAuthorized = orgRole === "org:admin" || orgRole === "org:billing_admin"
-  if (!isAuthorized) {
-    redirect("/org-admin/dashboard")
-  }
+  const perms = await getCallerPermissions()
+  if (!perms) redirect("/select-role")
+  if (!perms.canManageBilling) redirect("/org-admin/dashboard")
 
   // MOCK DATA for now until Stripe is fully integrated
   const tier = "PRO"

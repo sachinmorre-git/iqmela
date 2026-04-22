@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { saveFile } from "@/lib/storage";
+import { getCallerPermissions } from "@/lib/rbac";
 
 const ACCEPTED_MIME = new Set([
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
 ]);
 
 // Max size per file: 10 MB
@@ -15,8 +16,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 export async function POST(req: NextRequest) {
   try {
     // ── Auth ─────────────────────────────────────────────────────────────────
-    const { userId } = await auth();
-    if (!userId) {
+    const perms = await getCallerPermissions();
+    if (!perms || !perms.canUploadResumes) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -33,16 +34,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "positionId is required" }, { status: 400 });
     }
 
-    // ── Ownership check ───────────────────────────────────────────────────────
+    // ── Org-scoped check ──────────────────────────────────────────────────────
     const position = await prisma.position.findUnique({
       where: { id: positionId },
-      select: { createdById: true },
+      select: { organizationId: true },
     });
 
     if (!position) {
       return NextResponse.json({ error: "Position not found" }, { status: 404 });
     }
-    if (position.createdById !== userId) {
+    if (position.organizationId !== perms.orgId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -81,11 +82,14 @@ export async function POST(req: NextRequest) {
         const resume = await prisma.resume.create({
           data: {
             positionId,
+            organizationId: perms.orgId,
             originalFileName: file.name,
             storagePath,
             mimeType: file.type,
             fileSize: file.size,
             parsingStatus: "UPLOADED",
+            vendorOrgId: perms.isVendor ? perms.orgId : null,
+            vendorStage: perms.isVendor ? "SUBMITTED" : null,
           },
         });
 

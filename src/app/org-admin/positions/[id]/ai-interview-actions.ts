@@ -6,7 +6,7 @@
 
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { getCallerPermissions } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { aiInterviewer } from "@/lib/ai-interview";
@@ -31,18 +31,17 @@ export async function createAiInterviewSessionAction(
   }
 ): Promise<AiInterviewInviteResult> {
   try {
-    const { userId } = await auth();
-    if (!userId) return { success: false, error: "Unauthorized" };
+    const perms = await getCallerPermissions();
+    if (!perms || !perms.canScheduleAiInterview) return { success: false, error: "Unauthorized" };
 
-    // Verify the org admin owns this position
     const resume = await prisma.resume.findUnique({
       where: { id: resumeId },
       include: {
-        position: { select: { id: true, title: true, jdText: true, createdById: true } },
+        position: { select: { id: true, title: true, jdText: true, organizationId: true } },
       },
     });
 
-    if (!resume || resume.position.createdById !== userId) {
+    if (!resume || resume.position.organizationId !== perms.orgId) {
       return { success: false, error: "Resume not found or unauthorized" };
     }
 
@@ -98,27 +97,21 @@ export async function createAiInterviewSessionAction(
       generationUsage = plan.usage;
     }
 
-    // Find the candidate user by their email (resume's candidate email)
+    // Try to find the candidate user by their email (may not exist yet — that's OK)
     const candidateEmail = resume.overrideEmail || resume.candidateEmail;
     if (!candidateEmail) {
       return { success: false, error: "Candidate has no email. Cannot create AI interview session." };
     }
 
+    // Look up user but don't block if they haven't signed up yet
     const candidateUser = await prisma.user.findUnique({
       where: { email: candidateEmail },
     });
 
-    if (!candidateUser) {
-      return {
-        success: false,
-        error: `No account found for ${candidateEmail}. The candidate must have signed up before an AI interview can be assigned.`,
-      };
-    }
-
-    // Create session
+    // Create session — candidateId is optional, linked when candidate opens the link
     const session = await prisma.aiInterviewSession.create({
       data: {
-        candidateId: candidateUser.id,
+        candidateId: candidateUser?.id ?? null,
         resumeId: resume.id,
         positionId: resume.positionId,
         status: "IN_PROGRESS",
@@ -169,6 +162,30 @@ export async function createAiInterviewSessionAction(
       });
     }
 
+    // Send AI interview invite email to the candidate
+    const { emailService } = await import("@/lib/email");
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const inviteLink = `${baseUrl}/ai-interview/${session.id}`;
+    const candidateName = resume.overrideName || resume.candidateName || "Candidate";
+
+    try {
+      const emailResult = await emailService.sendAiInterviewInvite({
+        to: candidateEmail,
+        candidateName,
+        positionTitle: resume.position.title,
+        orgName: undefined, // TODO: pass org name if available
+        inviteLink,
+      });
+      if (!emailResult.success) {
+        console.warn("[createAiInterviewSessionAction] Email send failed:", emailResult.error);
+      } else {
+        console.log("[createAiInterviewSessionAction] AI invite email sent to", candidateEmail);
+      }
+    } catch (emailErr) {
+      // Don't fail the session creation if email fails
+      console.error("[createAiInterviewSessionAction] Email error (non-blocking):", emailErr);
+    }
+
     revalidatePath(`/org-admin/positions/${positionId}`);
     revalidatePath(`/org-admin/resumes/${resumeId}`);
 
@@ -204,11 +221,11 @@ export async function upsertPositionAiConfigAction(
   config: AiInterviewConfigInput
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { userId } = await auth();
-    if (!userId) return { success: false, error: "Unauthorized" };
+    const perms = await getCallerPermissions();
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" };
 
     const position = await prisma.position.findUnique({ where: { id: positionId } });
-    if (!position || position.createdById !== userId) {
+    if (!position || position.organizationId !== perms.orgId) {
       return { success: false, error: "Not found or unauthorized" };
     }
 
@@ -269,11 +286,11 @@ import { AiQuestionCategory } from "@prisma/client";
 
 export async function generateQuestionBankAction(positionId: string): Promise<{ success: boolean; count?: number; error?: string }> {
   try {
-    const { userId } = await auth();
-    if (!userId) return { success: false, error: "Unauthorized" };
+    const perms = await getCallerPermissions();
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" };
 
     const position = await prisma.position.findUnique({ where: { id: positionId } });
-    if (!position || position.createdById !== userId) {
+    if (!position || position.organizationId !== perms.orgId) {
       return { success: false, error: "Not found or unauthorized" };
     }
 
@@ -318,12 +335,11 @@ export async function generateQuestionBankAction(positionId: string): Promise<{ 
 }
 
 export async function toggleQuestionApprovalAction(questionId: string, isApproved: boolean): Promise<{ success: boolean }> {
-  const { userId } = await auth();
-  if (!userId) return { success: false };
+  const perms = await getCallerPermissions();
+  if (!perms || !perms.canManagePositions) return { success: false };
 
-  // minimal auth check
   const q = await prisma.aiInterviewQuestion.findUnique({ where: { id: questionId }, include: { position: true } });
-  if (!q || q.position.createdById !== userId) return { success: false };
+  if (!q || q.position.organizationId !== perms.orgId) return { success: false };
 
   await prisma.aiInterviewQuestion.update({
     where: { id: questionId },
@@ -336,11 +352,11 @@ export async function toggleQuestionApprovalAction(questionId: string, isApprove
 
 export async function editQuestionTextAction(questionId: string, newText: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const { userId } = await auth();
-    if (!userId) return { success: false, error: "Unauthorized" };
+    const perms = await getCallerPermissions();
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" };
 
     const q = await prisma.aiInterviewQuestion.findUnique({ where: { id: questionId }, include: { position: true } });
-    if (!q || q.position.createdById !== userId) return { success: false, error: "Not found" };
+    if (!q || q.position.organizationId !== perms.orgId) return { success: false, error: "Not found" };
 
     await prisma.aiInterviewQuestion.update({
       where: { id: questionId },
@@ -356,11 +372,11 @@ export async function editQuestionTextAction(questionId: string, newText: string
 
 export async function deleteQuestionAction(questionId: string): Promise<{ success: boolean }> {
   try {
-    const { userId } = await auth();
-    if (!userId) return { success: false };
+    const perms = await getCallerPermissions();
+    if (!perms || !perms.canManagePositions) return { success: false };
 
     const q = await prisma.aiInterviewQuestion.findUnique({ where: { id: questionId }, include: { position: true } });
-    if (!q || q.position.createdById !== userId) return { success: false };
+    if (!q || q.position.organizationId !== perms.orgId) return { success: false };
 
     await prisma.aiInterviewQuestion.delete({
       where: { id: questionId },
@@ -384,12 +400,11 @@ export async function reviewAiSessionAction(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { userId } = await auth();
-    if (!userId) return { success: false, error: "Unauthorized" };
+    const perms = await getCallerPermissions();
+    if (!perms || !perms.canViewReviews) return { success: false, error: "Unauthorized" };
 
-    // Verify the org admin owns this position
     const position = await prisma.position.findUnique({ where: { id: positionId } });
-    if (!position || position.createdById !== userId) {
+    if (!position || position.organizationId !== perms.orgId) {
       return { success: false, error: "Not found or unauthorized" };
     }
 
@@ -399,7 +414,7 @@ export async function reviewAiSessionAction(
         recruiterNotes: data.recruiterNotes ?? null,
         recruiterRecommendation: data.recruiterRecommendation ?? null,
         reviewedAt: new Date(),
-        reviewedByUserId: userId,
+        reviewedByUserId: perms.userId,
       },
     });
 
@@ -413,12 +428,11 @@ export async function reviewAiSessionAction(
 
 export async function saveQuestionOrderAction(positionId: string, orderedIds: string[]): Promise<{ success: boolean }> {
   try {
-    const { userId } = await auth();
-    if (!userId) return { success: false };
+    const perms = await getCallerPermissions();
+    if (!perms || !perms.canManagePositions) return { success: false };
     
-    // Auth
     const pos = await prisma.position.findUnique({ where: { id: positionId } });
-    if (!pos || pos.createdById !== userId) return { success: false };
+    if (!pos || pos.organizationId !== perms.orgId) return { success: false };
 
     // Update individually
     await Promise.all(orderedIds.map((id, index) => 

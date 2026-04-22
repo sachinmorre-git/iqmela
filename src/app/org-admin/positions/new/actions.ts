@@ -1,20 +1,21 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { PositionStatus } from "@prisma/client";
+import { getCallerPermissions } from "@/lib/rbac";
 
 const VALID_STATUSES = Object.values(PositionStatus);
 
 export async function createPosition(formData: FormData) {
   try {
-    const { userId } = await auth();
-    if (!userId) throw new Error("Unauthorized");
+    const perms = await getCallerPermissions();
+    if (!perms) throw new Error("Unauthorized");
+    if (!perms.canManagePositions) throw new Error("Insufficient permissions");
 
     // ── Extract fields ───────────────────────────────────────────
     const title          = (formData.get("title")          as string)?.trim();
-    const department     = (formData.get("department")     as string)?.trim() || null;
+    const departmentId   = (formData.get("department")     as string)?.trim() || null;
     const location       = (formData.get("location")       as string)?.trim() || null;
     const employmentType = (formData.get("employmentType") as string)?.trim() || null;
     const rawStatus      = (formData.get("status")         as string)?.trim();
@@ -23,6 +24,13 @@ export async function createPosition(formData: FormData) {
 
     // ── Validate required ────────────────────────────────────────
     if (!title) throw new Error("Position title is required.");
+
+    // Resolve department name from ID
+    let department: string | null = null;
+    if (departmentId) {
+      const dept = await prisma.department.findUnique({ where: { id: departmentId }, select: { name: true } });
+      department = dept?.name ?? null;
+    }
 
     // ── Validate status enum ─────────────────────────────────────
     const status: PositionStatus = VALID_STATUSES.includes(rawStatus as PositionStatus)
@@ -34,12 +42,14 @@ export async function createPosition(formData: FormData) {
       data: {
         title,
         department,
+        departmentId,
         location,
         employmentType,
         description,
         jdText,
         status,
-        createdById: userId,
+        createdById: perms.userId,
+        organizationId: perms.orgId,
       },
     });
 

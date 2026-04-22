@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { getCallerPermissions } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import { AiTestButton } from "./AiTestButton"
 import { AiCostDashboard } from "./AiCostDashboard"
@@ -8,8 +8,9 @@ export const metadata = {
 }
 
 export default async function OrgAdminSettingsPage() {
-  const { userId } = await auth()
-  if (!userId) redirect("/sign-in")
+  const perms = await getCallerPermissions()
+  if (!perms) redirect("/select-role")
+  if (!perms.canManageSettings) redirect("/org-admin/dashboard")
 
   // Read environment variables directly (Server Component, secure)
   const providerType = process.env.EMAIL_PROVIDER?.toLowerCase() || "mock"

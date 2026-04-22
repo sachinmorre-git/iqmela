@@ -43,24 +43,24 @@ export async function saveUserRole(role: Role) {
 
     await prisma.user.upsert({
       where: { id: userId },
-      update: { role },
+      update: { roles: { set: [role] } },
       create: {
         id: userId,
         email,
         name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim(),
-        role,
+        roles: [role],
       },
     });
     console.log(`4. Prisma User upsert SUCCESS.`);
 
     console.log(`5. Attempting specific Profile upsert...`);
-    if (role === "CANDIDATE") {
+    if (role === "PUBLIC_CANDIDATE") {
       await prisma.candidateProfile.upsert({
         where: { userId },
         update: {}, 
         create: { userId },
       });
-    } else if (role === "INTERVIEWER") {
+    } else if (role === "PUBLIC_INTERVIEWER") {
       await prisma.interviewerProfile.upsert({
         where: { userId },
         update: {}, 
@@ -78,7 +78,7 @@ export async function saveUserRole(role: Role) {
     console.log(`7. Pushing metadata to Clerk APIs...`);
     await client.users.updateUserMetadata(userId, {
       publicMetadata: {
-        role: role.toLowerCase() as UserPublicMetadata["role"],
+        role: (role === "PUBLIC_CANDIDATE" ? "candidate" : role === "PUBLIC_INTERVIEWER" ? "interviewer" : role.toLowerCase()) as UserPublicMetadata["role"],
       },
     });
     console.log(`8. Clerk metadata SUCCESS.`);
@@ -87,9 +87,12 @@ export async function saveUserRole(role: Role) {
     // Instead, we set a standard Next.js HTTP cookie with the role!
     // The middleware will read this instantly!
     const { cookies } = await import("next/headers");
-    // Map the Prisma Role enum to the URL segment used by the middleware redirect.
-    // ADMIN maps to "org-admin" so the redirect lands on /org-admin/dashboard.
-    const cookieValue = role === "ADMIN" ? "org-admin" : role.toLowerCase();
+    const ROLE_TO_COOKIE: Record<string, string> = {
+      PUBLIC_CANDIDATE: "candidate",
+      PUBLIC_INTERVIEWER: "interviewer",
+      ADMIN: "org-admin",
+    };
+    const cookieValue = ROLE_TO_COOKIE[role] ?? role.toLowerCase();
     (await cookies()).set("user_role", cookieValue, { path: '/' });
     console.log(`9. Custom HTTP cookie injected.`);
     

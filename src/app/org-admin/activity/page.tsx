@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { getCallerPermissions } from "@/lib/rbac"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 
@@ -7,19 +7,13 @@ export const metadata = {
 }
 
 export default async function ActivityDashboard() {
-  const { userId, orgId, orgRole } = await auth()
-  
-  if (!userId) redirect("/sign-in")
-  if (!orgId) redirect("/select-org")
-
-  // Strict Authorization: Only an Org Admin can view immutable organization activity
-  if (orgRole !== "org:admin") {
-    redirect("/org-admin/dashboard")
-  }
+  const perms = await getCallerPermissions()
+  if (!perms) redirect("/select-role")
+  if (!perms.canViewActivity) redirect("/org-admin/dashboard")
 
   // Fetch the latest 50 audit logs chronologically
   const logs = await prisma.auditLog.findMany({
-    where: { organizationId: orgId },
+    where: { organizationId: perms.orgId },
     orderBy: { createdAt: "desc" },
     take: 50
   });

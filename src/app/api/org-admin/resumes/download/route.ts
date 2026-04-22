@@ -10,23 +10,15 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { isBlobUrl, downloadBlobFile } from "@/lib/storage";
+import { getCallerPermissions } from "@/lib/rbac";
 
 export async function GET(req: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
-  const { userId } = await auth();
-  if (!userId) {
+  const perms = await getCallerPermissions();
+  if (!perms || !perms.canViewPositions) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true },
-  });
-  if (!user || user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // ── Resolve resume ────────────────────────────────────────────────────────

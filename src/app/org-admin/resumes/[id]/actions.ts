@@ -1,26 +1,23 @@
 "use server"
 
-import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { resumeParser } from "@/lib/resume-parser"
 import { candidateExtractor } from "@/lib/candidate-extractor"
 import { revalidatePath } from "next/cache"
 import path from "path"
+import { getCallerPermissions } from "@/lib/rbac"
 
 export async function extractResumeTextAction(resumeId: string) {
-  const { userId } = await auth()
-  if (!userId) {
-    return { success: false, error: "Unauthorized" }
-  }
+  const perms = await getCallerPermissions()
+  if (!perms || !perms.canRunAI) return { success: false, error: "Unauthorized" }
 
-  // Find the resume ensuring user ownership
   const resume = await prisma.resume.findUnique({
     where: { id: resumeId },
     include: { position: true },
   })
 
-  if (!resume || resume.position.createdById !== userId) {
+  if (!resume || resume.position.organizationId !== perms.orgId) {
     return { success: false, error: "Resume not found or unauthorized" }
   }
 
@@ -79,17 +76,15 @@ export async function extractResumeTextAction(resumeId: string) {
 }
 
 export async function extractCandidateDetailsAction(resumeId: string) {
-  const { userId } = await auth()
-  if (!userId) {
-    return { success: false, error: "Unauthorized" }
-  }
+  const perms = await getCallerPermissions()
+  if (!perms || !perms.canRunAI) return { success: false, error: "Unauthorized" }
 
   const resume = await prisma.resume.findUnique({
     where: { id: resumeId },
     include: { position: true },
   })
 
-  if (!resume || resume.position.createdById !== userId) {
+  if (!resume || resume.position.organizationId !== perms.orgId) {
     return { success: false, error: "Resume not found or unauthorized" }
   }
 
@@ -120,15 +115,15 @@ export async function extractCandidateDetailsAction(resumeId: string) {
 }
 
 export async function runAiExtractionAction(resumeId: string) {
-  const { userId } = await auth()
-  if (!userId) return { success: false, error: "Unauthorized" }
+  const perms = await getCallerPermissions()
+  if (!perms || !perms.canRunAI) return { success: false, error: "Unauthorized" }
 
   const resume = await prisma.resume.findUnique({
     where: { id: resumeId },
     include: { position: true },
   })
 
-  if (!resume || resume.position.createdById !== userId) {
+  if (!resume || resume.position.organizationId !== perms.orgId) {
     return { success: false, error: "Resume not found or unauthorized" }
   }
 

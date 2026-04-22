@@ -10,9 +10,10 @@ const ACCEPTED_MIME = [
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
 ];
 
-const ACCEPTED_EXT = ".pdf,.doc,.docx";
+const ACCEPTED_EXT = ".pdf,.doc,.docx,.txt";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -33,11 +34,12 @@ type UploadState = "idle" | "uploading" | "done" | "error";
 interface ResumeUploadZoneProps {
   positionId: string;
   compact?: boolean;
+  uploadEndpoint?: string; // Override the upload API URL (e.g., for vendor cross-tenant uploads)
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ResumeUploadZone({ positionId, compact }: ResumeUploadZoneProps) {
+export function ResumeUploadZone({ positionId, compact, uploadEndpoint }: ResumeUploadZoneProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -92,7 +94,7 @@ export function ResumeUploadZone({ positionId, compact }: ResumeUploadZoneProps)
         formData.append("files", file);
       }
 
-      const res = await fetch("/api/org-admin/resumes/upload", {
+      const res = await fetch(uploadEndpoint || "/api/org-admin/resumes/upload", {
         method: "POST",
         body: formData,
       });

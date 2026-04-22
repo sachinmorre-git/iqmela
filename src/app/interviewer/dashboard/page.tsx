@@ -1,144 +1,234 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { InterviewCard } from "@/components/interview-card"
-import { auth } from "@clerk/nextjs/server"
-import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
-import Link from "next/link"
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { TodayTimeline } from "./TodayTimeline";
+import { StatsRings } from "./StatsRings";
+import { FeedbackQueue } from "./FeedbackQueue";
+import { ActivityHeatmap } from "./ActivityHeatmap";
+import { StreakBadge } from "./StreakBadge";
 
-export const metadata = {
-  title: 'Interviewer Dashboard | Interview Platform',
-  description: 'Manage candidates and technical assessments.',
-}
+export const metadata: Metadata = {
+  title: "Interviewer Dashboard — IQMela",
+  description: "Your daily interview schedule, feedback queue, and performance at a glance.",
+};
 
 export default async function InterviewerDashboard() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  // Fetch real interviewer data AND their hosted interviews
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { name: true }
+    select: { name: true },
   });
 
-  const upcomingInterviews = await prisma.interview.findMany({
-    where: { 
-      interviewerId: userId,
-      status: "SCHEDULED" 
+  const now   = new Date();
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+  const todayEnd   = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+  const weekEnd    = new Date(now); weekEnd.setDate(weekEnd.getDate() + 7);
+  const heatmapStart = new Date(now); heatmapStart.setDate(heatmapStart.getDate() - 83); // 12 weeks
+
+  // Today's interviews — as lead OR panelist
+  const todayInterviews = await prisma.interview.findMany({
+    where: {
+      scheduledAt: { gte: todayStart, lte: todayEnd },
+      OR: [
+        { interviewerId: userId },
+        { panelists: { some: { interviewerId: userId } } },
+      ],
     },
-    orderBy: { scheduledAt: 'asc' },
+    orderBy: { scheduledAt: "asc" },
     include: {
-      candidate: {
-        select: { name: true, email: true }
-      }
-    }
+      candidate: { select: { name: true, email: true } },
+      position:  { select: { title: true } },
+      panelists: { include: { interviewer: { select: { name: true } } } },
+    },
   });
 
-  // Basic localized stat calculation
-  const interviewsTodayCount = upcomingInterviews.filter(interview => {
-    const today = new Date();
-    const intDate = interview.scheduledAt;
-    return intDate.getDate() === today.getDate() && intDate.getMonth() === today.getMonth() && intDate.getFullYear() === today.getFullYear();
+  // Upcoming (next 7 days, excluding today)
+  const upcomingInterviews = await prisma.interview.findMany({
+    where: {
+      scheduledAt: { gt: todayEnd, lte: weekEnd },
+      OR: [
+        { interviewerId: userId },
+        { panelists: { some: { interviewerId: userId } } },
+      ],
+      status: "SCHEDULED",
+    },
+    orderBy: { scheduledAt: "asc" },
+    take: 5,
+    include: {
+      candidate: { select: { name: true } },
+      position:  { select: { title: true } },
+    },
+  });
+
+  // Interviews needing feedback (completed, this interviewer hasn't submitted PanelistFeedback)
+  const completedInterviews = await prisma.interview.findMany({
+    where: {
+      status: "COMPLETED",
+      OR: [
+        { interviewerId: userId },
+        { panelists: { some: { interviewerId: userId } } },
+      ],
+      NOT: { panelistFeedbacks: { some: { interviewerId: userId } } },
+    },
+    orderBy: { scheduledAt: "desc" },
+    take: 10,
+    include: {
+      candidate: { select: { name: true, email: true } },
+      position:  { select: { title: true, id: true } },
+    },
+  });
+
+  // Stats: total conducted, avg score, on-time feedback rate
+  const totalConducted = await prisma.panelistFeedback.count({
+    where: { interviewerId: userId },
+  });
+
+  const avgScoreResult = await prisma.panelistFeedback.aggregate({
+    where: { interviewerId: userId },
+    _avg: { overallScore: true },
+  });
+
+  // On-time rate: feedbacks submitted within 48h of interview
+  const allFeedbacks = await prisma.panelistFeedback.findMany({
+    where: { interviewerId: userId },
+    select: { submittedAt: true, interviewId: true },
+  });
+  const interviewTimes = await prisma.interview.findMany({
+    where: { id: { in: allFeedbacks.map((f) => f.interviewId) } },
+    select: { id: true, scheduledAt: true },
+  });
+  const timeMap = Object.fromEntries(interviewTimes.map((i) => [i.id, i.scheduledAt]));
+  const onTimeCount = allFeedbacks.filter((f) => {
+    const iv = timeMap[f.interviewId];
+    if (!iv) return false;
+    return f.submittedAt.getTime() - iv.getTime() <= 48 * 60 * 60 * 1000;
   }).length;
+  const onTimeRate = allFeedbacks.length > 0
+    ? Math.round((onTimeCount / allFeedbacks.length) * 100)
+    : 100;
+
+  // Streak: consecutive on-time feedbacks from most recent
+  const sortedFeedbacks = [...allFeedbacks].sort(
+    (a, b) => b.submittedAt.getTime() - a.submittedAt.getTime()
+  );
+  let streak = 0;
+  for (const f of sortedFeedbacks) {
+    const iv = timeMap[f.interviewId];
+    if (!iv) break;
+    if (f.submittedAt.getTime() - iv.getTime() <= 48 * 60 * 60 * 1000) streak++;
+    else break;
+  }
+
+  // Heatmap data (last 12 weeks)
+  const heatmapInterviews = await prisma.interview.findMany({
+    where: {
+      scheduledAt: { gte: heatmapStart },
+      OR: [
+        { interviewerId: userId },
+        { panelists: { some: { interviewerId: userId } } },
+      ],
+    },
+    select: { scheduledAt: true },
+  });
+
+  const heatmapCounts: Record<string, number> = {};
+  heatmapInterviews.forEach(({ scheduledAt }) => {
+    const key = scheduledAt.toISOString().split("T")[0];
+    heatmapCounts[key] = (heatmapCounts[key] ?? 0) + 1;
+  });
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
-      {/* Top Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-gray-100 dark:border-zinc-800 pb-6 mt-2">
-        <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Overview</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1.5 text-base">
-            Hello, {user?.name?.split(' ')[0] || 'Interviewer'}. You have {interviewsTodayCount} interviews scheduled today.
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <Button variant="outline" className="w-full sm:w-auto shrink-0 rounded-xl shadow-sm hover:-translate-y-0.5 transition-transform">
-             Draft Assessment
-          </Button>
-          <Link href="/interviewer/schedule">
-            <Button className="w-full sm:w-auto shrink-0 rounded-xl shadow-md shadow-purple-600/20 bg-purple-600 hover:bg-purple-700 text-white border-transparent hover:-translate-y-0.5 transition-transform">
-              Schedule Interview
-            </Button>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-zinc-950 text-white">
+      {/* Ambient background */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute -top-32 left-1/3 w-[700px] h-[400px] bg-indigo-700/10 blur-3xl rounded-full" />
+        <div className="absolute top-1/2 right-0 w-[400px] h-[400px] bg-violet-700/8 blur-3xl rounded-full" />
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <Card className="bg-purple-600 dark:bg-purple-600 border-none text-white shadow-lg shadow-purple-600/20">
-          <CardHeader className="pb-2">
-             <CardTitle className="text-sm font-semibold uppercase tracking-wider text-purple-100">Interviews Today</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-5xl font-black mt-2">{interviewsTodayCount}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-gray-100 dark:border-zinc-800 shadow-sm transition-shadow hover:shadow-md">
-          <CardHeader className="pb-2">
-             <CardTitle className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Scheduled</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-5xl font-black text-gray-900 dark:text-white mt-2">{upcomingInterviews.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-gray-100 dark:border-zinc-800 shadow-sm transition-shadow hover:shadow-md">
-          <CardHeader className="pb-2">
-             <CardTitle className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg Pass Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mt-3 pb-1 border-b-2 border-purple-500 border-dashed inline-block">N/A</div>
-          </CardContent>
-        </Card>
-      </div>
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-zinc-500 text-sm font-medium">Good day,</p>
+            <h1 className="text-2xl font-black tracking-tight text-white">{user?.name ?? "Interviewer"}</h1>
+          </div>
+          <StreakBadge streak={streak} />
+        </div>
 
-      {/* Dashboard Modules */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-4">
-        {/* Schedule Wrapper */}
-        <Card className="col-span-1 shadow-sm border-gray-100 dark:border-zinc-800 flex flex-col min-h-[380px]">
-          <CardHeader className="border-b border-gray-100 dark:border-zinc-800/60 pb-5">
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">Upcoming Sessions</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto p-6 space-y-4">
-            
-            {upcomingInterviews.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center">
-                <p className="text-gray-500 dark:text-gray-400 font-medium">No candidates are currently scheduled.</p>
-                <Link href="/interviewer/schedule" className="mt-4 text-purple-600 dark:text-purple-400 font-semibold text-sm hover:underline">
-                  Schedule one now &rarr;
-                </Link>
-              </div>
-            ) : (
-              upcomingInterviews.map((interview) => (
-                <InterviewCard 
-                  key={interview.id}
-                  topBadge={interview.scheduledAt.toLocaleString('default', { month: 'short' })}
-                  bottomBadge={interview.scheduledAt.getDate().toString()}
-                  title={interview.title}
-                  subtitle={interview.candidate.name ? `Candidate: ${interview.candidate.name}` : `Candidate: ${interview.candidate.email}`}
-                  actionText="Launch Room"
-                  href={`/interview/${interview.id}`}
-                  duration={`${interview.durationMinutes}m duration`}
-                  theme="purple"
-                />
-              ))
-            )}
+        {/* Top row: Stats + Today Summary */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2">
+            <TodayTimeline
+              interviews={todayInterviews.map((iv) => ({
+                id:             iv.id,
+                scheduledAt:    iv.scheduledAt.toISOString(),
+                durationMinutes: iv.durationMinutes,
+                status:         iv.status,
+                candidateName:  iv.candidate.name ?? iv.candidate.email ?? "Candidate",
+                positionTitle:  iv.position?.title ?? iv.title,
+              }))}
+              upcomingCount={upcomingInterviews.length}
+            />
+          </div>
+          <StatsRings
+            totalConducted={totalConducted}
+            avgScore={Math.round((avgScoreResult._avg.overallScore ?? 0) * 10) / 10}
+            onTimeRate={onTimeRate}
+          />
+        </div>
 
-          </CardContent>
-        </Card>
+        {/* Feedback Queue */}
+        {completedInterviews.length > 0 && (
+          <FeedbackQueue
+            interviews={completedInterviews.map((iv) => ({
+              id:            iv.id,
+              candidateName: iv.candidate.name ?? iv.candidate.email ?? "Candidate",
+              positionTitle: iv.position?.title ?? iv.title,
+              positionId:    iv.position?.id ?? "",
+              scheduledAt:   iv.scheduledAt.toISOString(),
+            }))}
+          />
+        )}
 
-        {/* Needs Review (Placeholder for future feature) */}
-        <Card className="col-span-1 shadow-sm border-gray-100 dark:border-zinc-800 min-h-[380px]">
-          <CardHeader className="border-b border-gray-100 dark:border-zinc-800/60 pb-5 flex flex-row items-center justify-between">
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">Needs Review</CardTitle>
-            <span className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs font-bold px-2.5 py-1 rounded-md tracking-wider">0 PENDING</span>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4 flex flex-col items-center justify-center h-full">
-            <p className="text-gray-500 dark:text-gray-400 font-medium text-center">You are all caught up on evaluations!</p>
-          </CardContent>
-        </Card>
+        {/* Upcoming Interviews (next 7 days) */}
+        {upcomingInterviews.length > 0 && (
+          <div>
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-3">
+              Upcoming This Week
+            </h2>
+            <div className="space-y-2">
+              {upcomingInterviews.map((iv) => {
+                const d = new Date(iv.scheduledAt);
+                return (
+                  <div key={iv.id}
+                    className="flex items-center justify-between px-5 py-3 rounded-xl border border-zinc-800 bg-zinc-900/30 hover:bg-zinc-900/60 transition-all">
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        {iv.candidate.name ?? "Candidate"}
+                        <span className="text-zinc-500 font-normal"> · {iv.position?.title ?? iv.title}</span>
+                      </p>
+                      <p className="text-xs text-zinc-600 mt-0.5">
+                        {d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                        {" at "}
+                        {d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-lg">
+                      Scheduled
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Activity Heatmap */}
+        <ActivityHeatmap countsByDate={heatmapCounts} startDate={heatmapStart.toISOString()} />
       </div>
     </div>
-  )
+  );
 }

@@ -1,9 +1,9 @@
-import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { notFound, redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { updatePosition } from "./actions"
+import { getCallerPermissions } from "@/lib/rbac"
 
 export async function generateMetadata({
   params,
@@ -30,15 +30,27 @@ export default async function EditPositionPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const { userId } = await auth()
-  if (!userId) redirect("/sign-in")
+  const perms = await getCallerPermissions()
+  if (!perms) redirect("/select-role")
+  if (!perms.canManagePositions) redirect("/org-admin/dashboard")
 
   const { id } = await params
 
   const position = await prisma.position.findUnique({ where: { id } })
 
-  // 404 if missing or owned by a different admin
-  if (!position || position.createdById !== userId) notFound()
+  // 404 if missing or wrong org
+  if (!position || position.organizationId !== perms.orgId) notFound()
+  if (perms.scopedDeptIds && position.departmentId && !perms.scopedDeptIds.includes(position.departmentId)) notFound()
+
+  // Fetch departments scoped by caller's permissions
+  const departments = await prisma.department.findMany({
+    where: {
+      organizationId: perms.orgId,
+      ...(perms.scopedDeptIds ? { id: { in: perms.scopedDeptIds } } : {}),
+    },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  })
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -85,14 +97,17 @@ export default async function EditPositionPage({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div>
               <label htmlFor="department" className={LABEL_CLS}>Department</label>
-              <input
+              <select
                 id="department"
                 name="department"
-                type="text"
-                defaultValue={position.department ?? ""}
-                placeholder="e.g. Engineering"
+                defaultValue={position.departmentId ?? ""}
                 className={INPUT_CLS}
-              />
+              >
+                <option value="" className="dark:bg-zinc-800">Select department…</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id} className="dark:bg-zinc-800">{d.name}</option>
+                ))}
+              </select>
             </div>
 
             <div>

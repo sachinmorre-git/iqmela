@@ -47,3 +47,7 @@ next-env.d.ts
 
 # local resume uploads (use Vercel Blob in production)
 /public/uploads/
+
+# QA Automation
+agent-skills/
+MOCK_TEST_DATA.md

@@ -74,12 +74,14 @@ export interface AiInterviewSummary {
 // ── Usage tracking ──────────────────────────────────────────────────────────
 
 export interface AiInterviewUsageData {
-  provider: string;
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
-  estimatedCost: number;
+  provider:       string;
+  model:          string;
+  inputTokens:    number;
+  outputTokens:   number;
+  totalTokens:    number;
+  estimatedCost:  number;
+  /** Prompt version tag for audit tracking e.g. "plan-v1", "score-v1" */
+  promptVersion?: string;
 }
 
 // ── Follow-up evaluation ────────────────────────────────────────────────────

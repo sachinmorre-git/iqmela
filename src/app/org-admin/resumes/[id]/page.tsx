@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { notFound, redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -9,6 +8,7 @@ import { RunAiExtractionButton } from "./RunAiExtractionButton"
 import { RawAiOutputDebug } from "./RawAiOutputDebug"
 import { CandidateFitCard } from "../../positions/[id]/CandidateFitCard"
 import { AiReviewPanel } from "../../positions/[id]/AiReviewPanel"
+import { getCallerPermissions } from "@/lib/rbac"
 
 export async function generateMetadata({
   params,
@@ -66,8 +66,9 @@ export default async function ResumeDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const { userId } = await auth()
-  if (!userId) redirect("/sign-in")
+  const perms = await getCallerPermissions()
+  if (!perms) redirect("/select-role")
+  if (!perms.canViewPositions) redirect("/org-admin/dashboard")
 
   const { id } = await params
 
@@ -76,7 +77,8 @@ export default async function ResumeDetailPage({
     include: { position: true },
   })
 
-  if (!resume || resume.position.createdById !== userId) notFound()
+  if (!resume || resume.position.organizationId !== perms.orgId) notFound()
+  if (perms.scopedDeptIds && resume.position.departmentId && !perms.scopedDeptIds.includes(resume.position.departmentId)) notFound()
 
   // Fetch AI interview session for this resume (if any)
   const aiSession = await prisma.aiInterviewSession.findFirst({

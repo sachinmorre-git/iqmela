@@ -1,9 +1,9 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { getCallerPermissions } from "@/lib/rbac"
 
 export const metadata = {
   title: 'Org Admin Dashboard | IQMela',
@@ -11,14 +11,21 @@ export const metadata = {
 }
 
 export default async function OrgAdminDashboard() {
-  const { userId, orgId } = await auth();
-  if (!userId) redirect("/sign-in");
-  if (!orgId) redirect("/select-org");
+  const perms = await getCallerPermissions();
+  if (!perms) redirect("/select-role");
+
+  const orgId = perms.orgId;
 
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: perms.userId },
     select: { name: true },
   });
+
+  // ── Department scoping for non-OrgAdmin roles ───────────────────────────────
+  const deptFilter = perms.scopedDeptIds
+    ? { departmentId: { in: perms.scopedDeptIds } }
+    : {};
+  const posOrgFilter = { organizationId: orgId, ...deptFilter };
 
   // ── Real-time stats ────────────────────────────────────────────────────────
   const [
@@ -30,33 +37,37 @@ export default async function OrgAdminDashboard() {
     aiPending,
     needsReview,
     recentBatchRuns,
+    needsDecision,
   ] = await Promise.all([
-    prisma.position.count({ where: { organizationId: orgId } }),
-    prisma.resume.count({ where: { position: { organizationId: orgId } } }),
-    prisma.resume.count({ where: { position: { organizationId: orgId }, isShortlisted: true } }),
-    prisma.interviewInvite.count({ where: { position: { organizationId: orgId }, status: "SENT" } }),
-    // Step 228: AI interview metrics
-    prisma.aiInterviewSession.count({ where: { position: { organizationId: orgId }, status: "COMPLETED" } }),
-    prisma.aiInterviewSession.count({ where: { position: { organizationId: orgId }, status: "IN_PROGRESS" } }),
+    prisma.position.count({ where: posOrgFilter }),
+    prisma.resume.count({ where: { position: posOrgFilter } }),
+    prisma.resume.count({ where: { position: posOrgFilter, isShortlisted: true } }),
+    prisma.interviewInvite.count({ where: { position: posOrgFilter, status: "SENT" } }),
+    prisma.aiInterviewSession.count({ where: { position: posOrgFilter, status: "COMPLETED" } }),
+    prisma.aiInterviewSession.count({ where: { position: posOrgFilter, status: "IN_PROGRESS" } }),
     prisma.aiInterviewSession.count({
       where: {
-        position: { organizationId: orgId },
+        position: posOrgFilter,
         status: "COMPLETED",
         recommendation: { in: ["NEEDS_HUMAN_REVIEW", "MAYBE"] },
         reviewedAt: null,
       }
     }),
     prisma.positionBatchRun.findMany({
-      where: { position: { organizationId: orgId } },
+      where: { position: posOrgFilter },
       orderBy: { createdAt: "desc" },
       take: 8,
       select: { actionType: true, status: true, totalProcessed: true, succeeded: true, createdAt: true, positionId: true, position: { select: { title: true } } },
     }),
+    // Candidates that are ON_HOLD and need a decision
+    prisma.resume.count({
+      where: { position: posOrgFilter, pipelineStatus: "ON_HOLD", isDeleted: false },
+    }),
   ]);
 
-  // Step 228: Average AI score across all completed sessions for this admin
+  // Step 228: Average AI score across completed sessions (scoped)
   const avgScoreResult = await prisma.aiInterviewSession.aggregate({
-    where: { position: { organizationId: orgId }, status: "COMPLETED", overallScore: { not: null } },
+    where: { position: posOrgFilter, status: "COMPLETED", overallScore: { not: null } },
     _avg: { overallScore: true },
   });
   const avgScore = avgScoreResult._avg.overallScore != null
@@ -75,11 +86,13 @@ export default async function OrgAdminDashboard() {
             Welcome back, {user?.name?.split(' ')[0] || 'Admin'}. Here&apos;s your hiring pipeline.
           </p>
         </div>
-        <Link href="/org-admin/positions/new">
-          <Button className="shrink-0 rounded-xl shadow-md shadow-teal-600/20 bg-teal-600 hover:bg-teal-700 text-white border-transparent hover:-translate-y-0.5 transition-transform">
-            + Post New Position
-          </Button>
-        </Link>
+        {perms.canManagePositions && (
+          <Link href="/org-admin/positions/new">
+            <Button className="shrink-0 rounded-xl shadow-md shadow-teal-600/20 bg-teal-600 hover:bg-teal-700 text-white border-transparent hover:-translate-y-0.5 transition-transform">
+              + Post New Position
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* KPI Stats Grid — Hiring Pipeline */}
@@ -179,6 +192,31 @@ export default async function OrgAdminDashboard() {
           </Card>
         </div>
       </div>
+
+      {/* ── Needs Decision Banner ─────────────────────────────────────────── */}
+      {needsDecision > 0 && (
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-800/40 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 p-5 flex items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-xl">
+              ⏸
+            </div>
+            <div>
+              <p className="text-sm font-extrabold text-amber-800 dark:text-amber-200">
+                {needsDecision} candidate{needsDecision !== 1 ? "s" : ""} on hold — awaiting your decision
+              </p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                Visit the Reviews page or open the Intelligence Hub to advance, reject, or extend an offer.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/org-admin/reviews"
+            className="shrink-0 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm shadow-amber-500/20 transition-colors"
+          >
+            Review Now →
+          </Link>
+        </div>
+      )}
 
       {/* Activity + Pipeline Modules */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-2">

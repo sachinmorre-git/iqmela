@@ -15,7 +15,7 @@ export default async function ScheduleInterviewPage() {
 
   // Fetch all candidates from the database
   const candidates = await prisma.user.findMany({
-    where: { role: "CANDIDATE" },
+    where: { roles: { has: "PUBLIC_CANDIDATE" } },
     orderBy: { name: 'asc' },
     select: { id: true, name: true, email: true },
   });

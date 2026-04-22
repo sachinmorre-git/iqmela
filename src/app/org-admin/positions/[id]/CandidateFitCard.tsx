@@ -7,6 +7,9 @@ export function CandidateFitCard({ resume }: { resume: any }) {
   const strengths = Array.isArray(resume.notableStrengthsJson) ? resume.notableStrengthsJson : []
   const gaps = Array.isArray(resume.possibleGapsJson) ? resume.possibleGapsJson : []
   
+  const matchedSkills = Array.isArray(resume.matchedSkillsJson) ? (resume.matchedSkillsJson as string[]) : []
+  const missingSkills = Array.isArray(resume.missingSkillsJson) ? (resume.missingSkillsJson as string[]) : []
+  
   const focusAreas = Array.isArray(resume.aiInterviewFocusJson) ? resume.aiInterviewFocusJson : []
   const questions = Array.isArray(resume.aiInterviewQuestionsJson) ? resume.aiInterviewQuestionsJson : []
   const redFlags = Array.isArray(resume.aiRedFlagsJson) ? resume.aiRedFlagsJson : []
@@ -38,6 +41,31 @@ export function CandidateFitCard({ resume }: { resume: any }) {
 
       {/* ── Column 1: Fit & Overview ──────────────────────────────────────── */}
       <div className="flex flex-col gap-4">
+        {/* Skill Match Analysis */}
+        {(matchedSkills.length > 0 || missingSkills.length > 0) && (
+          <div className="flex flex-col gap-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Skill Match</h4>
+            {matchedSkills.length > 0 && (
+              <div className="flex items-center gap-1 flex-wrap">
+                {matchedSkills.map((s: string) => (
+                  <span key={s} className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400 border border-teal-100 dark:border-teal-800/40">
+                    ✓ {s}
+                  </span>
+                ))}
+              </div>
+            )}
+            {missingSkills.length > 0 && (
+              <div className="flex items-center gap-1 flex-wrap">
+                {missingSkills.map((s: string) => (
+                  <span key={s} className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/40 opacity-90">
+                    ✗ {s}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Recommendation Badge */}
         <div className="flex flex-col gap-2">
           <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Shortlist Suggestion</h4>

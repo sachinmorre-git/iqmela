@@ -1,4 +1,6 @@
-import { ClerkProvider, Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { ClerkProvider, Show, UserButton } from "@clerk/nextjs";
+import Link from 'next/link';
+import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -16,15 +18,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Interview Platform",
-  description: "A modern interview platform built with Next.js",
+  title: "IQMela — Hire with Intelligence",
+  description: "AI-powered interview intelligence. Structured scorecards, behavioral signals, and real-time insights for confident hiring decisions.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { userId, orgId, sessionClaims } = await auth();
+  const sysRole = (sessionClaims?.publicMetadata as Record<string, any>)?.sysRole?.toString();
+  const isSystemStaff = !!sysRole?.startsWith("sys:");
+  // Only marketplace users (no org, not internal staff) should see the Switch Role button
+  const isMarketplaceUser = !!userId && !isSystemStaff && !orgId;
+
   return (
     <html
       lang="en"
@@ -34,21 +42,30 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-50 font-sans">
        <ClerkProvider>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-            <header className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur">
+            <header className="sticky top-0 z-50 w-full border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur">
               <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 items-center justify-between">
-                  <div className="flex-shrink-0">
-                    <span className="text-xl font-bold tracking-tight">Interview Platform</span>
-                  </div>
-                  <div className="flex items-center gap-4">
+                  <Link href="/" className="flex items-center gap-2">
+                    <span className="text-xl font-black tracking-tight text-white">IQ<span className="text-indigo-400">Mela</span></span>
+                  </Link>
+                  <div className="flex items-center gap-3">
                     <ThemeToggle />
                     <Show when="signed-in">
+                      {isMarketplaceUser && (
+                        <Link href="/select-role?force=true" className="px-3 py-1.5 rounded-lg text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.17-2.8l-7-7"/><path d="M15 11l7-7"/></svg>
+                          Switch Role
+                        </Link>
+                      )}
                       <UserButton />
                     </Show>
                     <Show when="signed-out">
-                      <div className="text-sm font-medium hover:text-indigo-600 transition-colors cursor-pointer">
-                        <SignInButton mode="modal" signUpFallbackRedirectUrl="/sign-up" />
-                      </div>
+                      <Link href="/sign-in" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800">
+                        Sign in
+                      </Link>
+                      <Link href="/sign-up" className="text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors px-4 py-2 rounded-xl">
+                        Get started
+                      </Link>
                     </Show>
                   </div>
                 </div>
@@ -61,9 +78,9 @@ export default function RootLayout({
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                 <div className="col-span-2">
-                  <span className="text-xl font-bold tracking-tight">Interview Platform</span>
-                  <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
-                    The new standard for technical interviews. Evaluate and hire top engineering talent faster and more effectively.
+                  <span className="text-xl font-black tracking-tight text-white">IQ<span className="text-indigo-400">Mela</span></span>
+                  <p className="mt-4 text-sm text-zinc-500 max-w-xs leading-relaxed">
+                    The intelligent hiring platform. AI-powered interviews, structured scorecards, and data-driven decisions.
                   </p>
                 </div>
                 <div>
@@ -85,11 +102,13 @@ export default function RootLayout({
               </div>
               <div className="mt-12 pt-8 border-t border-gray-100 dark:border-zinc-800/60 flex flex-col md:flex-row justify-between items-center gap-4">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  © {new Date().getFullYear()} Interview Platform. All rights reserved.
+                  © {new Date().getFullYear()} RelyOnAI LLP. IQMela™ is a product of RelyOnAI LLP. All rights reserved.
                 </p>
                 <div className="flex gap-6">
-                  <a href="#" className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Privacy Policy</a>
-                  <a href="#" className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Terms of Service</a>
+                  <Link href="/legal/privacy" className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Privacy Policy</Link>
+                  <Link href="/legal/terms"   className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Terms of Service</Link>
+                  <Link href="/legal/dpa"     className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">DPA</Link>
+                  <Link href="/legal/cookies" className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Cookies</Link>
                 </div>
               </div>
             </div>

@@ -47,8 +47,12 @@ export function RoleCards() {
       // 3. Now it is completely safe to navigate!
       // We use window.location.href instead of router.push to force a HARD navigation.
       // This forces Next.js to bypass the App Router cache and hit middleware.ts fresh, guaranteeing it reads our new cookie!
-      // Map the Prisma Role enum to the URL segment (must match cookie value in actions.ts).
-      const urlSegment = role === "ADMIN" ? "org-admin" : role.toLowerCase();
+      const ROLE_TO_URL: Record<string, string> = {
+        PUBLIC_CANDIDATE: "candidate",
+        PUBLIC_INTERVIEWER: "interviewer",
+        ADMIN: "org-admin",
+      };
+      const urlSegment = ROLE_TO_URL[role] ?? role.toLowerCase();
       window.location.href = `/${urlSegment}/dashboard`;
     } catch (error) {
       console.error(error);
@@ -61,13 +65,13 @@ export function RoleCards() {
       {/* Candidate Card */}
       <button 
         type="button" 
-        onClick={() => handleRoleSelect("CANDIDATE")} 
+        onClick={() => handleRoleSelect("PUBLIC_CANDIDATE")} 
         className="w-full text-left group outline-none h-full focus:ring-2 focus:ring-indigo-500 rounded-xl"
         disabled={!!loadingRole}
       >
-        <Card className={`w-full h-full flex flex-col items-center text-center p-10 transition-all duration-300 ${loadingRole === "CANDIDATE" ? 'opacity-50 scale-95' : 'hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 hover:shadow-2xl shadow-lg hover:-translate-y-2 border-2 border-gray-100 dark:border-zinc-800 hover:border-indigo-400 dark:hover:border-indigo-600'}`}>
+        <Card className={`w-full h-full flex flex-col items-center text-center p-10 transition-all duration-300 ${loadingRole === "PUBLIC_CANDIDATE" ? 'opacity-50 scale-95' : 'hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 hover:shadow-2xl shadow-lg hover:-translate-y-2 border-2 border-gray-100 dark:border-zinc-800 hover:border-indigo-400 dark:hover:border-indigo-600'}`}>
           <div className="w-24 h-24 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center mb-8 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-500 ease-out">
-            {loadingRole === "CANDIDATE" ? (
+            {loadingRole === "PUBLIC_CANDIDATE" ? (
                 <div className="w-8 h-8 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
             ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -85,13 +89,13 @@ export function RoleCards() {
       {/* Interviewer Card */}
       <button 
         type="button" 
-        onClick={() => handleRoleSelect("INTERVIEWER")} 
+        onClick={() => handleRoleSelect("PUBLIC_INTERVIEWER")} 
         className="w-full text-left group outline-none h-full focus:ring-2 focus:ring-purple-500 rounded-xl"
         disabled={!!loadingRole}
       >
-        <Card className={`w-full h-full flex flex-col items-center text-center p-10 transition-all duration-300 ${loadingRole === "INTERVIEWER" ? 'opacity-50 scale-95' : 'hover:bg-purple-50/50 dark:hover:bg-purple-950/20 hover:shadow-2xl shadow-lg hover:-translate-y-2 border-2 border-gray-100 dark:border-zinc-800 hover:border-purple-400 dark:hover:border-purple-600'}`}>
+        <Card className={`w-full h-full flex flex-col items-center text-center p-10 transition-all duration-300 ${loadingRole === "PUBLIC_INTERVIEWER" ? 'opacity-50 scale-95' : 'hover:bg-purple-50/50 dark:hover:bg-purple-950/20 hover:shadow-2xl shadow-lg hover:-translate-y-2 border-2 border-gray-100 dark:border-zinc-800 hover:border-purple-400 dark:hover:border-purple-600'}`}>
           <div className="w-24 h-24 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center mb-8 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-500 ease-out">
-            {loadingRole === "INTERVIEWER" ? (
+            {loadingRole === "PUBLIC_INTERVIEWER" ? (
                 <div className="w-8 h-8 rounded-full border-4 border-purple-600 border-t-transparent animate-spin"></div>
             ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h10"/><path d="M7 12h10"/><path d="M7 17h10"/></svg>
@@ -109,7 +113,10 @@ export function RoleCards() {
       {/* Admin Card */}
       <button 
         type="button" 
-        onClick={() => handleRoleSelect("ADMIN")} 
+        onClick={() => {
+          setLoadingRole("ADMIN");
+          window.location.href = "/create-org";
+        }} 
         className="w-full text-left group outline-none h-full focus:ring-2 focus:ring-teal-500 rounded-xl"
         disabled={!!loadingRole}
       >
@@ -124,7 +131,7 @@ export function RoleCards() {
           <CardTitle className="text-2xl sm:text-3xl mb-4 font-bold">I&apos;m an Org Admin</CardTitle>
           <CardContent className="px-0 pb-0">
             <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-              I want to manage teams, analyze platform metrics, and oversee the entire recruitment process.
+              I want to set up my company&apos;s hiring workspace — manage positions, teams, and the recruitment pipeline.
             </p>
           </CardContent>
         </Card>

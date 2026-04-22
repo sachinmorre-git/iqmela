@@ -14,12 +14,21 @@ export default async function InterviewerLayout({
   const { userId } = await auth()
   if (!userId) redirect('/select-role')
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { roles: true } })
   if (!user) redirect('/select-role')
 
-  if (user.role !== 'INTERVIEWER') {
-    const roleMap: Record<string, string> = { ADMIN: 'org-admin', CANDIDATE: 'candidate', INTERVIEWER: 'interviewer' }
-    const correctSegment = roleMap[user.role] ?? 'select-role'
+  if (!user.roles.includes('PUBLIC_INTERVIEWER') && !user.roles.includes('B2B_INTERVIEWER')) {
+    const primaryRole = user.roles[0] || 'PUBLIC_CANDIDATE'
+    const roleMap: Record<string, string> = { 
+      ADMIN: 'org-admin', 
+      ORG_ADMIN: 'org-admin',
+      RECRUITER: 'org-admin',
+      HIRING_MANAGER: 'org-admin',
+      PUBLIC_CANDIDATE: 'candidate', 
+      PUBLIC_INTERVIEWER: 'interviewer',
+      B2B_INTERVIEWER: 'interviewer',
+    }
+    const correctSegment = roleMap[primaryRole] ?? 'select-role'
     redirect(`/${correctSegment}/dashboard`)
   }
   // ── End Role Guard ───────────────────────────────────────────────────────

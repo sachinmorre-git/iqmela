@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/poll-nudge",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/intake-purge",
+      "schedule": "0 3 * * 0"
+    }
+  ]
+}

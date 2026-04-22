@@ -1,53 +1,101 @@
 import Link from 'next/link'
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function GlobalAdminLayout({ children }: { children: React.ReactNode }) {
+  const { userId, sessionClaims } = await auth()
+  
+  if (!userId) redirect('/sign-in')
+
+  const publicMeta = sessionClaims?.publicMetadata as Record<string, any>;
+  const sysRole = publicMeta?.sysRole?.toString()
+
+  if (!sysRole?.startsWith('sys:')) {
+    redirect('/select-role')
+  }
+
+  // IQMela Global RBAC Array
+  const isSuperAdmin = sysRole === 'sys:superadmin'
+  const isFinance = sysRole === 'sys:finance'
+  const isSupport = sysRole === 'sys:support'
+  const isDeveloper = sysRole === 'sys:qa' || sysRole === 'sys:developer'
+
+  // Module Logic
+  const canSeeDashboard = isSuperAdmin || isFinance || isDeveloper
+  const canSeeFinance = isSuperAdmin || isFinance
+  const canSeeSupport = isSuperAdmin || isSupport
+  const canSeeDev = isSuperAdmin || isDeveloper
+
   return (
-    <div className="flex flex-col md:flex-row min-h-[85vh] w-full max-w-7xl mx-auto rounded-[2rem] overflow-hidden border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-2xl shadow-emerald-500/5 mt-6 mb-16">
-      {/* Sidebar */}
-      <aside className="w-full md:w-64 lg:w-72 border-b md:border-b-0 md:border-r border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/20 p-6 flex flex-col gap-8">
-        <div className="px-2">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-sm">
-               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <div className="flex flex-col md:flex-row min-h-screen w-full bg-black text-white selection:bg-indigo-500/30">
+      {/* Sidebar: Ultra-slick, dark mode forced for God Mode */}
+      <aside className="w-full md:w-64 lg:w-72 border-b md:border-b-0 md:border-r border-indigo-900/30 bg-zinc-950 px-6 py-8 flex flex-col gap-8 shadow-2xl z-10">
+        
+        {/* IQMela System Watermark */}
+        <div className="mb-2">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-8 h-8 rounded bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/20">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
             </div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Admin Console</h2>
+            <h2 className="text-xl font-black tracking-tighter text-white">IQMela <span className="font-light text-indigo-400 text-sm tracking-wide ml-1 uppercase">Platform</span></h2>
           </div>
-          
-          <nav className="flex flex-col gap-2.5">
-            <Link href="/admin/dashboard" className="px-4 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold transition-colors flex items-center gap-3 shadow-sm border border-emerald-100 dark:border-emerald-800/50">
+          <p className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 ml-12">System Control</p>
+        </div>
+
+        <nav className="flex flex-col gap-1.5 h-full">
+          {canSeeDashboard && (
+            <Link href="/admin/dashboard" className="px-4 py-2.5 rounded-lg text-zinc-400 hover:bg-zinc-900 hover:text-white font-medium transition-colors flex items-center gap-3">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-              Overview
+              Global Overview
             </Link>
-            <Link href="#" className="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 font-medium transition-colors flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              Users & Roles
+          )}
+
+          {canSeeFinance && (
+            <Link href="/admin/finance" className="px-4 py-2.5 rounded-lg text-zinc-400 hover:bg-emerald-900/30 hover:text-emerald-400 font-medium transition-colors flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Economics & Billing
             </Link>
-            <Link href="#" className="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 font-medium transition-colors flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              Audit Logs
+          )}
+
+          {canSeeSupport && (
+            <>
+              <Link href="/admin/support" className="px-4 py-2.5 rounded-lg text-zinc-400 hover:bg-blue-900/30 hover:text-blue-400 font-medium transition-colors flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Client Support
+              </Link>
+              
+              <Link href="/admin/clients" className="px-4 py-2.5 rounded-lg text-zinc-400 hover:bg-purple-900/30 hover:text-purple-400 font-medium transition-colors flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                Deploy Sandboxes
+              </Link>
+            </>
+          )}
+
+          {canSeeDev && (
+            <Link href="/admin/developer" className="px-4 py-2.5 rounded-lg text-zinc-400 hover:bg-rose-900/30 hover:text-rose-400 font-medium transition-colors flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+              Dev Ops & Health
             </Link>
-            <Link href="#" className="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 font-medium transition-colors flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-              Platform Metrics
-            </Link>
-          </nav>
-        </div>
-        <div className="mt-auto px-2">
-          <nav className="flex flex-col gap-2">
-            <Link href="#" className="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 font-medium transition-colors flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              System Settings
-            </Link>
-          </nav>
-        </div>
+          )}
+
+          <div className="mt-auto pt-6 border-t border-zinc-900">
+             <div className="flex items-center gap-3 px-3">
+               <div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center font-bold text-xs uppercase text-zinc-300">
+                  {sysRole.replace('sys:', '').slice(0, 2)}
+               </div>
+               <div>
+                  <p className="text-xs font-bold text-white uppercase tracking-wider">{sysRole.replace('sys:', '')}</p>
+                  <p className="text-[10px] text-zinc-500">Authenticated Proxy</p>
+               </div>
+             </div>
+          </div>
+        </nav>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 p-6 md:p-10 flex flex-col bg-white dark:bg-zinc-950 overflow-y-auto">
+      {/* Main Global Content Area */}
+      <main className="flex-1 flex flex-col bg-[#050505] overflow-y-auto relative z-0">
+        {/* Subtle background glow effect globally */}
+        <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-br from-indigo-900/10 via-transparent to-transparent pointer-events-none -z-10"></div>
         {children}
       </main>
     </div>

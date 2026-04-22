@@ -1,7 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { fileExtractor } from "@/lib/file-extractor";
 import { hiringAi } from "@/lib/ai";
+import { getCallerPermissions } from "@/lib/rbac";
 
 /**
  * POST /api/org-admin/jd-parse
@@ -10,8 +10,8 @@ import { hiringAi } from "@/lib/ai";
  */
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const perms = await getCallerPermissions();
+    if (!perms || !perms.canManagePositions) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

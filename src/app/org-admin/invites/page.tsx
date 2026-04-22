@@ -1,5 +1,5 @@
-import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
+import { getCallerPermissions } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Mail, CheckCircle2, XCircle, Clock, AlertCircle } from "lucide-react"
@@ -23,13 +23,14 @@ function getRelativeTime(date: Date) {
 }
 
 export default async function OrgAdminInvitesPage() {
-  const { userId } = await auth()
-  if (!userId) redirect("/sign-in")
+  const perms = await getCallerPermissions()
+  if (!perms) redirect("/select-role")
+  if (!perms.canManageInvites) redirect("/org-admin/dashboard")
 
-  // Fetch all invites associated with positions created by this Org Admin
+  // Fetch all invites associated with positions in this organization
   const invites = await prisma.interviewInvite.findMany({
     where: {
-      position: { createdById: userId }
+      position: { organizationId: perms.orgId }
     },
     include: {
       position: { select: { title: true, id: true } },

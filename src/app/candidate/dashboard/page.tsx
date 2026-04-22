@@ -1,16 +1,19 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { InterviewCard } from "@/components/interview-card"
-import { auth } from "@clerk/nextjs/server"
-import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
-import Link from "next/link"
-import { Bot } from "lucide-react"
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { CountdownHero } from "./CountdownHero";
+import { RoleBriefCard } from "./RoleBriefCard";
+import { RoundTracker } from "./RoundTracker";
+import { TechCheck } from "./TechCheck";
+import { PrepCoach } from "./PrepCoach";
+import { CalendarX2 } from "lucide-react";
+import Link from "next/link";
 
-export const metadata = {
-  title: 'Candidate Dashboard | Interview Platform',
-  description: 'Your central hub for assessments and interviews.',
-}
+export const metadata: Metadata = {
+  title: "My Interviews — IQMela",
+  description: "Your interview briefing room. Prepare, check your setup, and join with confidence.",
+};
 
 export default async function CandidateDashboard() {
   const { userId } = await auth();
@@ -18,174 +21,190 @@ export default async function CandidateDashboard() {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { name: true }
+    select: { name: true, email: true },
   });
 
-  const [upcomingInterviews, aiSessions] = await Promise.all([
-    prisma.interview.findMany({
-      where: { 
-        candidateId: userId,
-        status: "SCHEDULED"
-      },
-      orderBy: { scheduledAt: 'asc' },
-      include: {
-        interviewer: {
-          select: { name: true, email: true }
-        }
-      }
-    }),
-    prisma.aiInterviewSession.findMany({
-      where: { candidateId: userId },
-      orderBy: { createdAt: "desc" },
-      take: 3,
-      select: {
-        id: true,
-        status: true,
-        overallScore: true,
-        recommendation: true,
-        position: { select: { title: true } },
-        createdAt: true,
-      }
-    })
-  ]);
+  // Upcoming interviews — soonest first
+  const upcoming = await prisma.interview.findMany({
+    where: { candidateId: userId, status: "SCHEDULED" },
+    orderBy: { scheduledAt: "asc" },
+    include: {
+      position: { select: { id: true, title: true, description: true, jdText: true } },
+      interviewer: { select: { name: true } },
+      panelists: { include: { interviewer: { select: { name: true } } } },
+    },
+  });
 
-  const pendingAiSessions = aiSessions.filter(s => s.status === "IN_PROGRESS");
+  // Completed interviews for round tracker
+  const completed = await prisma.interview.findMany({
+    where: { candidateId: userId, status: "COMPLETED" },
+    orderBy: { scheduledAt: "asc" },
+    select: {
+      id: true,
+      stageIndex: true,
+      roundLabel: true,
+      positionId: true,
+      scheduledAt: true,
+    },
+  });
+
+  // Recent AI sessions
+  const aiSessions = await prisma.aiInterviewSession.findMany({
+    where: { candidateId: userId },
+    orderBy: { createdAt: "desc" },
+    take: 4,
+    select: {
+      id: true,
+      status: true,
+      overallScore: true,
+      magicLinkToken: true,
+      position: { select: { title: true } },
+      createdAt: true,
+    },
+  });
+
+  const nextInterview = upcoming[0] ?? null;
+
+  // Collect interviewer/panelist names for next interview
+  const interviewerNames: string[] = [];
+  if (nextInterview?.interviewer?.name) interviewerNames.push(nextInterview.interviewer.name);
+  nextInterview?.panelists?.forEach((p) => {
+    if (p.interviewer.name && !interviewerNames.includes(p.interviewer.name))
+      interviewerNames.push(p.interviewer.name);
+  });
+
+  // Round tracker: completed rounds for the same position
+  const completedForPosition = nextInterview?.positionId
+    ? completed.filter((c) => c.positionId === nextInterview.positionId)
+    : [];
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
-      {/* Top Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-gray-100 dark:border-zinc-800 pb-6 mt-2">
-        <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Overview</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1.5 text-base">Welcome back, {user?.name?.split(' ')[0] || 'Candidate'}. Here&apos;s your schedule.</p>
+    <div className="min-h-screen bg-zinc-950 text-white">
+      {/* Ambient glow */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-b from-indigo-700/15 via-violet-700/8 to-transparent blur-3xl rounded-full" />
+      </div>
+
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-zinc-500 text-sm font-medium">Welcome back</p>
+            <h1 className="text-2xl font-black tracking-tight text-white">{user?.name ?? "Candidate"}</h1>
+          </div>
+          {nextInterview && (
+            <div className="text-right hidden sm:block">
+              <p className="text-xs text-zinc-600">Next up</p>
+              <p className="text-sm font-bold text-white truncate max-w-[200px]">
+                {nextInterview.position?.title ?? nextInterview.title}
+              </p>
+            </div>
+          )}
         </div>
-        <Button className="shrink-0 rounded-xl shadow-md">
-           Browse Practice Problems
-        </Button>
-      </div>
 
-      {/* Stats Grid placeholder cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <Card className="bg-indigo-600 dark:bg-indigo-600 border-none text-white shadow-lg shadow-indigo-600/20">
-          <CardHeader className="pb-2">
-             <CardTitle className="text-sm font-semibold uppercase tracking-wider text-indigo-100">Upcoming Interviews</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-5xl font-black mt-2">{upcomingInterviews.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-gray-100 dark:border-zinc-800 shadow-sm">
-          <CardHeader className="pb-2">
-             <CardTitle className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">AI Sessions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-5xl font-black text-gray-900 dark:text-white mt-2">{aiSessions.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-gray-100 dark:border-zinc-800 shadow-sm">
-          <CardHeader className="pb-2">
-             <CardTitle className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Global Skill Rank</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mt-3 pb-1 border-b-2 border-indigo-500 border-dashed inline-block">Unranked</div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Countdown Hero */}
+        <CountdownHero
+          scheduledAt={nextInterview?.scheduledAt?.toISOString() ?? null}
+          interviewId={nextInterview?.id ?? null}
+          durationMinutes={nextInterview?.durationMinutes ?? 60}
+          positionTitle={nextInterview?.position?.title ?? nextInterview?.title ?? null}
+        />
 
-      {/* Dashboard Modules */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-4">
-        {/* Schedule Wrapper */}
-        <Card className="col-span-1 shadow-sm border-gray-100 dark:border-zinc-800 flex flex-col min-h-[380px]">
-          <CardHeader className="border-b border-gray-100 dark:border-zinc-800/60 pb-5">
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">Your Schedule</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto p-6 space-y-4">
-            
-            {upcomingInterviews.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center">
-                <p className="text-gray-500 dark:text-gray-400 font-medium">No upcoming interviews scheduled yet.</p>
-              </div>
-            ) : (
-              upcomingInterviews.map((interview) => (
-                <InterviewCard 
-                  key={interview.id}
-                  topBadge={interview.scheduledAt.toLocaleString('default', { month: 'short' })}
-                  bottomBadge={interview.scheduledAt.getDate().toString()}
-                  title={interview.title}
-                  subtitle={`with ${interview.interviewer.name || interview.interviewer.email}`}
-                  actionText="Join Room"
-                  href={`/interview/${interview.id}`}
-                  duration={`${interview.durationMinutes}m duration`}
-                  theme="indigo"
-                />
-              ))
+        {nextInterview ? (
+          <>
+            {/* Role Brief + Prep Coach */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <RoleBriefCard
+                positionTitle={nextInterview.position?.title ?? nextInterview.title}
+                roundLabel={nextInterview.roundLabel ?? "Interview"}
+                interviewerNames={interviewerNames}
+                durationMinutes={nextInterview.durationMinutes}
+                scheduledAt={nextInterview.scheduledAt.toISOString()}
+                completedRounds={completedForPosition.length}
+                totalRounds={completedForPosition.length + upcoming.length}
+              />
+              <PrepCoach
+                interviewId={nextInterview.id}
+                positionTitle={nextInterview.position?.title ?? nextInterview.title}
+                jdSnippet={nextInterview.position?.jdText?.slice(0, 800) ?? nextInterview.position?.description ?? null}
+                roundLabel={nextInterview.roundLabel ?? "Interview"}
+              />
+            </div>
+
+            {/* Round Tracker — only show if multiple rounds */}
+            {(completedForPosition.length > 0 || upcoming.length > 1) && (
+              <RoundTracker
+                completedRounds={completedForPosition.map((r) => ({
+                  label: r.roundLabel ?? `Round ${(r.stageIndex ?? 0) + 1}`,
+                  stageIndex: r.stageIndex ?? 0,
+                }))}
+                currentStageIndex={nextInterview.stageIndex ?? 0}
+                currentLabel={nextInterview.roundLabel ?? `Round ${(nextInterview.stageIndex ?? 0) + 1}`}
+                upcomingRounds={upcoming.slice(1).map((u) => ({
+                  label: u.roundLabel ?? `Round ${(u.stageIndex ?? 0) + 1}`,
+                  stageIndex: u.stageIndex ?? 0,
+                }))}
+              />
             )}
 
-          </CardContent>
-        </Card>
+            {/* Tech Check */}
+            <TechCheck />
+          </>
+        ) : (
+          /* Empty state */
+          <div className="border border-dashed border-zinc-800 rounded-3xl p-16 text-center">
+            <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+              <CalendarX2 className="w-7 h-7 text-zinc-600" />
+            </div>
+            <h2 className="text-xl font-black text-white mb-2">No interviews scheduled</h2>
+            <p className="text-zinc-500 text-sm max-w-sm mx-auto leading-relaxed">
+              You&apos;re all clear. When a recruiter schedules your interview, this page becomes your personal mission control.
+            </p>
+          </div>
+        )}
 
-        {/* AI Interview Widget */}
-        <Card className="col-span-1 shadow-sm border-gray-100 dark:border-zinc-800 flex flex-col min-h-[380px]">
-          <CardHeader className="border-b border-gray-100 dark:border-zinc-800/60 pb-5 flex flex-row items-center justify-between">
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Bot className="w-5 h-5 text-indigo-500" />
-              AI Interview
-            </CardTitle>
-            <Link href="/candidate/ai-interview" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
-              View all →
-            </Link>
-          </CardHeader>
-          <CardContent className="flex-1 p-6 flex flex-col gap-4">
-            {pendingAiSessions.length > 0 && (
-              <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-                <p className="text-sm font-semibold text-amber-800 dark:text-amber-400">
-                  You have {pendingAiSessions.length} in-progress session{pendingAiSessions.length > 1 ? "s" : ""}
-                </p>
-                <Link href={`/ai-interview/${pendingAiSessions[0].id}`} className="ml-auto text-xs text-amber-700 dark:text-amber-300 font-bold hover:underline shrink-0">
-                  Resume →
-                </Link>
-              </div>
-            )}
-
-            {aiSessions.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center gap-4 py-4">
-                <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex items-center justify-center border border-indigo-100 dark:border-indigo-800/30">
-                  <Bot className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-                  Practice with our AI interviewer — it asks real technical and behavioral questions and scores your answers.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {aiSessions.slice(0, 3).map((s) => (
-                  <Link key={s.id} href={`/ai-interview/${s.id}`} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-all group">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{s.position?.title ?? "General AI Interview"}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {s.status === "COMPLETED" ? `Score: ${s.overallScore}/100` : "In progress"}
-                      </p>
-                    </div>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-lg ${s.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"}`}>
-                      {s.status === "COMPLETED" ? "Done" : "Resume"}
+        {/* AI Session History */}
+        {aiSessions.length > 0 && (
+          <div>
+            <h2 className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-3">AI Interview History</h2>
+            <div className="space-y-2">
+              {aiSessions.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between px-5 py-4 rounded-2xl border border-zinc-800 bg-zinc-900/30 hover:bg-zinc-900/60 transition-all"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-white">{s.position?.title ?? "AI Interview"}</p>
+                    <p className="text-xs text-zinc-600 mt-0.5">
+                      {new Date(s.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {s.overallScore != null && (
+                      <span className={`text-sm font-black ${
+                        s.overallScore >= 70 ? "text-emerald-400" : s.overallScore >= 50 ? "text-amber-400" : "text-red-400"
+                      }`}>{s.overallScore}%</span>
+                    )}
+                    {s.status === "IN_PROGRESS" && s.magicLinkToken && (
+                      <Link href={`/ai-interview/${s.magicLinkToken}`}
+                        className="text-xs font-bold text-indigo-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 transition-colors">
+                        Continue →
+                      </Link>
+                    )}
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${
+                      s.status === "COMPLETED"
+                        ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+                        : "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                    }`}>
+                      {s.status}
                     </span>
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            <Link href="/candidate/ai-interview" className="mt-auto">
-              <Button className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold shadow-md shadow-indigo-600/10">
-                Start AI Interview
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
-  )
+  );
 }
-

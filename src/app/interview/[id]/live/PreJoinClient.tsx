@@ -2,27 +2,39 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Video, VideoOff, Settings, AlertCircle, MonitorSpeaker, CheckCircle } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Settings, AlertCircle, MonitorSpeaker, CheckCircle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { LiveRoomShell } from "./LiveRoomShell";
 import { FeedbackForm } from "./FeedbackForm";
+import { saveConsentAction } from "./consentActions";
 
 export function PreJoinClient({ 
   interviewId, 
   roomTitle, 
   isInterviewer = false, 
-  initialNotes = "" 
+  initialNotes = "",
+  resumeId,
+  positionId,
+  stageIndex,
+  candidateName,
+  positionTitle,
 }: { 
-  interviewId: string, 
-  roomTitle: string, 
-  isInterviewer?: boolean, 
-  initialNotes?: string 
+  interviewId: string;
+  roomTitle: string;
+  isInterviewer?: boolean;
+  initialNotes?: string;
+  resumeId?: string;
+  positionId?: string;
+  stageIndex?: number;
+  candidateName?: string;
+  positionTitle?: string;
 }) {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
   const [joined, setJoined] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [consentChecked, setConsentChecked] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -98,21 +110,23 @@ export function PreJoinClient({
   const [token, setToken] = useState<string>("");
   const [sessionEnded, setSessionEnded] = useState(false);
 
-  // -- (Keep existing handleJoin logic intact below) --
   const handleJoin = async () => {
     setIsJoining(true);
     setPermissionError(null);
     try {
+      // Persist consent before token fetch
+      await saveConsentAction(interviewId);
+
       const res = await fetch(`/api/livekit/token?room=${interviewId}`);
       if (!res.ok) {
         const dict = await res.json();
         throw new Error(dict.error || "Server failed to generate secure WebRTC token");
       }
-      
+
       const payload = await res.json();
       setToken(payload.token);
       setJoined(true);
-      
+
     } catch (err: any) {
       console.error(err);
       setPermissionError(err.message);
@@ -122,23 +136,34 @@ export function PreJoinClient({
   };
 
   if (joined && token) {
-    return <LiveRoomShell 
-      onLeave={() => { setJoined(false); setToken(""); setSessionEnded(true); }} 
-      roomTitle={roomTitle} 
-      token={token}
-      serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL || ""} 
-      initialAudio={micOn}
-      initialVideo={camOn}
-      interviewId={interviewId}
-      isInterviewer={isInterviewer}
-      initialNotes={initialNotes}
-    />;
+    return (
+      <LiveRoomShell 
+        onLeave={() => { setJoined(false); setToken(""); setSessionEnded(true); }} 
+        roomTitle={roomTitle} 
+        token={token}
+        serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL || ""} 
+        initialAudio={micOn}
+        initialVideo={camOn}
+        interviewId={interviewId}
+        isInterviewer={isInterviewer}
+        initialNotes={initialNotes}
+      />
+    );
   }
 
   // Intercept the End-of-Session drop to funnel Interviewers to the Feedback module 
   if (sessionEnded) {
     if (isInterviewer) {
-       return <FeedbackForm interviewId={interviewId} />;
+       return (
+         <FeedbackForm
+           interviewId={interviewId}
+           resumeId={resumeId}
+           positionId={positionId}
+           stageIndex={stageIndex}
+           candidateName={candidateName}
+           positionTitle={positionTitle}
+         />
+       );
     } else {
        return (
          <div className="flex-1 w-full max-w-2xl mx-auto flex flex-col items-center justify-center p-8 text-center min-h-[60vh] gap-6 animate-in fade-in zoom-in duration-500">
@@ -282,27 +307,69 @@ export function PreJoinClient({
         </div>
 
         <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
-           <Button 
-             size="lg" 
-             onClick={handleJoin}
-             disabled={isJoining || !!permissionError}
-             className="w-full h-14 text-lg font-bold rounded-xl shadow-lg border-transparent shadow-indigo-600/20 bg-indigo-600 hover:bg-indigo-700 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
-           >
-             {isJoining ? (
-               <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-             ) : (
-               "Join Now"
-             )}
-           </Button>
-           
-           <Link href={`/interview/${interviewId}`}>
-             <Button 
-               variant="ghost" 
-               className="w-full h-12 text-sm font-semibold rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-             >
-               Return to Staging Room
-             </Button>
-           </Link>
+
+          {/* ── Consent Checkbox ─────────────────────────────────────────── */}
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <div className="relative mt-0.5 shrink-0">
+              <input
+                type="checkbox"
+                id="consent-checkbox"
+                checked={consentChecked}
+                onChange={(e) => setConsentChecked(e.target.checked)}
+                className="sr-only"
+              />
+              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                consentChecked
+                  ? "bg-indigo-600 border-indigo-600"
+                  : "border-gray-300 dark:border-zinc-600 group-hover:border-indigo-400"
+              }`}>
+                {consentChecked && (
+                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+            </div>
+            <span className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed">
+              I understand this interview session may be <strong className="text-gray-700 dark:text-zinc-200">recorded</strong> and that AI behavioral signals{" "}
+              <strong className="text-gray-700 dark:text-zinc-200">(eye gaze patterns, posture, speaking pace, and engagement indicators)</strong>{" "}
+              may be collected during the session for interview quality review. These signals are reviewed by hiring staff and do not
+              constitute automated hiring decisions. I have read and agree to the{" "}
+              <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline font-medium">Privacy Policy</a>{" "}
+              and{" "}
+              <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline font-medium">Terms of Service</a>.
+            </span>
+          </label>
+
+          {/* Privacy note */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+            <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium leading-snug">
+              Recordings are encrypted, stored securely, and automatically deleted after 90 days.
+            </p>
+          </div>
+
+          <Button
+            size="lg"
+            onClick={handleJoin}
+            disabled={isJoining || !!permissionError || !consentChecked}
+            className="w-full h-14 text-lg font-bold rounded-xl shadow-lg border-transparent shadow-indigo-600/20 bg-indigo-600 hover:bg-indigo-700 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed"
+          >
+            {isJoining ? (
+              <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              "Join Now"
+            )}
+          </Button>
+
+          <Link href={`/interview/${interviewId}`}>
+            <Button
+              variant="ghost"
+              className="w-full h-12 text-sm font-semibold rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              Return to Staging Room
+            </Button>
+          </Link>
         </div>
         
       </div>

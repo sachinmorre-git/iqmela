@@ -111,6 +111,18 @@ export async function POST(req: Request) {
       },
     });
 
+    // Also mark the shadow Interview mode as COMPLETED so it reflects on global dashboards
+    // We update pending AI_AVATAR interviews for this candidate & position
+    await prisma.interview.updateMany({
+      where: {
+         candidateId: session.candidateId,
+         positionId: session.positionId,
+         interviewMode: "AI_AVATAR",
+         status: "SCHEDULED"
+      },
+      data: { status: "COMPLETED" }
+    });
+
     // Log usage
     if (summary.usage && summary.usage.totalTokens > 0) {
       await prisma.aiUsageLog.create({

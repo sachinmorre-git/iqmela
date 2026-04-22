@@ -103,5 +103,47 @@ export const emailService = {
       text,
       tags
     });
+  },
+
+  /**
+   * Generic transactional email with a heading, body, and optional CTA button.
+   * Used for availability polls, confirmations, and notifications.
+   */
+  sendGenericEmail: async (options: {
+    to: string;
+    subject: string;
+    previewText?: string;
+    heading: string;
+    body: string;
+    ctaLabel?: string;
+    ctaUrl?: string;
+  }) => {
+    const bodyHtml = options.body.replace(/\n/g, "<br/>");
+    const ctaHtml = options.ctaLabel && options.ctaUrl
+      ? `<div style="text-align:center;margin:24px 0">
+           <a href="${options.ctaUrl}" style="display:inline-block;padding:12px 32px;background-color:#0d9488;color:#ffffff;font-weight:bold;font-size:14px;text-decoration:none;border-radius:8px;">
+             ${options.ctaLabel}
+           </a>
+         </div>`
+      : "";
+
+    const html = `
+      <div style="max-width:520px;margin:0 auto;font-family:system-ui,-apple-system,sans-serif;color:#1f2937;padding:32px 24px;">
+        <h1 style="font-size:20px;font-weight:700;margin:0 0 16px">${options.heading}</h1>
+        <p style="font-size:14px;line-height:1.6;color:#4b5563;margin:0 0 16px">${bodyHtml}</p>
+        ${ctaHtml}
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+        <p style="font-size:11px;color:#9ca3af;text-align:center">IQMela · Intelligent Hiring Platform</p>
+      </div>
+    `;
+
+    const text = `${options.heading}\n\n${options.body.replace(/<[^>]*>/g, "")}\n\n${options.ctaUrl || ""}`;
+
+    return await provider.sendEmail({
+      to: options.to,
+      subject: options.subject,
+      html,
+      text,
+    });
   }
 };

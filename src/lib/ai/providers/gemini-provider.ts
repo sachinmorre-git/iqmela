@@ -1,5 +1,16 @@
-import { GoogleGenAI, Type, type Schema } from "@google/genai";
+import { Type, type Schema } from "@google/genai";
+import { geminiClient } from "../client";
 import { aiConfig } from "../config";
+import {
+  extractResumePrompt,
+  extractJdPrompt,
+  analyzeJdPrompt,
+  rankCandidatePrompt,
+  generateCandidateSummaryPrompt,
+  runAdvancedJudgmentPrompt,
+  generateInterviewPrepPrompt,
+  analyzeRedFlagsPrompt,
+} from "../prompts";
 import type {
   HiringAiProvider,
   ExtractedResumeData,
@@ -22,14 +33,12 @@ const TEMPERATURE      = aiConfig.temperature;
  */
 export class GeminiHiringAiProvider implements HiringAiProvider {
   readonly providerName = "gemini";
-  private ai: GoogleGenAI;
+  private ai = geminiClient;
 
   constructor() {
-    const apiKey = aiConfig.gemini.apiKey ?? "";
-    if (!apiKey) {
+    if (!aiConfig.gemini.apiKey) {
       console.warn("[GeminiAI] GEMINI_API_KEY is not set — calls will fail at runtime.");
     }
-    this.ai = new GoogleGenAI({ apiKey });
   }
 
   // ── Extraction ──────────────────────────────────────────────────────────
@@ -71,9 +80,9 @@ export class GeminiHiringAiProvider implements HiringAiProvider {
       },
     };
 
-    const prompt = `You are a precise HR data extraction system. Extract structured information from the following resume text. Return only factual information visible in the text — do not infer or hallucinate data.\n\nResume text:\n${rawText}`;
+    const prompt = extractResumePrompt({ rawText });
 
-    const { raw, usage } = await this._generate(prompt, schema, "ext-v1");
+    const { raw, usage } = await this._generate(prompt, schema, extractResumePrompt.version);
     const parsed = JSON.parse(raw);
 
     return {
@@ -111,20 +120,9 @@ export class GeminiHiringAiProvider implements HiringAiProvider {
       },
     };
 
-    const prompt = `You are an expert HR data parser. Extract structured information from the following job description text. Return only factual information visible in the text — do not infer or hallucinate data.
+    const prompt = extractJdPrompt({ rawText });
 
-Rules:
-- title: The exact job title (e.g. "Senior Data Engineer")
-- department: Department or team (e.g. "Engineering", "Data & Analytics")
-- location: Work location (e.g. "Remote", "New York, NY", "Hybrid - London")
-- employmentType: Must be exactly one of: FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP, or null
-- description: A 1-2 sentence public-facing summary suitable for a job listings page
-- jdText: The full cleaned job description text, preserving all details
-
-Job Description:
-${rawText}`;
-
-    const { raw, usage } = await this._generate(prompt, schema, "jd-autofill-v1");
+    const { raw, usage } = await this._generate(prompt, schema, extractJdPrompt.version);
     const parsed = JSON.parse(raw);
 
     const validTypes = ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP"];
@@ -155,9 +153,9 @@ ${rawText}`;
       },
     };
 
-    const prompt = `You are an expert talent acquisitions analyst. Analyze the following job description for "${positionTitle ?? "the role"}" and extract the listed fields with precision.\n\nJob Description:\n${jdText}`;
+    const prompt = analyzeJdPrompt({ jdText, positionTitle });
 
-    const { raw, usage } = await this._generate(prompt, schema, "jd-v1");
+    const { raw, usage } = await this._generate(prompt, schema, analyzeJdPrompt.version);
     const parsed = JSON.parse(raw);
 
     return {
@@ -198,13 +196,9 @@ ${rawText}`;
       },
     };
 
-    const jdContext = jdAnalysis
-      ? `Required skills: ${jdAnalysis.requiredSkills.join(", ")}\nPreferred skills: ${jdAnalysis.preferredSkills.join(", ")}`
-      : "";
+    const prompt = rankCandidatePrompt({ extracted, jdText, jdAnalysis });
 
-    const prompt = `You are a senior technical recruiter. Evaluate this candidate's fit for the job.\n\n### Job Description:\n${jdText}\n\n${jdContext}\n\n### Candidate Profile:\nName: ${extracted.candidateName}\nSkills: ${extracted.skills.join(", ")}\nExperience: ${extracted.experienceYears} years\nSummary: ${extracted.summary}\n\nRate from 0-100. Use STRONG_MATCH (80+), GOOD_MATCH (50-79), or WEAK_MATCH (<50) for matchLabel.`;
-
-    const { raw, usage } = await this._generate(prompt, schema, "rank-v1");
+    const { raw, usage } = await this._generate(prompt, schema, rankCandidatePrompt.version);
     const parsed = JSON.parse(raw);
     const score = Number(parsed.matchScore) || 0;
     const label = parsed.matchLabel || (score >= 80 ? "STRONG_MATCH" : score >= 50 ? "GOOD_MATCH" : "WEAK_MATCH");
@@ -236,9 +230,9 @@ ${rawText}`;
       },
     };
 
-    const prompt = `Write a concise recruiter-facing summary for this candidate.\n\nName: ${extracted.candidateName}\nSkills: ${extracted.skills.join(", ")}\nExperience: ${extracted.experienceYears} years\nLocation: ${extracted.location}\nSummary: ${extracted.summary}\nCompanies: ${extracted.companies.map(c => c.company).join(", ")}`;
+    const prompt = generateCandidateSummaryPrompt({ extracted });
 
-    const { raw, usage } = await this._generate(prompt, schema, "sum-v1");
+    const { raw, usage } = await this._generate(prompt, schema, generateCandidateSummaryPrompt.version);
     const parsed = JSON.parse(raw);
 
     return {
@@ -265,9 +259,9 @@ ${rawText}`;
       },
     };
 
-    const prompt = `You are a hiring committee advisor. Based on the candidate's match score and profile, provide a hiring recommendation.\n\nMatch Score: ${ranking.matchScore}/100 (${ranking.matchLabel})\nMatched Skills: ${ranking.matchedSkills.join(", ")}\nMissing Skills: ${ranking.missingSkills.join(", ")}\nStrengths: ${ranking.notableStrengths.join(", ")}\nGaps: ${ranking.possibleGaps.join(", ")}\n\nUse exactly one of: STRONG_HIRE, HIRE, MAYBE, NO_HIRE for the recommendation field.`;
+    const prompt = runAdvancedJudgmentPrompt({ ranking, extracted });
 
-    const { raw, usage } = await this._generate(prompt, schema, "adv-judge-v1");
+    const { raw, usage } = await this._generate(prompt, schema, runAdvancedJudgmentPrompt.version);
     const parsed = JSON.parse(raw);
 
     return {
@@ -312,9 +306,9 @@ ${rawText}`;
       }
     };
 
-    const prompt = `Review this candidate against the job description and generate targeted interview focus areas and structured questions.\n\n### Job Description:\n${jdText}\n\n### Candidate Skills:\nHim: ${extracted.skills.join(", ")}\nMissing: ${ranking.missingSkills.join(", ")}\n\nGenerate meaningful probing questions. Limit to 3 focus areas and 5 questions.`;
+    const prompt = generateInterviewPrepPrompt({ extracted, ranking, jdText });
 
-    const { raw, usage } = await this._generate(prompt, schema, "int-prep-v1");
+    const { raw, usage } = await this._generate(prompt, schema, generateInterviewPrepPrompt.version);
     const parsed = JSON.parse(raw);
 
     return {
@@ -346,9 +340,9 @@ ${rawText}`;
       }
     };
 
-    const prompt = `Act as a forensic HR analyst. Review the raw resume text and extracted details for illogical timelines, massive skill inflation, repeated AI filler verbiage, or critical missing details (like no contact info).\n\nIf the resume appears completely normal, return an empty array for flags. Only flag actual suspicious findings.\n\n### Candidate Profile:\nName: ${extracted.candidateName}\nRaw Text Preview: ${rawText.substring(0, 1000)}...`;
+    const prompt = analyzeRedFlagsPrompt({ extracted, rawText });
 
-    const { raw, usage } = await this._generate(prompt, schema, "red-flags-v1");
+    const { raw, usage } = await this._generate(prompt, schema, analyzeRedFlagsPrompt.version);
     const parsed = JSON.parse(raw);
 
     return {

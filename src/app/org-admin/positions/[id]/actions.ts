@@ -1,6 +1,5 @@
 "use server"
 
-import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { resumeParser } from "@/lib/resume-parser"
@@ -8,6 +7,7 @@ import { fileExtractor } from "@/lib/file-extractor"
 import { mailService } from "@/lib/mail"
 import { revalidatePath } from "next/cache"
 import path from "path"
+import { getCallerPermissions } from "@/lib/rbac"
 
 export interface BulkExtractionResult {
   total: number
@@ -20,13 +20,26 @@ export interface BulkExtractionResult {
 
 export async function deletePositionAction(positionId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const { userId } = await auth()
-    if (!userId) return { success: false, error: "Unauthorized" }
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
 
     const position = await prisma.position.findUnique({ where: { id: positionId } })
-    if (!position || position.createdById !== userId) return { success: false, error: "Not found or unauthorized" }
+    if (!position || position.organizationId !== perms.orgId) return { success: false, error: "Not found or unauthorized" }
 
     await prisma.position.delete({ where: { id: positionId } })
+
+    // ── Audit log ──────────────────────────────────────────────────
+    await prisma.auditLog.create({
+      data: {
+        organizationId: perms.orgId,
+        userId: perms.userId,
+        action: "POSITION_DELETED",
+        resourceType: "Position",
+        resourceId: positionId,
+        metadata: { title: position.title, status: position.status },
+      },
+    }).catch((err) => console.error("[DeletePosition] Audit log failed:", err));
+
     revalidatePath("/org-admin/positions")
     return { success: true }
   } catch (error) {
@@ -36,19 +49,127 @@ export async function deletePositionAction(positionId: string): Promise<{ succes
 
 export async function archivePositionAction(positionId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const { userId } = await auth()
-    if (!userId) return { success: false, error: "Unauthorized" }
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
 
     const position = await prisma.position.findUnique({ where: { id: positionId } })
-    if (!position || position.createdById !== userId) return { success: false, error: "Not found or unauthorized" }
+    if (!position || position.organizationId !== perms.orgId) return { success: false, error: "Not found or unauthorized" }
 
     await prisma.position.update({ where: { id: positionId }, data: { status: "ARCHIVED" } })
+
+    // ── Audit log ──────────────────────────────────────────────────
+    await prisma.auditLog.create({
+      data: {
+        organizationId: perms.orgId,
+        userId: perms.userId,
+        action: "POSITION_ARCHIVED",
+        resourceType: "Position",
+        resourceId: positionId,
+        metadata: { title: position.title, previousStatus: position.status },
+      },
+    }).catch((err) => console.error("[ArchivePosition] Audit log failed:", err));
+
     revalidatePath("/org-admin/positions")
     return { success: true }
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
   }
 }
+export async function dispatchVendorInvites(positionId: string, vendorOrgIds: string[]) {
+  try {
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
+
+    const position = await prisma.position.findUnique({ where: { id: positionId } })
+    if (!position || position.organizationId !== perms.orgId) return { success: false, error: "Not found or unauthorized" }
+
+    // Execute bulk upsert mapping logic
+    for (const vendorOrgId of vendorOrgIds) {
+      await prisma.positionVendor.upsert({
+        where: { positionId_vendorOrgId: { positionId, vendorOrgId } },
+        update: { status: "ACTIVE" },
+        create: { positionId, vendorOrgId, status: "ACTIVE", dispatchedById: perms.userId },
+      });
+      
+      // In production, mailService integration goes here to send the transactional email!
+      // await mailService.sendEmail(...)
+    }
+
+    revalidatePath(`/org-admin/positions/${positionId}`)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+  }
+}
+
+// ── New Email-Based Vendor Dispatch (uses auto-provisioning) ──────────────────
+
+export async function dispatchToVendorByEmail(positionId: string, vendorEmail: string) {
+  const perms = await getCallerPermissions()
+  if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
+
+  const { dispatchPositionToVendor } = await import("@/lib/vendor-provisioning")
+  return dispatchPositionToVendor({
+    positionId,
+    vendorEmail,
+    dispatchedById: perms.userId,
+    clientOrgId: perms.orgId,
+  })
+}
+
+export async function revokeVendorAction(positionId: string, vendorOrgId: string) {
+  const perms = await getCallerPermissions()
+  if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
+
+  const { revokeVendorDispatch } = await import("@/lib/vendor-provisioning")
+  return revokeVendorDispatch({
+    positionId,
+    vendorOrgId,
+    revokedById: perms.userId,
+    clientOrgId: perms.orgId,
+  })
+}
+
+// ── Vendor Stage Update (client updates candidate stage for vendor tracking) ──
+
+export async function updateVendorStageAction(
+  resumeId: string,
+  stage: string,
+  notes?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
+
+    const resume = await prisma.resume.findUnique({
+      where: { id: resumeId },
+      include: { position: true },
+    })
+
+    if (!resume || resume.position.organizationId !== perms.orgId) {
+      return { success: false, error: "Resume not found or unauthorized" }
+    }
+
+    if (!resume.vendorOrgId) {
+      return { success: false, error: "This resume was not submitted by a vendor." }
+    }
+
+    await prisma.resume.update({
+      where: { id: resumeId },
+      data: {
+        vendorStage: stage as any,
+        vendorStageUpdatedAt: new Date(),
+        vendorStageNotes: notes || null,
+      },
+    })
+
+    revalidatePath(`/org-admin/positions/${resume.positionId}`)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+  }
+}
+
 export interface TextExtractionResult {
   total: number
   succeeded: number
@@ -58,15 +179,15 @@ export interface TextExtractionResult {
 }
 
 export async function bulkExtractTextAction(positionId: string): Promise<{ success: boolean; result?: TextExtractionResult; error?: string }> {
-  const { userId } = await auth()
-  if (!userId) return { success: false, error: "Unauthorized" }
+  const perms = await getCallerPermissions()
+  if (!perms || !perms.canRunAI) return { success: false, error: "Unauthorized" }
 
   const position = await prisma.position.findUnique({
     where: { id: positionId },
     include: { resumes: { orderBy: { uploadedAt: "asc" } } },
   })
 
-  if (!position || position.createdById !== userId) return { success: false, error: "Position not found or unauthorized" }
+  if (!position || position.organizationId !== perms.orgId) return { success: false, error: "Position not found or unauthorized" }
   if (position.resumes.length === 0) return { success: false, error: "No resumes to process" }
 
   const result: TextExtractionResult = { total: position.resumes.length, succeeded: 0, failed: 0, skipped: 0, errors: [] }
@@ -155,10 +276,9 @@ export async function bulkExtractTextAction(positionId: string): Promise<{ succe
 }
 
 export async function bulkExtractAllAction(positionId: string, forceReExtract: boolean = false): Promise<{ success: boolean; result?: BulkExtractionResult; error?: string }> {
-  const { userId } = await auth()
-  if (!userId) return { success: false, error: "Unauthorized" }
+  const perms = await getCallerPermissions()
+  if (!perms || !perms.canRunAI) return { success: false, error: "Unauthorized" }
 
-  // Verify ownership
   const position = await prisma.position.findUnique({
     where: { id: positionId },
     include: {
@@ -168,7 +288,7 @@ export async function bulkExtractAllAction(positionId: string, forceReExtract: b
     },
   })
 
-  if (!position || position.createdById !== userId) {
+  if (!position || position.organizationId !== perms.orgId) {
     return { success: false, error: "Position not found or unauthorized" }
   }
 
@@ -251,6 +371,26 @@ export async function bulkExtractAllAction(positionId: string, forceReExtract: b
       const rawExtracted = await hiringAi.extractResumeJson(rawText)
       const { data: extracted, warnings } = validateAndNormalizeExtraction(rawExtracted)
 
+      // ── Step 2.5: Vendor Conflict Detection Engine ─────────────────
+      let isDuplicate = false;
+      if (extracted.candidateEmail || extracted.phoneNumber) {
+        const queryOr = [];
+        if (extracted.candidateEmail) queryOr.push({ candidateEmail: extracted.candidateEmail });
+        if (extracted.phoneNumber) queryOr.push({ phoneNumber: extracted.phoneNumber });
+        
+        if (queryOr.length > 0) {
+          const conflicts = await prisma.resume.findFirst({
+            where: {
+              positionId,
+              id: { not: resume.id }, // Exclude self
+              OR: queryOr
+            },
+            select: { id: true }
+          });
+          if (conflicts) isDuplicate = true;
+        }
+      }
+
       if (rawExtracted.usage) {
         usageLogs.push({
           positionId,
@@ -271,6 +411,7 @@ export async function bulkExtractAllAction(positionId: string, forceReExtract: b
         data: {
           parsingStatus:          "EXTRACTED",
           extractionStatus:       "EXTRACTED",
+          isDuplicate:            isDuplicate,
           extractedAt:            new Date(),
           candidateName:          extracted.candidateName,
           candidateEmail:         extracted.candidateEmail,
@@ -351,8 +492,8 @@ export interface BulkRankingResult {
 }
 
 export async function bulkRankAllAction(positionId: string): Promise<{ success: boolean; result?: BulkRankingResult; error?: string }> {
-  const { userId } = await auth()
-  if (!userId) return { success: false, error: "Unauthorized" }
+  const perms = await getCallerPermissions()
+  if (!perms || !perms.canRunAI) return { success: false, error: "Unauthorized" }
 
   const position = await prisma.position.findUnique({
     where: { id: positionId },
@@ -363,7 +504,7 @@ export async function bulkRankAllAction(positionId: string): Promise<{ success: 
     },
   })
 
-  if (!position || position.createdById !== userId) {
+  if (!position || position.organizationId !== perms.orgId) {
     return { success: false, error: "Position not found or unauthorized" }
   }
 
@@ -538,8 +679,8 @@ export interface BulkAdvancedJudgmentResult {
 
 export async function bulkAdvancedJudgmentAction(positionId: string, limit: number = 10, force: boolean = false): Promise<{ success: boolean; result?: BulkAdvancedJudgmentResult; error?: string }> {
   try {
-    const { userId } = await auth()
-    if (!userId) return { success: false, error: "Unauthorized" }
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canRunAI) return { success: false, error: "Unauthorized" }
 
     const position = await prisma.position.findUnique({
       where: { id: positionId },
@@ -551,7 +692,7 @@ export async function bulkAdvancedJudgmentAction(positionId: string, limit: numb
       },
     })
 
-    if (!position || position.createdById !== userId) {
+    if (!position || position.organizationId !== perms.orgId) {
       return { success: false, error: "Position not found or unauthorized" }
     }
 
@@ -745,15 +886,15 @@ export async function bulkProcessAllAction(positionId: string, forceReExtract: b
 
 export async function toggleShortlistAction(resumeId: string, isShortlisted: boolean, notes?: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const { userId } = await auth()
-    if (!userId) return { success: false, error: "Unauthorized" }
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
 
     const resume = await prisma.resume.findUnique({
       where: { id: resumeId },
       include: { position: true },
     })
 
-    if (!resume || resume.position.createdById !== userId) {
+    if (!resume || resume.position.organizationId !== perms.orgId) {
       return { success: false, error: "Resume not found or unauthorized" }
     }
 
@@ -779,6 +920,25 @@ export async function toggleShortlistAction(resumeId: string, isShortlisted: boo
       }
     })
 
+    // ── Audit log — hiring decision step ────────────────────────────
+    await prisma.auditLog.create({
+      data: {
+        organizationId: perms.orgId,
+        userId: perms.userId,
+        action: isShortlisted ? "CANDIDATE_SHORTLISTED" : "CANDIDATE_UNSHORTLISTED",
+        resourceType: "Resume",
+        resourceId: resumeId,
+        metadata: {
+          positionId: resume.positionId,
+          candidateName: resume.overrideName || resume.candidateName || resume.originalFileName,
+          isShortlisted,
+          aiMatchScore: resume.matchScore,
+          aiRecommendation: resume.finalRecommendationLabel,
+          notes: notes || null,
+        },
+      },
+    }).catch((err) => console.error("[Shortlist] Audit log failed:", err));
+
     revalidatePath(`/org-admin/positions/${resume.positionId}`)
     return { success: true }
   } catch (error) {
@@ -791,15 +951,15 @@ export async function overrideCandidateAction(
   data: { overrideName: string; overrideEmail: string; overridePhone: string; overrideLinkedinUrl: string }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { userId } = await auth()
-    if (!userId) return { success: false, error: "Unauthorized" }
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
 
     const resume = await prisma.resume.findUnique({
       where: { id: resumeId },
       include: { position: true },
     })
 
-    if (!resume || resume.position.createdById !== userId) {
+    if (!resume || resume.position.organizationId !== perms.orgId) {
       return { success: false, error: "Resume not found or unauthorized" }
     }
 
@@ -826,15 +986,15 @@ export async function bulkCreateInviteDraftsAction(positionId: string, resumeIds
   result?: { created: number; skipped: number; total: number; failedLog?: string[] }
 }> {
   try {
-    const { userId } = await auth()
-    if (!userId) return { success: false, error: "Unauthorized" }
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
 
     const position = await prisma.position.findUnique({
       where: { id: positionId },
       include: { resumes: { where: { id: { in: resumeIds } } } }
     })
 
-    if (!position || position.createdById !== userId) {
+    if (!position || position.organizationId !== perms.orgId) {
       return { success: false, error: "Position not found or unauthorized" }
     }
 
@@ -896,8 +1056,8 @@ export async function bulkSendInvitesAction(positionId: string, resumeIds: strin
   result?: { sent: number; skipped: number; total: number; failedLog?: string[] }
 }> {
   try {
-    const { userId } = await auth()
-    if (!userId) return { success: false, error: "Unauthorized" }
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
 
     const position = await prisma.position.findUnique({
       where: { id: positionId },
@@ -914,7 +1074,7 @@ export async function bulkSendInvitesAction(positionId: string, resumeIds: strin
       }
     })
 
-    if (!position || position.createdById !== userId) {
+    if (!position || position.organizationId !== perms.orgId) {
       return { success: false, error: "Position not found or unauthorized" }
     }
 
@@ -1014,11 +1174,11 @@ export async function bulkSendInvitesAction(positionId: string, resumeIds: strin
 
 export async function analyzeJdAction(positionId: string, forceReAnalyze: boolean = false): Promise<{ success: boolean; error?: string }> {
   try {
-    const { userId } = await auth();
-    if (!userId) return { success: false, error: "Unauthorized" };
+    const perms = await getCallerPermissions();
+    if (!perms || !perms.canRunAI) return { success: false, error: "Unauthorized" };
 
     const position = await prisma.position.findUnique({ where: { id: positionId } });
-    if (!position || position.createdById !== userId) return { success: false, error: "Not found or unauthorized" };
+    if (!position || position.organizationId !== perms.orgId) return { success: false, error: "Not found or unauthorized" };
 
     if (!position.jdText) return { success: false, error: "No Job Description text available" };
 
@@ -1062,3 +1222,52 @@ export async function analyzeJdAction(positionId: string, forceReAnalyze: boolea
   }
 }
 
+// ── Soft Delete Resume ──────────────────────────────────────────────────────
+export async function softDeleteResumeAction(resumeId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
+
+    const resume = await prisma.resume.findUnique({
+      where: { id: resumeId },
+      include: { position: { select: { id: true, organizationId: true } } },
+    })
+
+    if (!resume || resume.position.organizationId !== perms.orgId) {
+      return { success: false, error: "Resume not found or unauthorized" }
+    }
+
+    if (resume.isDeleted) {
+      return { success: false, error: "Resume already deleted" }
+    }
+
+    // Soft delete: mark as deleted, unmark shortlist to avoid phantom counts
+    await prisma.resume.update({
+      where: { id: resumeId },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        isShortlisted: false, // clear shortlist to avoid phantom counts
+      },
+    })
+
+    // Log the deletion in activity trail
+    await prisma.positionBatchRun.create({
+      data: {
+        positionId: resume.position.id,
+        actionType: "RESUME_DELETED",
+        status: "COMPLETED",
+        totalProcessed: 1,
+        succeeded: 1,
+        failed: 0,
+        skipped: 0,
+        detailsJson: JSON.stringify([`Removed candidate: ${resume.overrideName || resume.candidateName || resume.originalFileName}`]),
+      },
+    })
+
+    revalidatePath(`/org-admin/positions/${resume.position.id}`)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to delete resume" }
+  }
+}

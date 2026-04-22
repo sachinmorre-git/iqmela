@@ -18,13 +18,22 @@ export default async function LiveRoomPage({ params }: { params: Promise<{ id: s
 
   const interview = await prisma.interview.findUnique({
     where: { id },
-    select: { title: true, candidateId: true, interviewerId: true, status: true, notes: true }
+    select: { 
+      title: true, 
+      candidateId: true, 
+      interviewerId: true, 
+      status: true, 
+      notes: true,
+      panelists: { select: { interviewerId: true } }
+    }
   });
 
   if (!interview) notFound();
 
   // Strict Authorization
-  if (interview.candidateId !== userId && interview.interviewerId !== userId) {
+  const isInterviewer = interview.interviewerId === userId || interview.panelists.some(p => p.interviewerId === userId);
+  
+  if (interview.candidateId !== userId && !isInterviewer) {
     return (
       <div className="flex-1 w-full flex items-center justify-center bg-gray-50 dark:bg-black min-h-screen p-4">
         <div className="max-w-md w-full bg-white dark:bg-zinc-950 border border-red-200 dark:border-red-900/50 rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center">
@@ -55,7 +64,7 @@ export default async function LiveRoomPage({ params }: { params: Promise<{ id: s
        <PreJoinClient 
          interviewId={id} 
          roomTitle={interview.title} 
-         isInterviewer={interview.interviewerId === userId}
+         isInterviewer={isInterviewer}
          initialNotes={interview.notes || ""}
        />
     </div>

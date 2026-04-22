@@ -1,11 +1,11 @@
 "use server"
 
-import { auth } from "@clerk/nextjs/server"
+import { getCallerPermissions } from "@/lib/rbac"
 
 export async function testAiProviderAction() {
   try {
-    const { userId } = await auth()
-    if (!userId) return { success: false, error: "Unauthorized" }
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.isOrgAdmin) return { success: false, error: "Unauthorized" }
 
     const { hiringAi } = await import("@/lib/ai")
     

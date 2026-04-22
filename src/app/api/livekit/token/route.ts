@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
     // Validate the requested room securely against our Database
     const interview = await prisma.interview.findUnique({
       where: { id: room },
-      select: { candidateId: true, interviewerId: true, status: true }
+      select: { 
+        candidateId: true, 
+        interviewerId: true, 
+        status: true,
+        panelists: { select: { interviewerId: true } }
+      }
     });
 
     if (!interview) {
@@ -39,18 +44,31 @@ export async function GET(req: NextRequest) {
     }
 
     // Strict WebRTC Authorization: Is this user actually invited to this exact room?
-    if (interview.candidateId !== userId && interview.interviewerId !== userId) {
+    const isInterviewer = interview.interviewerId === userId || interview.panelists.some(p => p.interviewerId === userId);
+    
+    if (interview.candidateId !== userId && !isInterviewer) {
       return NextResponse.json({ error: "Forbidden: You are not an assigned participant for this interview" }, { status: 403 });
     }
 
+    // ── Participant capacity check: max 5 (1 candidate + up to 4 panelists) ─
+    // Count: 1 candidate + 1 lead interviewer + N panelists
+    const panelistCount = interview.panelists.length;
+    const totalSlots = 1 + (interview.interviewerId ? 1 : 0) + panelistCount; // max = 5
+    if (totalSlots > 5) {
+      return NextResponse.json(
+        { error: "Room is at capacity. Maximum 5 participants allowed (1 candidate + 4 interviewers)." },
+        { status: 403 }
+      );
+    }
+
     // Identify role for the WebRTC interface mapping later
-    const isInterviewer = interview.interviewerId === userId;
     const roleString = isInterviewer ? "Interviewer" : "Candidate";
 
-    // Generate the incredibly secure Short-Lived Access Token for this user using the Official SDK
+    // Generate a secure short-lived JWT — expires in 1 hour (interview window)
     const at = new AccessToken(LIVEKIT_CONFIG.apiKey, LIVEKIT_CONFIG.apiSecret, {
       identity: userId,
       name: roleString,
+      ttl: 3600, // 1 hour in seconds
     });
 
     // Grant very specific WebRTC permissions bounded strictly to this one isolated Interview Room

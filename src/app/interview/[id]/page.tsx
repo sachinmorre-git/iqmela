@@ -125,11 +125,11 @@ export default async function InterviewDetailsPage({ params }: { params: Promise
             {/* Interviewer */}
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-${themeAccent}-100 dark:bg-${themeAccent}-900/50 text-${themeAccent}-700 dark:text-${themeAccent}-300`}>
-                {interview.interviewer.name ? interview.interviewer.name.charAt(0) : 'I'}
+                {interview?.interviewer?.name ? interview.interviewer.name.charAt(0) : 'I'}
               </div>
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Interviewer</p>
-                <p className="font-bold text-gray-900 dark:text-white">{interview.interviewer.name || interview.interviewer.email}</p>
+                <p className="font-bold text-gray-900 dark:text-white">{interview?.interviewer?.name || interview?.interviewer?.email || "TBD"}</p>
               </div>
             </div>
 

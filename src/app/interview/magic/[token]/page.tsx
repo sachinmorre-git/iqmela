@@ -55,7 +55,7 @@ export default async function MagicLinkLobby({ params }: { params: Promise<{ tok
             <ShieldCheck className="w-4 h-4" /> Secure Zero-Auth Entry
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-2">
-            Welcome, {session.candidate.name?.split(' ')[0] || "Candidate"}!
+            Welcome, {session.candidate?.name?.split(' ')[0] || "Candidate"}!
           </h1>
           <p className="text-zinc-400 font-medium">
             You are checking in for the <span className="text-zinc-200">{session.position?.title}</span> AI interview.

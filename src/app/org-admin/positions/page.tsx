@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button"
-import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { PositionsTable } from "./PositionsTable"
+import { getCallerPermissions } from "@/lib/rbac"
 
 export const metadata = {
   title: "Positions | Org Admin | IQMela",
@@ -11,11 +11,32 @@ export const metadata = {
 }
 
 export default async function PositionsPage() {
-  const { userId } = await auth()
-  if (!userId) redirect("/sign-in")
+  const perms = await getCallerPermissions();
+  if (!perms) redirect("/select-role");
+  if (!perms.canViewPositions) redirect("/org-admin/dashboard");
+
+  const { canManagePositions } = perms;
+
+  // Construct the WHERE clause
+  const whereClause: any = { 
+    organizationId: perms.orgId,
+    isDeleted: false
+  };
+
+  // If scopedDeptIds is not null, filter by those departments
+  // If the position has NO department, technically it's "unassigned" - should scoped admins see it? 
+  // Let's explicitly restrict to their departments.
+  if (perms.scopedDeptIds) {
+    if (perms.scopedDeptIds.length === 0) {
+      // Dept admin with no departments assigned yet
+      whereClause.id = "none"; 
+    } else {
+      whereClause.departmentId = { in: perms.scopedDeptIds };
+    }
+  }
 
   const positions = await prisma.position.findMany({
-    where: { createdById: userId },
+    where: whereClause,
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -42,12 +63,14 @@ export default async function PositionsPage() {
               : `${positions.length} position${positions.length !== 1 ? "s" : ""} in your pipeline.`}
           </p>
         </div>
-        <Button
-          className="shrink-0 rounded-xl shadow-md shadow-teal-600/20 bg-teal-600 hover:bg-teal-700 text-white border-transparent hover:-translate-y-0.5 transition-transform"
-          asChild
-        >
-          <Link href="/org-admin/positions/new">+ Post New Position</Link>
-        </Button>
+        {canManagePositions && (
+          <Button
+            className="shrink-0 rounded-xl shadow-md shadow-teal-600/20 bg-teal-600 hover:bg-teal-700 text-white border-transparent hover:-translate-y-0.5 transition-transform"
+            asChild
+          >
+            <Link href="/org-admin/positions/new">+ Post New Position</Link>
+          </Button>
+        )}
       </div>
 
       {positions.length === 0 ? (
@@ -67,12 +90,14 @@ export default async function PositionsPage() {
               Create your first open position to start building your hiring pipeline.
             </p>
           </div>
-          <Button
-            className="rounded-xl bg-teal-600 hover:bg-teal-700 text-white border-transparent shadow-md shadow-teal-600/20 hover:-translate-y-0.5 transition-transform"
-            asChild
-          >
-            <Link href="/org-admin/positions/new">+ Post New Position</Link>
-          </Button>
+          {canManagePositions && (
+            <Button
+              className="rounded-xl bg-teal-600 hover:bg-teal-700 text-white border-transparent shadow-md shadow-teal-600/20 hover:-translate-y-0.5 transition-transform"
+              asChild
+            >
+              <Link href="/org-admin/positions/new">+ Post New Position</Link>
+            </Button>
+          )}
         </div>
       ) : (
         <PositionsTable initialPositions={positions} />
