@@ -131,3 +131,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: "Failed to process queue" }, { status: 500 });
   }
 }
+
+// Vercel Cron triggers via GET by default
+export async function GET(req: Request) {
+  return POST(req);
+}
