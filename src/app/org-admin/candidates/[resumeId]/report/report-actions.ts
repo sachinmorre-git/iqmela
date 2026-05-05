@@ -178,7 +178,7 @@ export async function fetchConsolidatedReportAction(
         status: isCompleted ? "COMPLETED" as const
           : isScheduled ? "SCHEDULED" as const
           : "NOT_STARTED" as const,
-        completedAt: interview?.completedAt?.toISOString() ?? null,
+        completedAt: interview?.status === "COMPLETED" ? interview.updatedAt.toISOString() : null,
         compositeScore,
         panelistScores,
         aiSession: aiSession ? {
@@ -187,7 +187,7 @@ export async function fetchConsolidatedReportAction(
           executiveSummary: aiSession.executiveSummary,
           questionCount: aiSession.questionCount,
         } : null,
-        hasRecording: !!interview?.recordingKey,
+        hasRecording: !!interview?.recordingUrl,
         recordingUrl: null, // Presigned URLs fetched on demand
       }
     })
