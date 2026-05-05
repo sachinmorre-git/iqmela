@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { aiInterviewer } from "@/lib/ai-interview";
 import type { QuestionPlanContext } from "@/lib/ai-interview";
 
@@ -40,27 +41,50 @@ export async function POST(req: Request) {
         where: { positionId: position.id, interviewId: null },
       });
 
-      const context: QuestionPlanContext = {
-        candidateName: resume.overrideName || resume.candidateName || undefined,
-        positionTitle: position.title,
-        jdText: position.jdText ?? undefined,
-        skills: Array.isArray(resume.skillsJson) ? (resume.skillsJson as string[]) : [],
-        questionCounts: {
-          intro: config?.introQuestions ?? 2,
-          technical: config?.technicalQuestions ?? 4,
-          behavioral: config?.behavioralQuestions ?? 3,
-        },
-      };
+      let finalQuestions: any[] = [];
+      let generationUsage: any = undefined;
 
-      if (resume.aiSummaryJson && typeof resume.aiSummaryJson === "object") {
-        const s = resume.aiSummaryJson as Record<string, unknown>;
-        context.candidateSummary = (s.overallProfile as string) ?? (s.headline as string) ?? undefined;
+      // If STANDARDIZED, try to reuse questions from a previous session for the same position
+      if (config?.generationStrategy === "STANDARDIZED") {
+        const existingSession = await prisma.aiInterviewSession.findFirst({
+          where: {
+            resume: { positionId: position.id },
+            questionSetJson: { not: Prisma.AnyNull },
+          },
+          orderBy: { createdAt: "asc" }
+        });
+
+        if (existingSession && Array.isArray(existingSession.questionSetJson) && existingSession.questionSetJson.length > 0) {
+          finalQuestions = existingSession.questionSetJson as any[];
+        }
       }
 
       try {
-        const plan = await aiInterviewer.generateQuestionPlan(context);
-        const finalQuestions = plan.questions;
-        const generationUsage = plan.usage;
+        if (finalQuestions.length === 0) {
+          const context: QuestionPlanContext = {
+            candidateName: resume.overrideName || resume.candidateName || undefined,
+            positionTitle: position.title,
+            jdText: position.jdText ?? undefined,
+            questionCounts: {
+              intro: config?.introQuestions ?? 2,
+              technical: config?.technicalQuestions ?? 4,
+              behavioral: config?.behavioralQuestions ?? 3,
+            },
+          };
+
+          // If NOT standardized (i.e. TAILORED), inject candidate's specific resume data
+          if (config?.generationStrategy !== "STANDARDIZED") {
+            context.skills = Array.isArray(resume.skillsJson) ? (resume.skillsJson as string[]) : [];
+            if (resume.aiSummaryJson && typeof resume.aiSummaryJson === "object") {
+              const s = resume.aiSummaryJson as Record<string, unknown>;
+              context.candidateSummary = (s.overallProfile as string) ?? (s.headline as string) ?? undefined;
+            }
+          }
+
+          const plan = await aiInterviewer.generateQuestionPlan(context);
+          finalQuestions = plan.questions;
+          generationUsage = plan.usage;
+        }
 
         // Update session
         await prisma.aiInterviewSession.update({
