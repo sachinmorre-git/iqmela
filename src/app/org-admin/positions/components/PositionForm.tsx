@@ -37,6 +37,7 @@ export default function PositionForm({
   position,
   existingStages,
   hasPlan,
+  defaultGenerationStrategy,
   serverAction,
 }: {
   mode: "create" | "edit"
