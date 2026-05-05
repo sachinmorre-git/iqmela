@@ -305,6 +305,8 @@ export function AiInterviewShell({
   visualMode,
   resumeFromIndex = 0,
   savedAnswers: initialSavedAnswers,
+  showReferral,
+  candidateReward,
 }: {
   sessionId: string;
   initialQuestions: Question[];

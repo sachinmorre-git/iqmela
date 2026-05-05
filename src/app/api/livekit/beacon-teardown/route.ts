@@ -26,8 +26,8 @@ export async function POST(req: Request) {
       }
 
       // Mark DB as COMPLETED
-      await prisma.scheduledInterview.updateMany({
-        where: { id: interviewId, status: "IN_PROGRESS" },
+      await prisma.interview.updateMany({
+        where: { id: interviewId },
         data: { status: "COMPLETED" }
       });
     }
