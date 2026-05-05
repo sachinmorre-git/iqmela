@@ -114,7 +114,7 @@ export function ResizableSidebarLayout({
           {/* Toggle Button */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="absolute -right-3 top-6 z-50 p-1 rounded-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 shadow-sm text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors opacity-0 group-hover/sidebar:opacity-100 hidden md:flex"
+            className="absolute -right-3 top-6 z-50 p-1 rounded-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 shadow-sm text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors hidden md:flex"
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
