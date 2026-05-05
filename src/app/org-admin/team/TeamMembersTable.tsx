@@ -25,6 +25,7 @@ type Member = {
   roles: string[];
   departments: { id: string; name: string }[];
   createdAt: string;
+  isPending?: boolean;
 };
 
 type Department = {
@@ -92,6 +93,7 @@ export function TeamMembersTable({
   callerRoles,
   updateMemberAction,
   removeMemberAction,
+  revokeInviteAction,
 }: {
   members: Member[];
   departments: Department[];
@@ -101,6 +103,7 @@ export function TeamMembersTable({
   callerRoles: string[];
   updateMemberAction: (userId: string, roles: string[], deptIds: string[]) => Promise<{ success: boolean; error?: string }>;
   removeMemberAction: (userId: string) => Promise<{ success: boolean; error?: string }>;
+  revokeInviteAction: (inviteId: string) => Promise<{ success: boolean; error?: string }>;
 }) {
   const [members, setMembers] = useState(initialMembers);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -143,7 +146,17 @@ export function TeamMembersTable({
     }
   }
 
-  async function removeMember(memberId: string) {
+  async function removeMember(memberId: string, isPending?: boolean) {
+    if (isPending) {
+      if (!confirm("Are you sure you want to revoke this invitation?")) return;
+      setMenuOpenId(null);
+      const result = await revokeInviteAction(memberId);
+      if (result.success) {
+        setMembers((prev) => prev.filter((m) => m.id !== memberId));
+      }
+      return;
+    }
+
     if (!confirm("Are you sure you want to remove this member from the organization?")) return;
     setMenuOpenId(null);
 
@@ -188,12 +201,19 @@ export function TeamMembersTable({
                   <div className="w-9 h-9 shrink-0 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-sm font-bold text-gray-500 dark:text-zinc-400">
                     {(member.name || member.email).charAt(0).toUpperCase()}
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {member.name || member.email}
-                    </p>
-                    {member.name && (
-                      <p className="text-xs text-gray-400 dark:text-zinc-500 truncate">{member.email}</p>
+                  <div className="min-w-0 flex items-center gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {member.name || member.email}
+                      </p>
+                      {member.name && (
+                        <p className="text-xs text-gray-400 dark:text-zinc-500 truncate">{member.email}</p>
+                      )}
+                    </div>
+                    {member.isPending && (
+                      <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/20 px-2 py-1 text-xs font-medium text-amber-600 dark:text-amber-400 ring-1 ring-inset ring-amber-500/20">
+                        Invite Pending
+                      </span>
                     )}
                   </div>
                 </div>
@@ -347,20 +367,32 @@ export function TeamMembersTable({
 
                       {menuOpenId === member.id && (
                         <div className="absolute right-0 top-8 z-10 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-lg py-1 w-40">
-                          <button
-                            type="button"
-                            onClick={() => startEdit(member)}
-                            className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 flex items-center gap-2"
-                          >
-                            <Pencil className="w-3.5 h-3.5" /> Edit Roles
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeMember(member.id)}
-                            className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-rose-400 hover:bg-red-50 dark:hover:bg-rose-950/30 flex items-center gap-2"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> Remove
-                          </button>
+                          {member.isPending ? (
+                            <button
+                              type="button"
+                              onClick={() => removeMember(member.id, true)}
+                              className="w-full px-3 py-2 text-left text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 flex items-center gap-2"
+                            >
+                              <X className="w-3.5 h-3.5" /> Revoke Invite
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => startEdit(member)}
+                                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 flex items-center gap-2"
+                              >
+                                <Pencil className="w-3.5 h-3.5" /> Edit Roles
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeMember(member.id, false)}
+                                className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-rose-400 hover:bg-red-50 dark:hover:bg-rose-950/30 flex items-center gap-2"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Remove
+                              </button>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>

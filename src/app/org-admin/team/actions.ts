@@ -394,3 +394,35 @@ export async function removeMember(targetUserId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function revokeInvite(inviteId: string) {
+  try {
+    const perms = await getCallerPermissions();
+    if (!perms || (!perms.isOrgAdmin && !perms.isDeptAdmin)) {
+      throw new Error("Forbidden");
+    }
+    const orgId = perms.orgId;
+
+    const invite = await prisma.teamInvite.findUnique({
+      where: { id: inviteId }
+    });
+
+    if (!invite || invite.organizationId !== orgId) {
+      throw new Error("Invite not found in this organization");
+    }
+
+    if (invite.status !== "SENT" && invite.status !== "DRAFT") {
+      throw new Error("Cannot revoke an invite that is already accepted or revoked");
+    }
+
+    await prisma.teamInvite.delete({
+      where: { id: inviteId }
+    });
+
+    revalidatePath("/org-admin/team");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Revoke Invite Error:", error);
+    return { success: false, error: error.message };
+  }
+}

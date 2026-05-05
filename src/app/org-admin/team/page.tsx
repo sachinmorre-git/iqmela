@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { InviteMemberForm } from './InviteMemberForm'
 import { TeamMembersTable } from './TeamMembersTable'
-import { updateMember, removeMember } from './actions'
+import { updateMember, removeMember, revokeInvite } from './actions'
 import { getCallerPermissions } from '@/lib/rbac'
 import { SyncClerkButton } from './SyncClerkButton'
 
@@ -47,6 +47,29 @@ export default async function OrgTeamPage() {
       )
     : serializedMembers;
 
+  const pendingInvites = await prisma.teamInvite.findMany({
+    where: { organizationId: orgId, status: "SENT" },
+    orderBy: { createdAt: "asc" }
+  });
+
+  const serializedInvites = pendingInvites.map((i) => ({
+    id: i.id, // we pass the invite id directly, TeamMembersTable will use it
+    email: i.email,
+    name: i.name,
+    roles: i.roles,
+    departments: departments.filter(d => i.departmentIds.includes(d.id)),
+    createdAt: i.createdAt.toISOString(),
+    isPending: true,
+  }));
+
+  const visibleInvites = perms.scopedDeptIds
+    ? serializedInvites.filter(m =>
+        m.departments.length === 0 || m.departments.some(d => perms.scopedDeptIds!.includes(d.id))
+      )
+    : serializedInvites;
+
+  const allMembersAndInvites = [...visibleMembers, ...visibleInvites];
+
   return (
     <div className="flex-1 space-y-8 max-w-5xl mx-auto p-4 md:p-8">
       <div className="flex items-start justify-between">
@@ -75,7 +98,7 @@ export default async function OrgTeamPage() {
       )}
 
       <TeamMembersTable
-        members={visibleMembers}
+        members={allMembersAndInvites}
         departments={departments}
         assignableRoles={perms.assignableRoles}
         scopedDeptIds={perms.scopedDeptIds}
@@ -83,6 +106,7 @@ export default async function OrgTeamPage() {
         callerRoles={perms.roles}
         updateMemberAction={updateMember}
         removeMemberAction={removeMember}
+        revokeInviteAction={revokeInvite}
       />
     </div>
   );
