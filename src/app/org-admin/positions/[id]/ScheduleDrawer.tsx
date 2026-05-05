@@ -192,6 +192,7 @@ export function ScheduleDrawer({
   const isAI = stage.stage.roundType === "AI_SCREEN";
   const isBGV = stage.stage.roundType === "BGV_CHECK";
   const isScheduled = stage.status === "SCHEDULED";
+  const isQueued = stage.status === "QUEUED";
   const isCompleted = stage.status === "COMPLETED";
   const isAvailable = stage.status === "AVAILABLE";
 
@@ -235,11 +236,13 @@ export function ScheduleDrawer({
                 <CheckCircle className="w-4 h-4 text-emerald-500" />
               ) : isScheduled ? (
                 <Clock className="w-4 h-4 text-amber-500" />
+              ) : isQueued ? (
+                <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
               ) : (
                 <Calendar className="w-4 h-4 text-rose-500" />
               )}
               {isAI
-                ? isScheduled ? "AI Interview — In Progress" : isCompleted ? "AI Interview — Completed" : "AI Interview Invite"
+                ? isQueued ? "AI Interview — Queued" : isScheduled ? "AI Interview — Sent" : isCompleted ? "AI Interview — Completed" : "AI Interview Invite"
                 : isBGV
                   ? "Background Verification"
                   : isCompleted
@@ -333,18 +336,28 @@ export function ScheduleDrawer({
                 </div>
               )}
 
-              {isAI && (isScheduled || isCompleted) && (
+              {isAI && (isQueued || isScheduled || isCompleted) && (
                 <div className="flex flex-col items-center text-center py-4 gap-4">
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isCompleted ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-pink-100 dark:bg-pink-900/30"}`}>
-                    {isCompleted ? <CheckCircle className="w-7 h-7 text-emerald-500" /> : <Bot className="w-7 h-7 text-pink-500 animate-pulse" />}
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                    isCompleted ? "bg-emerald-100 dark:bg-emerald-900/30" :
+                    isQueued ? "bg-blue-100 dark:bg-blue-900/30" :
+                    "bg-pink-100 dark:bg-pink-900/30"
+                  }`}>
+                    {isCompleted ? <CheckCircle className="w-7 h-7 text-emerald-500" /> :
+                     isQueued ? <div className="w-7 h-7 rounded-full border-[3px] border-blue-500 border-t-transparent animate-spin" /> :
+                     <Bot className="w-7 h-7 text-pink-500 animate-pulse" />}
                   </div>
                   <div>
                     <p className="text-sm font-bold text-gray-900 dark:text-white">
-                      {isCompleted ? "AI Interview Complete" : "AI Interview In Progress"}
+                      {isCompleted ? "AI Interview Complete" :
+                       isQueued ? "⚙️ Generating AI Parameters..." :
+                       "AI Interview Invitation Sent"}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-[280px]">
                       {isCompleted
                         ? "The candidate has completed the AI interview."
+                        : isQueued
+                        ? "The AI is currently drafting the dynamic question plan. The email will be sent momentarily."
                         : "The invite has been sent. Waiting for the candidate to complete."}
                     </p>
                   </div>
@@ -718,7 +731,7 @@ export function ScheduleDrawer({
               disabled={isPending}
               className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
             >
-              {isScheduled || isCompleted ? "Close" : "Cancel"}
+              {isQueued || isScheduled || isCompleted ? "Close" : "Cancel"}
             </button>
 
             {/* AI: Available → Send */}

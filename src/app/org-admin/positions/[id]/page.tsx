@@ -800,6 +800,7 @@ export default async function PositionDetailPage({
                                       if (stage.roundType === "AI_SCREEN") {
                                         const aiSession = aiSessions.find(s => s.resumeId === resume.id)
                                         if (aiSession?.status === "COMPLETED") return { stage: pStage, status: "COMPLETED" as const, interviewId: aiSession.id }
+                                        if (aiSession?.status === "QUEUED") return { stage: pStage, status: "QUEUED" as const, interviewId: aiSession.id }
                                         if (aiSession || (idx === 0 && inviteStatus === "SENT")) return { stage: pStage, status: "SCHEDULED" as const }
                                         return { stage: pStage, status: "AVAILABLE" as const }
                                       }

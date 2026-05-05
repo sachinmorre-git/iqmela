@@ -13,7 +13,7 @@ export interface PipelineStage {
   interviewMode: InterviewMode;
 }
 
-export type StageStatus = "COMPLETED" | "SCHEDULED" | "AVAILABLE" | "SKIPPED";
+export type StageStatus = "COMPLETED" | "SCHEDULED" | "AVAILABLE" | "SKIPPED" | "QUEUED";
 
 export interface StageState {
   stage: PipelineStage;
@@ -58,6 +58,12 @@ const statusConfig: Record<StageStatus, {
     line: "bg-gray-200 dark:bg-zinc-700",
     label: "text-gray-500 dark:text-zinc-400",
     cursor: "cursor-pointer hover:border-rose-400 hover:shadow-rose-400/20 hover:shadow-sm",
+  },
+  QUEUED: {
+    dot: "bg-blue-400 border-blue-300 shadow-blue-400/30 shadow-sm animate-pulse",
+    line: "bg-gray-200 dark:bg-zinc-700",
+    label: "text-blue-600 dark:text-blue-400 animate-pulse",
+    cursor: "cursor-pointer",
   },
 
   SKIPPED: {
