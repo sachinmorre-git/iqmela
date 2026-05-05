@@ -169,7 +169,6 @@ export async function fetchConsolidatedReportAction(
 
       const isCompleted = interview?.status === "COMPLETED"
       const isScheduled = interview?.status === "SCHEDULED"
-      const isInProgress = interview?.status === "IN_PROGRESS"
 
       return {
         stageIndex: stage.stageIndex,
@@ -177,7 +176,6 @@ export async function fetchConsolidatedReportAction(
         roundType: stage.roundType,
         interviewId: interview?.id ?? null,
         status: isCompleted ? "COMPLETED" as const
-          : isInProgress ? "IN_PROGRESS" as const
           : isScheduled ? "SCHEDULED" as const
           : "NOT_STARTED" as const,
         completedAt: interview?.completedAt?.toISOString() ?? null,
