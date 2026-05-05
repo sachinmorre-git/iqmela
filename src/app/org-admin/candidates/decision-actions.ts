@@ -15,6 +15,7 @@ const ACTION_ROLE_MAP: Record<HiringDecisionAction, string[]> = {
   HIRE:       ["ORG_ADMIN", "DEPT_ADMIN"],
   WITHDRAW:   ["ORG_ADMIN", "DEPT_ADMIN", "HIRING_MANAGER", "RECRUITER"],
   REACTIVATE: ["ORG_ADMIN"],
+  AI_OVERRIDE:["ORG_ADMIN", "DEPT_ADMIN", "HIRING_MANAGER", "RECRUITER"],
 };
 
 // ── Action → new pipeline status ──────────────────────────────────────────────
@@ -27,6 +28,7 @@ function getNewStatus(action: HiringDecisionAction): CandidatePipelineStatus {
     case "HIRE":       return CandidatePipelineStatus.HIRED;
     case "WITHDRAW":   return CandidatePipelineStatus.WITHDRAWN;
     case "REACTIVATE": return CandidatePipelineStatus.ACTIVE;
+    case "AI_OVERRIDE":return CandidatePipelineStatus.ACTIVE;
   }
 }
 
