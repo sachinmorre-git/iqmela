@@ -79,11 +79,15 @@ function categoryLabel(cat: AiQuestionCategory) {
 
 // ── Candidate Self-Video Card ───────────────────────────────────────────────
 
-function CandidateVideoCard({ phase }: { phase: InterviewPhase }) {
+function CandidateVideoCard({ phase, onStateChange }: { phase: InterviewPhase, onStateChange?: (state: string) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [camState, setCamState] = useState<"idle" | "active" | "denied" | "unavailable" | "disabled">("idle");
   const [muted, setMuted] = useState(false);
+
+  useEffect(() => {
+    onStateChange?.(camState);
+  }, [camState, onStateChange]);
 
   const requestCamera = useCallback(() => {
     setCamState("idle");
@@ -134,16 +138,26 @@ function CandidateVideoCard({ phase }: { phase: InterviewPhase }) {
 
   if (camState === "denied" || camState === "unavailable" || camState === "disabled") {
     return (
-      <div className="w-[300px] sm:w-[400px] md:w-[500px] aspect-video rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center gap-3 text-center p-3 relative group shadow-lg shadow-black/40">
-        <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center">
+      <div className="w-[300px] sm:w-[400px] md:w-[500px] aspect-video rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center gap-3 text-center p-6 relative group shadow-lg shadow-black/40">
+        <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center mb-2">
           <span className="text-xl">{camState === "disabled" ? "📷" : "🚫"}</span>
         </div>
-        <p className="text-xs text-zinc-400 font-medium leading-tight">
+        
+        <p className="text-sm text-zinc-300 font-bold leading-tight">
           {camState === "disabled" ? "Camera disabled" : camState === "denied" ? "Camera blocked by browser" : "No camera found"}
         </p>
+
+        {camState === "denied" && (
+          <div className="text-[11px] text-zinc-500 max-w-xs space-y-2 mt-1 mb-2">
+            <p className="text-amber-500/90 font-semibold">Using Incognito / Private Mode?</p>
+            <p>Browsers block cameras automatically in these modes. Please open this link in a standard, normal browser window.</p>
+            <p>If you're not in Incognito, click the lock icon <span className="inline-block translate-y-0.5">🔒</span> next to the URL bar above and change permissions to "Allow".</p>
+          </div>
+        )}
+
         <button
           onClick={requestCamera}
-          className="text-xs font-bold text-white bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl transition shadow-sm border border-zinc-700/50"
+          className="text-xs font-bold text-white bg-zinc-800 hover:bg-zinc-700 px-6 py-2.5 rounded-xl transition shadow-sm border border-zinc-700/50 mt-2"
         >
           {camState === "disabled" ? "Enable Camera" : "Retry Camera"}
         </button>
@@ -356,6 +370,7 @@ export function AiInterviewShell({
   const [networkSwitchedToOrb, setNetworkSwitchedToOrb] = useState(false);
   const [networkRecovered, setNetworkRecovered] = useState(false);
   const [consecutiveFailures, setConsecutiveFailures] = useState(0);
+  const [childCamState, setChildCamState] = useState<string>("idle");
 
   // ── AI Circuit Breaker ────────────────────────────────────────────────────
   const handleFailure = useCallback((context: string) => {
@@ -931,7 +946,7 @@ export function AiInterviewShell({
                 You
               </span>
             </div>
-            <CandidateVideoCard phase={phase} />
+            <CandidateVideoCard phase={phase} onStateChange={setChildCamState} />
           </div>
           )}
 
@@ -982,12 +997,21 @@ export function AiInterviewShell({
                 <kbd className="px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-300 text-xs font-mono">Space</kbd>{" "}
                 or click <strong className="text-white">Submit Answer</strong> when done.
               </p>
-              <button
-                onClick={() => askQuestion(resumeFromIndex)}
-                className="mt-2 px-10 py-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-xl shadow-rose-600/30 text-lg"
-              >
-                {isResuming ? "Resume Interview" : "Begin Interview"}
-              </button>
+              <div className="flex flex-col gap-2 w-full mt-4">
+                <button
+                  onClick={() => askQuestion(resumeFromIndex)}
+                  disabled={childCamState === "denied"}
+                  className="w-full px-10 py-4 bg-rose-600 hover:bg-rose-500 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-xl shadow-rose-600/30 text-lg flex items-center justify-center gap-2"
+                >
+                  {isResuming ? "Resume Interview" : "Begin Interview"}
+                  {childCamState === "denied" && <span className="text-xs ml-2 border border-zinc-600 px-2 py-0.5 rounded-full">Camera Blocked</span>}
+                </button>
+                {childCamState === "denied" && (
+                  <p className="text-xs font-bold text-amber-500 text-center animate-in fade-in">
+                    You must resolve the camera issue to begin.
+                  </p>
+                )}
+              </div>
             </div>
           )}
 

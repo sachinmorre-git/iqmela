@@ -83,7 +83,7 @@ export const AiInterviewInviteTemplate: React.FC<AiInterviewInviteTemplateProps>
             <Column style={infoItem}>
               <Text style={infoIcon}>🌐</Text>
               <Text style={infoText}>
-                <strong>Supported Browsers</strong> - Please use a recent version of Chrome, Edge, or Safari on a desktop/laptop.
+                <strong>Supported Browsers</strong> - Please use a recent version of Chrome, Edge, or Safari on a desktop/laptop. <strong>Do not use Incognito or Private mode</strong>, as they block camera/mic access automatically.
               </Text>
             </Column>
           </Row>
