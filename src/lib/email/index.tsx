@@ -92,13 +92,13 @@ export const emailService = {
       />
     );
 
-    const text = `Hi ${options.candidateName},\n\nYou've been shortlisted for ${options.positionTitle} at ${options.orgName || "our organization"}.\n\nPlease complete your AI-led interview here: ${options.inviteLink}\n\nNo scheduling needed — complete it at your convenience.`;
+    const text = `Hi ${options.candidateName},\n\nYou've been shortlisted for ${options.positionTitle} at ${options.orgName || "our organization"}.\n\nPlease complete your AI-led interview here: ${options.inviteLink}\n\nNo scheduling needed - complete it at your convenience.`;
 
     const tags = options.inviteId ? [{ name: "invite_id", value: options.inviteId }] : undefined;
 
     return await provider.sendEmail({
       to: options.to,
-      subject: `Your AI Interview Invitation — ${options.positionTitle}`,
+      subject: `Your AI Interview Invitation - ${options.positionTitle}`,
       html,
       text,
       tags

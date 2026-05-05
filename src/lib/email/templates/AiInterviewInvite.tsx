@@ -35,7 +35,7 @@ export const AiInterviewInviteTemplate: React.FC<AiInterviewInviteTemplateProps>
         </Text>
         <Text style={paragraph}>
           As the next step, you're invited to complete a short AI-led interview
-          through IQMela. This is an on-demand, asynchronous interview — there's
+          through IQMela. This is an on-demand, asynchronous interview - there's
           no need to schedule a time with a human interviewer. You can complete
           it at your own convenience.
         </Text>
@@ -47,7 +47,7 @@ export const AiInterviewInviteTemplate: React.FC<AiInterviewInviteTemplateProps>
             <Column style={infoItem}>
               <Text style={infoIcon}>🎤</Text>
               <Text style={infoText}>
-                <strong>Speak your answers</strong> — The AI will ask questions
+                <strong>Speak your answers</strong> - The AI will ask questions
                 and listen to your verbal responses.
               </Text>
             </Column>
@@ -56,7 +56,7 @@ export const AiInterviewInviteTemplate: React.FC<AiInterviewInviteTemplateProps>
             <Column style={infoItem}>
               <Text style={infoIcon}>⏱️</Text>
               <Text style={infoText}>
-                <strong>~20–30 minutes</strong> — The interview is concise and
+                <strong>~20-30 minutes</strong> - The interview is concise and
                 focused on your experience and fit.
               </Text>
             </Column>
@@ -65,7 +65,7 @@ export const AiInterviewInviteTemplate: React.FC<AiInterviewInviteTemplateProps>
             <Column style={infoItem}>
               <Text style={infoIcon}>🖥️</Text>
               <Text style={infoText}>
-                <strong>Use a quiet space</strong> — Ensure your microphone is
+                <strong>Use a quiet space</strong> - Ensure your microphone is
                 connected and you're in a low-noise environment.
               </Text>
             </Column>
@@ -74,7 +74,7 @@ export const AiInterviewInviteTemplate: React.FC<AiInterviewInviteTemplateProps>
             <Column style={infoItem}>
               <Text style={infoIcon}>🔒</Text>
               <Text style={infoText}>
-                <strong>Private & secure</strong> — Your responses are
+                <strong>Private & secure</strong> - Your responses are
                 encrypted and reviewed only by the hiring team at {orgName}.
               </Text>
             </Column>
@@ -83,7 +83,7 @@ export const AiInterviewInviteTemplate: React.FC<AiInterviewInviteTemplateProps>
             <Column style={infoItem}>
               <Text style={infoIcon}>🌐</Text>
               <Text style={infoText}>
-                <strong>Supported Browsers</strong> — Please use a recent version of Chrome, Edge, or Safari on a desktop/laptop.
+                <strong>Supported Browsers</strong> - Please use a recent version of Chrome, Edge, or Safari on a desktop/laptop.
               </Text>
             </Column>
           </Row>
