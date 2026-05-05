@@ -1088,6 +1088,14 @@ export async function bulkProcessAllAction(positionId: string, forceReExtract: b
       autoInviteAiScreen: true,
       jdRequiredSkillsJson: true,
       jdPreferredSkillsJson: true,
+      aiInterviewConfigs: {
+        where: { interviewId: null },
+        take: 1,
+      },
+      aiInterviewQuestions: {
+        where: { isApproved: true },
+        take: 1,
+      },
     },
   })
 
@@ -1098,6 +1106,19 @@ export async function bulkProcessAllAction(positionId: string, forceReExtract: b
   const extractRes = await bulkExtractAllAction(positionId, forceReExtract)
   if (!extractRes.success) {
     return { success: false, error: `Extraction failed: ${extractRes.error}` }
+  }
+
+  // ── Step 1.5: Generate Question Bank if STANDARDIZED and empty ─────────
+  const strategy = posSettings?.aiInterviewConfigs?.[0]?.generationStrategy ?? "STANDARDIZED"
+  if (strategy === "STANDARDIZED" && posSettings?.aiInterviewQuestions?.length === 0) {
+    console.log(`[pipeline] Generating missing Approved Question Bank for position ${positionId}...`)
+    try {
+      const { generateQuestionBankAction } = await import("./ai-interview-actions")
+      await generateQuestionBankAction(positionId, true)
+    } catch (err) {
+      console.error("[pipeline] Failed to auto-generate question bank:", err)
+      // Do not block pipeline on this
+    }
   }
 
   // ── Step 2: ATS Pre-Screen (zero-cost keyword matching) ──────────────────

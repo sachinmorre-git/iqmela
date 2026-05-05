@@ -289,7 +289,7 @@ export async function upsertPositionAiConfigAction(
 
 import { AiQuestionCategory } from "@prisma/client";
 
-export async function generateQuestionBankAction(positionId: string): Promise<{ success: boolean; count?: number; error?: string }> {
+export async function generateQuestionBankAction(positionId: string, autoApprove: boolean = false): Promise<{ success: boolean; count?: number; error?: string }> {
   try {
     const perms = await getCallerPermissions();
     if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" };
@@ -324,7 +324,7 @@ export async function generateQuestionBankAction(positionId: string): Promise<{ 
       questionText: q.question,
       category: q.category as AiQuestionCategory,
       rationale: (q as any).rationale,
-      isApproved: false, // Must be approved by org admin
+      isApproved: autoApprove,
       sortOrder: index,
     }));
 
