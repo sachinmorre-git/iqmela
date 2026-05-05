@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { createPortal } from "react-dom"
 import { toggleShortlistAction } from "./actions"
 
 export function ShortlistAction({
@@ -61,7 +62,7 @@ export function ShortlistAction({
         </button>
       </div>
 
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-2xl shadow-xl border border-gray-100 dark:border-zinc-800 p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
             <h3 className="font-bold text-gray-900 dark:text-white text-base">Recruiter Notes</h3>
@@ -92,7 +93,7 @@ export function ShortlistAction({
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   )
 }

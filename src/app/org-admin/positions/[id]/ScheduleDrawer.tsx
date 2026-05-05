@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect, useCallback, Dispatch, SetStateAction, RefObject } from "react";
+import { createPortal } from "react-dom";
 import { formatDate, formatTime, formatDateTime } from "@/lib/locale-utils";
 import {
   X, Loader2, Calendar, Clock, Users, Link2, FileText, ChevronRight,
@@ -205,7 +206,7 @@ export function ScheduleDrawer({
     ? formatDateTime(new Date(stage.scheduledAt))
     : null;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
@@ -745,7 +746,7 @@ export function ScheduleDrawer({
         )}
       </div>
     </>
-  );
+  , document.body);
 }
 
 // ── Interviewer List Item with Profile Popover ──────────────────────────────

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { InterviewPlanConfigurator } from "./InterviewPlanConfigurator";
 import type { InterviewRoundType, InterviewMode } from "@prisma/client";
 import { Sparkles } from "lucide-react";
@@ -89,7 +90,7 @@ export function EditPipelineButton({
       )}
 
       {/* Modal Overlay */}
-      {isOpen && (
+      {isOpen && createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"
         >
@@ -174,7 +175,7 @@ export function EditPipelineButton({
             }
           `}</style>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }

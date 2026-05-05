@@ -598,7 +598,7 @@ export default async function PositionDetailPage({
               {position.resumes.length > 0 ? (
                 (() => {
                   const tableContent = (
-                    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-zinc-800">
+                    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-zinc-800 isolate">
                       <table className="w-full text-sm text-left">
                         <thead className="text-sm text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-zinc-800/50 border-b border-gray-200 dark:border-zinc-800">
                           <tr>
@@ -657,14 +657,14 @@ export default async function PositionDetailPage({
                                         type="checkbox"
                                         name="resumeIds"
                                         value={resume.id}
-                                        className="w-4 h-4 rounded border-gray-300 dark:border-zinc-700 text-rose-600 focus:ring-rose-600 dark:bg-zinc-800 cursor-pointer shadow-sm relative z-10"
+                                        className="w-4 h-4 rounded border-gray-300 dark:border-zinc-700 text-rose-600 focus:ring-rose-600 dark:bg-zinc-800 cursor-pointer shadow-sm relative"
                                       />
                                     ) : null}
                                   </td>
                                 )}
                                 <td className="px-2 py-3 text-center">
                                   {resume.matchScore !== null ? (
-                                    <Link href={`/org-admin/resumes/${resume.id}`} className="inline-flex items-center justify-center w-7 h-7 rounded-sm bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 font-extrabold text-xs hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors relative z-10" title="View candidate details">
+                                    <Link href={`/org-admin/resumes/${resume.id}`} className="inline-flex items-center justify-center w-7 h-7 rounded-sm bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 font-extrabold text-xs hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors relative" title="View candidate details">
                                       #{index + 1}
                                     </Link>
                                   ) : (
@@ -708,7 +708,7 @@ export default async function PositionDetailPage({
                                         </div>
                                         <div className="flex items-center gap-2 mt-0.5">
                                           {showPII && finalEmail ? (
-                                            <a href={`mailto:${finalEmail}`} className="text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-rose-600 dark:hover:text-rose-400 hover:underline truncate max-w-[200px] relative z-10" title={hasEmailOverride ? `Original: ${resume.candidateEmail || "none"}` : finalEmail}>
+                                            <a href={`mailto:${finalEmail}`} className="text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-rose-600 dark:hover:text-rose-400 hover:underline truncate max-w-[200px] relative" title={hasEmailOverride ? `Original: ${resume.candidateEmail || "none"}` : finalEmail}>
                                               {finalEmail}
                                               {hasEmailOverride && <span className="text-rose-500 ml-0.5">*</span>}
                                             </a>
@@ -769,7 +769,7 @@ export default async function PositionDetailPage({
                                   )}
                                 </td>
 
-                                <td className="px-3 py-3 relative z-10">
+                                <td className="px-3 py-3 relative">
                                   {(() => {
                                     // Build pipeline stage states for this resume
                                     if (!interviewPlan || interviewPlan.stages.length === 0) {
@@ -847,8 +847,8 @@ export default async function PositionDetailPage({
                                     )
                                   })()}
                                 </td>
-                                <td className="px-2 py-3 text-right relative z-10">
-                                  <div className="flex items-center justify-end gap-2 text-right relative z-10">
+                                <td className="px-2 py-3 text-right relative">
+                                  <div className="flex items-center justify-end gap-2 text-right relative">
                                     {canManage && <ShortlistAction resumeId={resume.id} isShortlisted={resume.isShortlisted} initialNotes={resume.recruiterNotes} />}
                                     {canManage && <DeleteResumeButton resumeId={resume.id} candidateName={finalName} />}
 

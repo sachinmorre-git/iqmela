@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { createPortal } from "react-dom"
 import { overrideCandidateAction } from "./actions"
 
 export function OverrideCandidateAction({
@@ -70,7 +71,7 @@ export function OverrideCandidateAction({
         <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
           onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
@@ -152,7 +153,7 @@ export function OverrideCandidateAction({
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   )
 }

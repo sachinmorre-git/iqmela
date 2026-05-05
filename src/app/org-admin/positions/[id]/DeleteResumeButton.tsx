@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { softDeleteResumeAction } from "./actions";
 
@@ -51,7 +52,7 @@ export function DeleteResumeButton({
         <p className="text-[10px] text-red-500 max-w-[150px]">{error}</p>
       )}
 
-      {showConfirm && (
+      {showConfirm && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-2xl shadow-xl border border-gray-100 dark:border-zinc-800 p-6 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center gap-3">
@@ -104,7 +105,7 @@ export function DeleteResumeButton({
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }

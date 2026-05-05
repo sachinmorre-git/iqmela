@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { getAvailablePanelistsAction } from "./pipeline-actions";
 import { Loader2, Search, X, Check, Users, BadgeCheck, ShieldCheck } from "lucide-react";
 
@@ -84,7 +85,7 @@ export function PanelSelectionDialog({
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       
@@ -239,5 +240,5 @@ export function PanelSelectionDialog({
 
       </div>
     </div>
-  );
+  , document.body);
 }

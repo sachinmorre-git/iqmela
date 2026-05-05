@@ -1,6 +1,7 @@
 "use client";
 
 import { X, Shield } from "lucide-react";
+import { createPortal } from "react-dom";
 import { BgvDrawerView } from "./BgvDrawerView";
 
 interface BgvWorkspaceDrawerProps {
@@ -22,7 +23,7 @@ export function BgvWorkspaceDrawer({
 }: BgvWorkspaceDrawerProps) {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <>
       <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm animate-in fade-in" onClick={onClose} />
 
@@ -58,5 +59,5 @@ export function BgvWorkspaceDrawer({
         </div>
       </div>
     </>
-  );
+  , document.body);
 }
