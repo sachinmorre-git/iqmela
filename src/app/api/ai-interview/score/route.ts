@@ -170,8 +170,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ summary });
   } catch (err) {
     console.error("[AI Interview /score]", err);
+    
+    let errorMessage = err instanceof Error ? err.message : "Scoring failed.";
+    
+    if (errorMessage.includes("429") || errorMessage.includes("Quota exceeded") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+      errorMessage = "AI Provider Quota Exceeded. Please check your API limits or try again in a moment.";
+    }
+
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Scoring failed." },
+      { error: errorMessage },
       { status: 500 }
     );
   }

@@ -192,9 +192,16 @@ export async function createAiInterviewSessionAction(
     return { success: true, sessionId: session.id };
   } catch (err) {
     console.error("[createAiInterviewSessionAction]", err);
+    
+    let errorMessage = err instanceof Error ? err.message : "Failed to create AI interview session";
+    
+    if (errorMessage.includes("429") || errorMessage.includes("Quota exceeded") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+      errorMessage = "AI Provider Quota Exceeded. Please check your API limits or try again in a moment.";
+    }
+
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Failed to create AI interview session",
+      error: errorMessage,
     };
   }
 }
@@ -330,7 +337,13 @@ export async function generateQuestionBankAction(positionId: string): Promise<{ 
     return { success: true, count: data.length };
   } catch (err) {
     console.error("[generateQuestionBankAction]", err);
-    return { success: false, error: err instanceof Error ? err.message : "Failed to generate questions" };
+    let errorMessage = err instanceof Error ? err.message : "Failed to generate questions";
+    
+    if (errorMessage.includes("429") || errorMessage.includes("Quota exceeded") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+      errorMessage = "AI Provider Quota Exceeded. Please check your API limits or try again in a moment.";
+    }
+    
+    return { success: false, error: errorMessage };
   }
 }
 
