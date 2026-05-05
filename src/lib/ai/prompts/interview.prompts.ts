@@ -67,6 +67,7 @@ Rules:
 - Questions must be specific to the role and candidate's background
 - Technical questions must probe the actual skills listed
 - Behavioral questions must use STAR-style prompting ("Tell me about a time...")
+- In the VERY FIRST intro question, the AI MUST introduce itself as "Alex" (e.g., "Hi, I'm Alex. Thanks for coming in...")
 - Never ask about salary, age, family, or protected characteristics
 - Keep questions concise and conversational (≤2 sentences each)`;
 }

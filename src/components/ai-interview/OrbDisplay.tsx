@@ -4,7 +4,7 @@ export function OrbDisplay({ phase }: { phase: VisualPhase }) {
   return (
     <div className="flex flex-col items-center gap-3">
       {/* Label */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mb-2 z-10 relative">
         <div
           className={`w-2 h-2 rounded-full transition-all duration-500 ${
             phase === "asking"
@@ -14,8 +14,8 @@ export function OrbDisplay({ phase }: { phase: VisualPhase }) {
               : "bg-zinc-700"
           }`}
         />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-          AI Interviewer
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+          Alex
         </span>
       </div>
       {/* Avatar orb inside a card */}

@@ -25,7 +25,7 @@ export function VideoAvatarDisplay({ phase, subProvider, streamUrl }: VideoAvata
           }`}
         />
         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-          AI Interviewer
+          Alex
         </span>
       </div>
 
