@@ -1506,7 +1506,7 @@ export async function bulkSendInvitesAction(positionId: string, resumeIds: strin
     for (const resume of position.resumes) {
       let invite = resume.invite
       
-      if (invite && invite.status !== "DRAFT" && invite.status !== "FAILED") {
+      if (invite && invite.status !== "DRAFT") {
         skipped++
         failedLog.push(`Skipped: ${resume.originalFileName} (Invite already ${invite.status})`)
         continue
