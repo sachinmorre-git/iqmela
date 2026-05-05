@@ -244,7 +244,7 @@ export function ScheduleDrawer({
       <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
 
       {/* Drawer */}
-      <div className="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-white dark:bg-zinc-900 border-l border-gray-200 dark:border-zinc-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+      <div className="fixed top-0 right-0 z-50 h-full w-full max-w-4xl bg-white dark:bg-zinc-900 border-l border-gray-200 dark:border-zinc-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
           <div>
@@ -460,10 +460,11 @@ export function ScheduleDrawer({
 
               {/* ═══ HUMAN: SCHEDULE FORM (AVAILABLE or EDITING) ═══ */}
               {!isAI && (isAvailable || isEditing) && (
-                <>
-
-
-                  {/* AI Recommended carousel */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-2">
+                  
+                  {/* LEFT COLUMN: Interviewer Selection */}
+                  <div className="space-y-5">
+                    {/* AI Recommended carousel */}
                   {topRecommendations.length > 0 && (
                     <div>
                       <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-2 flex items-center gap-1">
@@ -544,30 +545,8 @@ export function ScheduleDrawer({
                       </button>
                     </div>
 
-                    {/* Selected chips */}
-                    {selectedInterviewerIds.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {selectedInterviewerIds.map((id) => {
-                          const m = matchResults.find((x) => x.interviewer.userId === id);
-                          const u = m?.interviewer || interviewers.find((x) => x.id === id);
-                          if (!u) return null;
-                          const name = ("name" in u ? u.name : null) || ("email" in u ? u.email : id);
-                          return (
-                            <div key={id} className="flex items-center gap-1 px-2 py-1 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-lg text-xs font-semibold text-rose-700 dark:text-rose-400">
-                              <span className="w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[8px] shrink-0">
-                                {(name)[0]?.toUpperCase()}
-                              </span>
-                              {name.split(" ")[0]}
-                              {m && <span className="text-[9px] text-rose-500 ml-0.5">{m.matchScore}%</span>}
-                              <button type="button" onClick={() => toggleInterviewer(id)} className="ml-1 text-rose-400 hover:text-red-500">×</button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
                     {/* Search Bar */}
-                    <div className="mb-3 px-1">
+                    <div className="mb-3 px-1 mt-4">
                       <input
                         type="text"
                         placeholder="Search team members..."
@@ -578,7 +557,7 @@ export function ScheduleDrawer({
                     </div>
 
                     {/* Interviewer list */}
-                    <div className="max-h-40 overflow-y-auto border border-gray-200 dark:border-zinc-700 rounded-xl divide-y divide-gray-100 dark:divide-zinc-800">
+                    <div className="flex-1 min-h-[300px] max-h-[500px] overflow-y-auto border border-gray-200 dark:border-zinc-700 rounded-xl divide-y divide-gray-100 dark:divide-zinc-800">
                       {activeTab === "internal" ? (
                         <>
                           {filteredInternalMatches.filter((m) => !selectedInterviewerIds.includes(m.interviewer.userId)).map((m) => (
@@ -645,8 +624,34 @@ export function ScheduleDrawer({
                       )}
                     </div>
                   </div>
+                  </div> {/* End of LEFT COLUMN */}
 
-                  {/* Cost Estimator */}
+                  {/* RIGHT COLUMN: Configuration */}
+                  <div className="space-y-6 bg-gray-50 dark:bg-zinc-800/30 p-6 rounded-2xl border border-gray-100 dark:border-zinc-800 flex flex-col">
+                    
+                    {/* Selected chips */}
+                    {selectedInterviewerIds.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {selectedInterviewerIds.map((id) => {
+                          const m = matchResults.find((x) => x.interviewer.userId === id);
+                          const u = m?.interviewer || interviewers.find((x) => x.id === id);
+                          if (!u) return null;
+                          const name = ("name" in u ? u.name : null) || ("email" in u ? u.email : id);
+                          return (
+                            <div key={id} className="flex items-center gap-1 px-2 py-1 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-lg text-xs font-semibold text-rose-700 dark:text-rose-400">
+                              <span className="w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[8px] shrink-0">
+                                {(name)[0]?.toUpperCase()}
+                              </span>
+                              {name.split(" ")[0]}
+                              {m && <span className="text-[9px] text-rose-500 ml-0.5">{m.matchScore}%</span>}
+                              <button type="button" onClick={() => toggleInterviewer(id)} className="ml-1 text-rose-400 hover:text-red-500">×</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Cost Estimator */}
                   {selectedCost > 0 && (
                     <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800/40">
                       <DollarSign className="w-4 h-4 text-amber-500 shrink-0" />
@@ -755,16 +760,19 @@ export function ScheduleDrawer({
 
                   {/* ── Smart Poll: 4-Week Mini-Calendar + Deadline ── */}
                   {mode === "poll" && (
-                    <SmartPollConfigurator
-                      duration={duration}
-                      setDuration={setDuration}
-                      selectedDays={selectedDays}
-                      setSelectedDays={setSelectedDays}
-                      deadlineWeekdays={deadlineWeekdays}
-                      setDeadlineWeekdays={setDeadlineWeekdays}
-                    />
+                    <div className="flex-1">
+                      <SmartPollConfigurator
+                        duration={duration}
+                        setDuration={setDuration}
+                        selectedDays={selectedDays}
+                        setSelectedDays={setSelectedDays}
+                        deadlineWeekdays={deadlineWeekdays}
+                        setDeadlineWeekdays={setDeadlineWeekdays}
+                      />
+                    </div>
                   )}
-                </>
+                  </div>
+                </div>
               )}
             </>
           )}
