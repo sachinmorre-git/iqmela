@@ -74,6 +74,7 @@ export function ScheduleDrawer({
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<"internal" | "marketplace">("internal");
   const [profilePopoverUserId, setProfilePopoverUserId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Smart Poll fields
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set()); // ISO date strings
@@ -199,7 +200,25 @@ export function ScheduleDrawer({
   // Split interviewers by source using match results
   const internalMatches = matchResults.filter((m) => m.interviewer.source === "INTERNAL");
   const marketplaceMatches = matchResults.filter((m) => m.interviewer.source === "MARKETPLACE");
-  const displayedMatches = activeTab === "internal" ? internalMatches : marketplaceMatches;
+
+  // Find users who are in 'interviewers' but NOT in 'internalMatches'
+  const internalMatchIds = new Set(internalMatches.map(m => m.interviewer.userId));
+  const unmatchedInternalInterviewers = interviewers.filter(u => !internalMatchIds.has(u.id));
+
+  // Filter based on search query
+  const query = searchQuery.toLowerCase();
+  
+  const filteredInternalMatches = internalMatches.filter(m => 
+    (m.interviewer.name || m.interviewer.email || "").toLowerCase().includes(query)
+  );
+  
+  const filteredUnmatchedInternal = unmatchedInternalInterviewers.filter(u => 
+    (u.name || u.email || "").toLowerCase().includes(query)
+  );
+
+  const filteredMarketplaceMatches = marketplaceMatches.filter(m => 
+    (m.interviewer.name || m.interviewer.email || "").toLowerCase().includes(query)
+  );
 
   // Cost estimator
   const selectedCost = selectedInterviewerIds.reduce((total, id) => {
@@ -211,7 +230,9 @@ export function ScheduleDrawer({
   }, 0);
 
   // Top AI recommendations (sorted by score, top 5)
-  const topRecommendations = matchResults.slice(0, 5);
+  // Now filtered dynamically based on the active tab
+  const activeTabMatches = activeTab === "internal" ? internalMatches : marketplaceMatches;
+  const topRecommendations = activeTabMatches.slice(0, 5);
 
   const formattedDate = stage.scheduledAt
     ? formatDateTime(new Date(stage.scheduledAt))
@@ -545,38 +566,34 @@ export function ScheduleDrawer({
                       </div>
                     )}
 
+                    {/* Search Bar */}
+                    <div className="mb-3 px-1">
+                      <input
+                        type="text"
+                        placeholder="Search team members..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50 px-3 py-2 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
+                      />
+                    </div>
+
                     {/* Interviewer list */}
                     <div className="max-h-40 overflow-y-auto border border-gray-200 dark:border-zinc-700 rounded-xl divide-y divide-gray-100 dark:divide-zinc-800">
-                      {displayedMatches.length > 0 ? (
-                        displayedMatches
-                          .filter((m) => !selectedInterviewerIds.includes(m.interviewer.userId))
-                          .map((m) => (
+                      {activeTab === "internal" ? (
+                        <>
+                          {filteredInternalMatches.filter((m) => !selectedInterviewerIds.includes(m.interviewer.userId)).map((m) => (
                             <InterviewerListItem
                               key={m.interviewer.userId}
                               match={m}
                               onSelect={() => toggleInterviewer(m.interviewer.userId)}
-                              onViewProfile={() => setProfilePopoverUserId(
-                                profilePopoverUserId === m.interviewer.userId ? null : m.interviewer.userId
-                              )}
+                              onViewProfile={() => setProfilePopoverUserId(profilePopoverUserId === m.interviewer.userId ? null : m.interviewer.userId)}
                               isProfileOpen={profilePopoverUserId === m.interviewer.userId}
                               onCloseProfile={() => setProfilePopoverUserId(null)}
                               isSelected={selectedInterviewerIds.includes(m.interviewer.userId)}
                               disabled={selectedInterviewerIds.length >= 6}
                             />
-                          ))
-                      ) : activeTab === "marketplace" ? (
-                        <div className="px-4 py-6 text-center">
-                          <Sparkles className="w-5 h-5 text-pink-400 mx-auto mb-2" />
-                          <p className="text-xs font-bold text-gray-600 dark:text-zinc-400">IQMela Marketplace</p>
-                          <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1">
-                            Coming soon — Expert freelance interviewers matched to your requirements
-                          </p>
-                        </div>
-                      ) : (
-                        /* Fallback: show raw interviewers without match data */
-                        interviewers
-                          .filter((u) => !selectedInterviewerIds.includes(u.id))
-                          .map((u) => (
+                          ))}
+                          {filteredUnmatchedInternal.filter((u) => !selectedInterviewerIds.includes(u.id)).map((u) => (
                             <button
                               key={u.id}
                               type="button"
@@ -593,7 +610,38 @@ export function ScheduleDrawer({
                               </div>
                               <ChevronRight className="w-3 h-3 text-gray-300 ml-auto shrink-0" />
                             </button>
-                          ))
+                          ))}
+                          {filteredInternalMatches.length === 0 && filteredUnmatchedInternal.length === 0 && (
+                            <div className="px-4 py-6 text-center">
+                              <p className="text-xs font-bold text-gray-600 dark:text-zinc-400">No team members found</p>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {filteredMarketplaceMatches.length > 0 ? (
+                            filteredMarketplaceMatches.filter((m) => !selectedInterviewerIds.includes(m.interviewer.userId)).map((m) => (
+                              <InterviewerListItem
+                                key={m.interviewer.userId}
+                                match={m}
+                                onSelect={() => toggleInterviewer(m.interviewer.userId)}
+                                onViewProfile={() => setProfilePopoverUserId(profilePopoverUserId === m.interviewer.userId ? null : m.interviewer.userId)}
+                                isProfileOpen={profilePopoverUserId === m.interviewer.userId}
+                                onCloseProfile={() => setProfilePopoverUserId(null)}
+                                isSelected={selectedInterviewerIds.includes(m.interviewer.userId)}
+                                disabled={selectedInterviewerIds.length >= 6}
+                              />
+                            ))
+                          ) : (
+                            <div className="px-4 py-6 text-center">
+                              <Sparkles className="w-5 h-5 text-pink-400 mx-auto mb-2" />
+                              <p className="text-xs font-bold text-gray-600 dark:text-zinc-400">IQMela Marketplace</p>
+                              <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1">
+                                Coming soon — Expert freelance interviewers matched to your requirements
+                              </p>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
