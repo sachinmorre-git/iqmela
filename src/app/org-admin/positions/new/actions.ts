@@ -29,6 +29,7 @@ export async function createPosition(formData: FormData) {
     const autoProcessOnClose = formData.get("autoProcessOnClose") === "true";
     const autoInviteAiScreen  = formData.get("autoInviteAiScreen") === "true";
     const resumePurgeDays    = parseInt((formData.get("resumePurgeDays")  as string) || "90", 10);
+    const aiGenerationStrategy = (formData.get("aiGenerationStrategy") as string) || "STANDARDIZED";
 
     // ── Validate required ────────────────────────────────────────
     if (!title) throw new Error("Position title is required.");
@@ -104,6 +105,23 @@ export async function createPosition(formData: FormData) {
       } catch (planErr) {
         console.error("[createPosition] Pipeline creation failed (non-blocking):", planErr);
       }
+    }
+
+    // ── Create AI Interview Config ──────────────────────────────
+    try {
+      await prisma.aiInterviewConfig.create({
+        data: {
+          positionId: position.id,
+          generationStrategy: aiGenerationStrategy as any,
+          difficulty: "MEDIUM",
+          durationMinutes: 30,
+          introQuestions: 2,
+          technicalQuestions: 4,
+          behavioralQuestions: 3,
+        }
+      });
+    } catch (aiErr) {
+      console.error("[createPosition] AI Config creation failed (non-blocking):", aiErr);
     }
 
   } catch (error) {

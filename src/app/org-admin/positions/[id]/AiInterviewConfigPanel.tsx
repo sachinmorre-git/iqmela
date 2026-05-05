@@ -17,6 +17,7 @@ export function AiInterviewConfigPanel({
   initial?: {
     difficulty?: string;
     durationMinutes?: number;
+    generationStrategy?: string;
     introQuestions?: number;
     technicalQuestions?: number;
     behavioralQuestions?: number;
@@ -37,6 +38,7 @@ export function AiInterviewConfigPanel({
   const [form, setForm] = useState<AiInterviewConfigInput>({
     difficulty: (initial?.difficulty as any) ?? "MEDIUM",
     durationMinutes: initial?.durationMinutes ?? 30,
+    generationStrategy: (initial?.generationStrategy as any) ?? "STANDARDIZED",
     introQuestions: initial?.introQuestions ?? 2,
     technicalQuestions: initial?.technicalQuestions ?? 4,
     behavioralQuestions: initial?.behavioralQuestions ?? 3,
@@ -106,6 +108,26 @@ export function AiInterviewConfigPanel({
                 <option value="MEDIUM">Medium</option>
                 <option value="HARD">Hard</option>
               </select>
+            </div>
+
+            {/* Generation Strategy */}
+            <div className="flex flex-col gap-1 col-span-1 sm:col-span-2">
+              <label className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
+                Generation Strategy
+              </label>
+              <select
+                value={form.generationStrategy}
+                onChange={(e) => set("generationStrategy", e.target.value)}
+                className="text-sm rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-400"
+              >
+                <option value="STANDARDIZED">Standardized (0 cost, instant, requires Question Bank)</option>
+                <option value="TAILORED">Tailored (dynamic per candidate, queued, uses AI tokens)</option>
+              </select>
+              <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1">
+                {form.generationStrategy === "STANDARDIZED" 
+                  ? "Every candidate gets the exact same questions from the Approved Question Bank." 
+                  : "AI dynamically generates custom questions based on the intersection of the JD and the candidate's resume."}
+              </p>
             </div>
 
             {/* Duration */}

@@ -39,7 +39,7 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ orgI
   // Fetch Prisma org (may not exist yet)
   const prismaOrg = await prisma.organization.findUnique({
     where: { id: orgId },
-    select: { planTier: true, domain: true, createdAt: true },
+    select: { planTier: true, domain: true, createdAt: true, defaultAiGenerationStrategy: true },
   })
 
   // Fetch org stats
@@ -173,6 +173,7 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ orgI
         orgName={clerkOrg.name}
         currentTier={currentTier}
         features={features}
+        defaultAiGenerationStrategy={prismaOrg?.defaultAiGenerationStrategy}
       />
 
       {/* ── Two-Column Layout: Members + Positions ────────────────────────── */}

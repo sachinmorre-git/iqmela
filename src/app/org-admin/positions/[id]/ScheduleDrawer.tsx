@@ -153,8 +153,13 @@ export function ScheduleDrawer({
     setError(null);
     startTransition(async () => {
       const res = await createAiInterviewSessionAction(resumeId, positionId);
-      if (res.success) showSuccess("AI Interview Invite Sent!");
-      else setError(res.error ?? "Failed to send AI interview invite");
+      if (res.success) {
+        showSuccess("AI Interview Invite Sent (or Queued)!");
+        // Fire background processor
+        fetch("/api/ai-interview/process-queue", { method: "POST" }).catch(console.error);
+      } else {
+        setError(res.error ?? "Failed to send AI interview invite");
+      }
     });
   };
 
@@ -162,8 +167,13 @@ export function ScheduleDrawer({
     setError(null);
     startTransition(async () => {
       const res = await createAiInterviewSessionAction(resumeId, positionId);
-      if (res.success) showSuccess("AI Invite Resent!");
-      else setError(res.error ?? "Failed to resend");
+      if (res.success) {
+        showSuccess("AI Invite Resent (or Queued)!");
+        // Fire background processor
+        fetch("/api/ai-interview/process-queue", { method: "POST" }).catch(console.error);
+      } else {
+        setError(res.error ?? "Failed to resend");
+      }
     });
   };
 

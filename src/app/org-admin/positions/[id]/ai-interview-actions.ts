@@ -51,64 +51,73 @@ export async function createAiInterviewSessionAction(
 
     // Check if a session already exists — don't create duplicates
     const existing = await prisma.aiInterviewSession.findFirst({
-      where: { resumeId, positionId, status: "IN_PROGRESS" },
+      where: { resumeId, positionId, status: { in: ["IN_PROGRESS", "QUEUED"] } },
     });
     if (existing) {
       return { success: true, sessionId: existing.id }; // idempotent
     }
 
-    // Build question context
-    const context: QuestionPlanContext = {
-      candidateName: resume.overrideName || resume.candidateName || undefined,
-      positionTitle: resume.position.title,
-      jdText: resume.position.jdText ?? undefined,
-      skills: Array.isArray(resume.skillsJson) ? (resume.skillsJson as string[]) : [],
-      questionCounts: {
-        intro: config?.introQuestions ?? parseInt(process.env.AI_INTERVIEW_INTRO_QUESTIONS ?? "2"),
-        technical: config?.technicalQuestions ?? parseInt(process.env.AI_INTERVIEW_TECHNICAL_QUESTIONS ?? "4"),
-        behavioral: config?.behavioralQuestions ?? parseInt(process.env.AI_INTERVIEW_BEHAVIORAL_QUESTIONS ?? "3"),
-      },
-    };
+    const posConfig = await prisma.aiInterviewConfig.findFirst({
+      where: { positionId, interviewId: null },
+    });
+    const strategy = posConfig?.generationStrategy ?? "STANDARDIZED";
 
-    if (resume.aiSummaryJson && typeof resume.aiSummaryJson === "object") {
-      const s = resume.aiSummaryJson as Record<string, unknown>;
-      context.candidateSummary =
-        (s.overallProfile as string) ?? (s.headline as string) ?? undefined;
+    // Try to find the candidate user by their email
+    const candidateEmail = resume.overrideEmail || resume.candidateEmail;
+    if (!candidateEmail) {
+      return { success: false, error: "Candidate has no email. Cannot create AI interview session." };
+    }
+    const candidateUser = await prisma.user.findUnique({
+      where: { email: candidateEmail },
+    });
+
+    if (strategy === "TAILORED") {
+      // Create session in QUEUED state. A background job will generate questions and send email.
+      const session = await prisma.aiInterviewSession.create({
+        data: {
+          candidateId: candidateUser?.id ?? null,
+          resumeId: resume.id,
+          positionId: resume.positionId,
+          status: "QUEUED",
+        },
+      });
+
+      if (config) {
+        await prisma.aiInterviewConfig.create({
+          data: {
+            positionId: resume.positionId,
+            difficulty: (config.difficulty as any) ?? "MEDIUM",
+            introQuestions: config.introQuestions ?? 2,
+            technicalQuestions: config.technicalQuestions ?? 4,
+            behavioralQuestions: config.behavioralQuestions ?? 3,
+            followUpEnabled: config.followUpEnabled ?? false,
+            retriesAllowed: config.retriesAllowed ?? false,
+          },
+        });
+      }
+
+      revalidatePath(`/org-admin/positions/${positionId}`);
+      revalidatePath(`/org-admin/resumes/${resumeId}`);
+      return { success: true, sessionId: session.id };
     }
 
+    // ── Strategy: STANDARDIZED ──
     // Fetch approved questions from Question Bank
     const approvedQuestions = await prisma.aiInterviewQuestion.findMany({
       where: { positionId, isApproved: true },
       orderBy: { sortOrder: "asc" },
     });
 
-    let finalQuestions: { category: string; question: string }[] = [];
-    let generationUsage: any = null;
-
-    if (approvedQuestions.length > 0) {
-      finalQuestions = approvedQuestions.map(q => ({
-        category: q.category,
-        question: q.questionText,
-      }));
-    } else {
-      // Fallback: Generate question plan dynamically if bank is empty or unapproved
-      const plan = await aiInterviewer.generateQuestionPlan(context);
-      finalQuestions = plan.questions;
-      generationUsage = plan.usage;
+    if (approvedQuestions.length === 0) {
+      return { success: false, error: "No Approved Question Bank found. Please go to Position Settings to generate one." };
     }
 
-    // Try to find the candidate user by their email (may not exist yet — that's OK)
-    const candidateEmail = resume.overrideEmail || resume.candidateEmail;
-    if (!candidateEmail) {
-      return { success: false, error: "Candidate has no email. Cannot create AI interview session." };
-    }
+    const finalQuestions = approvedQuestions.map(q => ({
+      category: q.category,
+      question: q.questionText,
+    }));
 
-    // Look up user but don't block if they haven't signed up yet
-    const candidateUser = await prisma.user.findUnique({
-      where: { email: candidateEmail },
-    });
-
-    // Create session — candidateId is optional, linked when candidate opens the link
+    // Create session
     const session = await prisma.aiInterviewSession.create({
       data: {
         candidateId: candidateUser?.id ?? null,
@@ -144,23 +153,9 @@ export async function createAiInterviewSessionAction(
       });
     }
 
-    // Log AI usage (only if we did dynamic generation)
-    if (generationUsage && generationUsage.totalTokens > 0) {
-      await prisma.aiUsageLog.create({
-        data: {
-          aiSessionId: session.id,
-          positionId: resume.positionId,
-          provider: generationUsage.provider,
-          model: generationUsage.model,
-          taskType: "AI_INTERVIEW_PLAN",
-          inputTokens: generationUsage.inputTokens,
-          outputTokens: generationUsage.outputTokens,
-          totalTokens: generationUsage.totalTokens,
-          estimatedCost: generationUsage.estimatedCost,
-          promptVersion: "v1",
-        },
-      });
-    }
+    // Log AI usage (only if we did dynamic generation - which doesn't happen inline here anymore)
+    // Kept for backward compatibility if we re-introduce inline generation
+    // if (generationUsage && generationUsage.totalTokens > 0) { ... }
 
     // Send AI interview invite email to the candidate
     const { emailService } = await import("@/lib/email");
@@ -211,6 +206,7 @@ export async function createAiInterviewSessionAction(
 export interface AiInterviewConfigInput {
   difficulty?: "EASY" | "MEDIUM" | "HARD";
   durationMinutes?: number;
+  generationStrategy?: "STANDARDIZED" | "TAILORED";
   introQuestions?: number;
   technicalQuestions?: number;
   behavioralQuestions?: number;
@@ -247,6 +243,7 @@ export async function upsertPositionAiConfigAction(
         data: {
           difficulty: config.difficulty ?? existing.difficulty,
           durationMinutes: config.durationMinutes ?? existing.durationMinutes,
+          generationStrategy: config.generationStrategy ?? existing.generationStrategy,
           introQuestions: config.introQuestions ?? existing.introQuestions,
           technicalQuestions: config.technicalQuestions ?? existing.technicalQuestions,
           behavioralQuestions: config.behavioralQuestions ?? existing.behavioralQuestions,
@@ -265,6 +262,7 @@ export async function upsertPositionAiConfigAction(
           positionId,
           difficulty: config.difficulty ?? "MEDIUM",
           durationMinutes: config.durationMinutes ?? 30,
+          generationStrategy: config.generationStrategy ?? "STANDARDIZED",
           introQuestions: config.introQuestions ?? 2,
           technicalQuestions: config.technicalQuestions ?? 4,
           behavioralQuestions: config.behavioralQuestions ?? 3,

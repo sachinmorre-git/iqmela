@@ -44,6 +44,7 @@ export default function PositionForm({
   position?: any
   existingStages?: any[]
   hasPlan?: boolean
+  defaultGenerationStrategy?: string
   serverAction: (formData: FormData) => Promise<void>
 }) {
   const isEdit = mode === "edit"
@@ -73,6 +74,7 @@ export default function PositionForm({
     autoProcessOnClose: position?.autoProcessOnClose ?? true,
     autoInviteAiScreen: position?.autoInviteAiScreen ?? false,
     resumePurgeDays: position?.resumePurgeDays ?? 90,
+    aiGenerationStrategy: position?.aiInterviewConfigs?.[0]?.generationStrategy ?? defaultGenerationStrategy ?? "STANDARDIZED",
   })
 
   // Pipeline stages
@@ -409,6 +411,22 @@ export default function PositionForm({
                       <input type="hidden" name="autoInviteAiScreen" value={settings.autoInviteAiScreen ? "true" : "false"} />
                       <div className="w-9 h-5 bg-indigo-200 dark:bg-indigo-900/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
                     </label>
+                </div>
+
+                {/* AI Generation Strategy Dropdown */}
+                <div className="bg-gray-50 dark:bg-[#1a1b1e] rounded-xl border border-gray-200 dark:border-zinc-800 p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="text-[14px] font-bold text-gray-800 dark:text-gray-200">AI Generation Strategy</div>
+                  </div>
+                  <select
+                    name="aiGenerationStrategy"
+                    value={settings.aiGenerationStrategy}
+                    onChange={(e) => setSetting("aiGenerationStrategy", e.target.value as any)}
+                    className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
+                  >
+                    <option value="STANDARDIZED">Standardized (0 cost, instant, requires Question Bank)</option>
+                    <option value="TAILORED">Tailored (dynamic per candidate, queued, uses AI tokens)</option>
+                  </select>
                 </div>
 
               </div>

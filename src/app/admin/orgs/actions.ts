@@ -52,3 +52,20 @@ export async function updateOrgPlanTier(orgId: string, planTier: OrgPlanTier) {
   revalidatePath("/admin/dashboard")
   return { success: true, planTier }
 }
+
+/**
+ * Update an organization's default AI Generation Strategy.
+ */
+export async function updateOrgAiStrategy(orgId: string, strategy: any) {
+  const { sessionClaims } = await auth()
+  const sysRole = (sessionClaims?.publicMetadata as Record<string, any>)?.sysRole?.toString()
+  if (!sysRole?.startsWith("sys:")) throw new Error("Unauthorized")
+
+  await prisma.organization.update({
+    where: { id: orgId },
+    data: { defaultAiGenerationStrategy: strategy },
+  })
+
+  revalidatePath(`/admin/orgs/${orgId}`)
+  return { success: true }
+}

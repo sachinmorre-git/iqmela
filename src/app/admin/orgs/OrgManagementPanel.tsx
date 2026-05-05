@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { updateOrgPlanTier, ensureOrgRecord } from "./actions"
+import { updateOrgPlanTier, ensureOrgRecord, updateOrgAiStrategy } from "./actions"
 import { OrgPlanTier } from "@prisma/client"
 import { Shield, Check, Loader2, Sparkles, Lock, Unlock } from "lucide-react"
 
@@ -55,11 +55,13 @@ interface OrgManagementPanelProps {
   orgName: string
   currentTier: OrgPlanTier | null
   features: Feature[]
+  defaultAiGenerationStrategy?: string
 }
 
-export function OrgManagementPanel({ orgId, orgName, currentTier, features }: OrgManagementPanelProps) {
+export function OrgManagementPanel({ orgId, orgName, currentTier, features, defaultAiGenerationStrategy }: OrgManagementPanelProps) {
   const [isPending, startTransition] = useTransition()
   const [activeTier, setActiveTier] = useState(currentTier)
+  const [activeAiStrategy, setActiveAiStrategy] = useState(defaultAiGenerationStrategy ?? "STANDARDIZED")
   const [successMsg, setSuccessMsg] = useState("")
 
   function handleTierChange(newTier: OrgPlanTier) {
@@ -172,6 +174,45 @@ export function OrgManagementPanel({ orgId, orgName, currentTier, features }: Or
           </div>
         </div>
       </div>
+
+      {/* ── AI Config Management ───────────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="w-5 h-5 text-pink-400" />
+          <h3 className="text-lg font-bold text-white">Default AI Generation Strategy</h3>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 ml-2">
+            Applied to all new positions
+          </span>
+        </div>
+
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <select
+            value={activeAiStrategy}
+            disabled={isPending}
+            onChange={(e) => {
+              const val = e.target.value;
+              startTransition(async () => {
+                try {
+                  if (!currentTier) await ensureOrgRecord(orgId, orgName)
+                  const result = await updateOrgAiStrategy(orgId, val)
+                  if (result.success) {
+                    setActiveAiStrategy(val)
+                    setSuccessMsg(`Default AI Strategy updated to ${val}`)
+                    setTimeout(() => setSuccessMsg(""), 3000)
+                  }
+                } catch (err: any) {
+                  console.error("Failed to update AI strategy:", err)
+                }
+              })
+            }}
+            className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg p-3 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors"
+          >
+            <option value="STANDARDIZED">STANDARDIZED - Zero Cost, High Volume (Requires Question Bank)</option>
+            <option value="TAILORED">TAILORED - Dynamic per candidate, uses AI tokens, async queue</option>
+          </select>
+        </div>
+      </div>
+
     </div>
   )
 }

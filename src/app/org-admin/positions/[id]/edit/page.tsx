@@ -30,7 +30,12 @@ export default async function EditPositionPage({
 
   const { id } = await params
 
-  const position = await prisma.position.findUnique({ where: { id } })
+  const position = await prisma.position.findUnique({ 
+    where: { id },
+    include: {
+      aiInterviewConfigs: { take: 1 },
+    }
+  })
 
   // 404 if missing or wrong org
   if (!position || position.organizationId !== perms.orgId) notFound()
@@ -52,10 +57,17 @@ export default async function EditPositionPage({
     include: { stages: { orderBy: { stageIndex: "asc" } } },
   })
 
+  // Fetch org default strategy
+  const org = await prisma.organization.findUnique({
+    where: { id: perms.orgId },
+    select: { defaultAiGenerationStrategy: true },
+  })
+
   return (
     <PositionForm
       mode="edit"
       departments={departments}
+      defaultGenerationStrategy={org?.defaultAiGenerationStrategy}
       position={position}
       existingStages={interviewPlan?.stages ?? []}
       hasPlan={!!interviewPlan}

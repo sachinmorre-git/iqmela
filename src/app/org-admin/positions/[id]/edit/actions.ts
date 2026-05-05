@@ -37,6 +37,7 @@ export async function updatePosition(formData: FormData) {
     const autoProcessOnClose = formData.get("autoProcessOnClose") === "true";
     const autoInviteAiScreen  = formData.get("autoInviteAiScreen") === "true";
     const resumePurgeDays    = parseInt((formData.get("resumePurgeDays")  as string) || existing.resumePurgeDays.toString(), 10);
+    const aiGenerationStrategy = (formData.get("aiGenerationStrategy") as string) || "STANDARDIZED";
 
     if (!title) throw new Error("Position title is required.");
 
@@ -135,6 +136,33 @@ export async function updatePosition(formData: FormData) {
       } catch (planErr) {
         console.error("[updatePosition] Pipeline update failed (non-blocking):", planErr);
       }
+    }
+
+    // ── Update AI Interview Config ──────────────────────────────
+    try {
+      const existingConfig = await prisma.aiInterviewConfig.findFirst({
+        where: { positionId: id, interviewId: null }
+      });
+      if (existingConfig) {
+        await prisma.aiInterviewConfig.update({
+          where: { id: existingConfig.id },
+          data: { generationStrategy: aiGenerationStrategy as any }
+        });
+      } else {
+        await prisma.aiInterviewConfig.create({
+          data: {
+            positionId: id,
+            generationStrategy: aiGenerationStrategy as any,
+            difficulty: "MEDIUM",
+            durationMinutes: 30,
+            introQuestions: 2,
+            technicalQuestions: 4,
+            behavioralQuestions: 3,
+          }
+        });
+      }
+    } catch (aiErr) {
+      console.error("[updatePosition] AI Config update failed (non-blocking):", aiErr);
     }
 
     // ── Position Close Side-Effects ──────────────────────────────

@@ -24,10 +24,17 @@ export default async function NewPositionPage() {
     orderBy: { name: "asc" },
   })
 
+  // Fetch org default strategy
+  const org = await prisma.organization.findUnique({
+    where: { id: perms.orgId },
+    select: { defaultAiGenerationStrategy: true },
+  })
+
   return (
     <PositionForm
       mode="create"
       departments={departments}
+      defaultGenerationStrategy={org?.defaultAiGenerationStrategy}
       serverAction={createPosition}
     />
   )
