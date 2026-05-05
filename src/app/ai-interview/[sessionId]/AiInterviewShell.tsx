@@ -371,6 +371,7 @@ export function AiInterviewShell({
   const [networkRecovered, setNetworkRecovered] = useState(false);
   const [consecutiveFailures, setConsecutiveFailures] = useState(0);
   const [childCamState, setChildCamState] = useState<string>("idle");
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
 
   // ── AI Circuit Breaker ────────────────────────────────────────────────────
   const handleFailure = useCallback((context: string) => {
@@ -429,6 +430,13 @@ export function AiInterviewShell({
     const timer = setTimeout(() => setShowModeIndicator(false), 4000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Auto-skip pre-flight gate if permissions already granted
+  useEffect(() => {
+    if (camPermission === "granted" && micPermission === "granted") {
+      setPermissionsGranted(true);
+    }
+  }, [camPermission, micPermission]);
 
   // Track tab switches (visibilitychange)
   useEffect(() => {
@@ -881,6 +889,58 @@ export function AiInterviewShell({
             <RotateCcw className="w-4 h-4" />
             {isScoringError ? "Retry Scoring" : "Try Again"}
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Pre-flight Permissions Gate ──────────────────────────────────────────
+  if (!permissionsGranted && phase === "ready") {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
+          <div className="w-16 h-16 bg-rose-500/10 rounded-2xl flex items-center justify-center mx-auto border border-rose-500/20">
+            <span className="text-2xl">🔒</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white mb-2">Device Setup</h2>
+            <p className="text-sm text-zinc-400">
+              Before we begin, the AI interviewer needs access to your camera and microphone.
+            </p>
+          </div>
+          
+          <div className="text-left bg-zinc-950 rounded-xl p-4 border border-zinc-800/60 space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="text-lg">🎤</span>
+              <span className="text-sm text-zinc-300 font-medium">Microphone for speaking your answers</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-lg">📷</span>
+              <span className="text-sm text-zinc-300 font-medium">Camera for AI visual engagement</span>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <button
+              onClick={() => {
+                navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                  .then(stream => {
+                    stream.getTracks().forEach(t => t.stop());
+                    setPermissionsGranted(true);
+                  })
+                  .catch(err => {
+                    console.error("Permissions error:", err);
+                    alert("Permissions denied! Please allow access in your browser settings (look for the lock icon in the URL bar), then try again.");
+                  });
+              }}
+              className="w-full py-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-rose-600/20"
+            >
+              Grant Access
+            </button>
+            <p className="text-xs text-zinc-500 mt-4">
+              Your browser will pop up a permission request. Click <strong>Allow</strong>.
+            </p>
+          </div>
         </div>
       </div>
     );
