@@ -22,6 +22,7 @@ interface CompletedRoundViewProps {
   totalStages: number;
   onAdvanceComplete?: (nextStageIndex: number) => void;
   onDecisionComplete?: () => void;
+  hideDecisionActions?: boolean;
 }
 
 const REC_COLORS: Record<string, { bg: string; text: string; label: string }> = {
@@ -45,6 +46,7 @@ export function CompletedRoundView({
   totalStages,
   onAdvanceComplete,
   onDecisionComplete,
+  hideDecisionActions = false,
 }: CompletedRoundViewProps) {
   const [data, setData] = useState<RoundIntelligence | null>(null);
   const [loading, setLoading] = useState(true);
@@ -730,6 +732,7 @@ export function CompletedRoundView({
       )}
 
       {/* ═══ Section 7: Decision Action Bar ═══ */}
+      {!hideDecisionActions && (
       <div className="sticky bottom-0 bg-white dark:bg-zinc-900 border-t border-gray-100 dark:border-zinc-800 rounded-xl p-3 space-y-3 shadow-lg shadow-gray-200/50 dark:shadow-none">
         {/* Decision timer */}
         {elapsedText && (
@@ -800,10 +803,10 @@ export function CompletedRoundView({
             ) : (
               <ArrowRight className="w-3.5 h-3.5" />
             )}
-            {isLastStage ? "✓ Offer" : "Advance →"}
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }

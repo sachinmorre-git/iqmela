@@ -348,6 +348,24 @@ export function ScheduleDrawer({
                         : "The invite has been sent. Waiting for the candidate to complete."}
                     </p>
                   </div>
+                  
+                  {isCompleted && stage?.interviewId && (
+                    <div className="w-full text-left mt-2">
+                      <CompletedRoundView
+                        interviewId={stage.interviewId}
+                        resumeId={resumeId}
+                        positionId={positionId}
+                        candidateName={candidateName}
+                        stageIndex={stage.stage.stageIndex}
+                        roundLabel={stage.stage.roundLabel}
+                        totalStages={totalStages}
+                        onAdvanceComplete={(nextStageIndex) => {
+                          onAdvanceToStage?.(nextStageIndex);
+                        }}
+                        onDecisionComplete={onClose}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

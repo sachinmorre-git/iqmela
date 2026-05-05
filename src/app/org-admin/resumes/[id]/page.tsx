@@ -157,7 +157,7 @@ export default async function ResumeDetailPage({
         state: aiScreenState,
         score: aiSession?.overallScore || undefined,
         label: aiSession?.recommendation?.replace(/_/g, " ") || undefined,
-        reportLink: aiSession ? `/org-admin/ai-interview/${aiSession.id}/scorecard` : undefined,
+        reportLink: aiSession ? `/org-admin/candidates/${resume.id}/intelligence` : undefined,
       });
       return;
     }

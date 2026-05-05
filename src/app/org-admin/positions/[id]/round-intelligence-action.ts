@@ -180,7 +180,48 @@ export async function fetchRoundIntelligenceAction(
       }),
     ]);
 
-    if (!interview) return { success: false, error: "Interview not found." };
+    if (!interview) {
+      const aiSessionById = await prisma.aiInterviewSession.findUnique({
+        where: { id: interviewId },
+        include: {
+          position: { select: { organizationId: true } },
+          resume: { select: { candidateName: true, candidateEmail: true } },
+          turns: { select: { id: true } }
+        }
+      });
+      if (!aiSessionById) return { success: false, error: "Interview not found." };
+      if (perms.orgId && aiSessionById.position?.organizationId !== perms.orgId) return { success: false, error: "Forbidden: org mismatch." };
+      const scoreJson = aiSessionById.finalScoreJson as Record<string, unknown> | null;
+      return { success: true, data: {
+        interview: {
+          id: aiSessionById.id,
+          status: aiSessionById.status,
+          roundLabel: "AI Interview",
+          stageIndex: 0,
+          scheduledAt: aiSessionById.createdAt.toISOString(),
+          completedAt: aiSessionById.completedAt?.toISOString() ?? null,
+          candidateName: aiSessionById.resume?.candidateName ?? "Unknown Candidate",
+          candidateEmail: aiSessionById.resume?.candidateEmail ?? "",
+        },
+        leadFeedback: null,
+        panelistScores: [],
+        behaviorReport: null,
+        aiSession: {
+          overallScore: aiSessionById.overallScore,
+          recommendation: aiSessionById.recommendation,
+          questionCount: aiSessionById.turns.length,
+          completedAt: aiSessionById.completedAt?.toISOString() ?? null,
+          executiveSummary: (scoreJson?.executiveSummary as string) ?? null,
+        },
+        recording: { hasRecording: false, durationSecs: null, presignedUrl: null },
+        compositeScore: aiSessionById.overallScore,
+        consensusSummary: { total: 0, strongHire: 0, hire: 0, noHire: 0, strongNoHire: 0 },
+        aiBrief: null,
+        aiConfidence: null,
+        keyInsights: null,
+        skillRadar: null,
+      }};
+    }
 
     // ── Org scope check ────────────────────────────────────────────────────
     if (perms.orgId && interview.organizationId !== perms.orgId) {

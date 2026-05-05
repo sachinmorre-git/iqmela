@@ -657,14 +657,14 @@ export default async function PositionDetailPage({
                                         type="checkbox"
                                         name="resumeIds"
                                         value={resume.id}
-                                        className="w-4 h-4 rounded border-gray-300 dark:border-zinc-700 text-rose-600 focus:ring-rose-600 dark:bg-zinc-800 cursor-pointer shadow-sm relative"
+                                        className="w-4 h-4 rounded border-gray-300 dark:border-zinc-700 text-rose-600 focus:ring-rose-600 dark:bg-zinc-800 cursor-pointer shadow-sm relative z-10"
                                       />
                                     ) : null}
                                   </td>
                                 )}
                                 <td className="px-2 py-3 text-center">
                                   {resume.matchScore !== null ? (
-                                    <Link href={`/org-admin/resumes/${resume.id}`} className="inline-flex items-center justify-center w-7 h-7 rounded-sm bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 font-extrabold text-xs hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors relative" title="View candidate details">
+                                    <Link href={`/org-admin/resumes/${resume.id}`} className="inline-flex items-center justify-center w-7 h-7 rounded-sm bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 font-extrabold text-xs hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors relative z-10" title="View candidate details">
                                       #{index + 1}
                                     </Link>
                                   ) : (
@@ -673,11 +673,13 @@ export default async function PositionDetailPage({
                                 </td>
                                 <td className="px-3 py-3">
                                   <div className="flex items-center gap-2.5">
-                                    <DeepAiDrawer 
-                                      resume={resume} 
-                                      userRoles={perms.roles ?? []}
-                                      compactMode={true}
-                                    />
+                                    <div className="relative z-10">
+                                      <DeepAiDrawer 
+                                        resume={resume} 
+                                        userRoles={perms.roles ?? []}
+                                        compactMode={true}
+                                      />
+                                    </div>
                                     <div>
                                         <div className="flex items-center gap-2 min-w-0">
                                           <Link href={`/org-admin/resumes/${resume.id}`} className="font-extrabold text-sm text-rose-600 dark:text-rose-400 group-hover:text-rose-700 dark:group-hover:text-rose-300 group-hover:underline underline-offset-4 decoration-rose-300 dark:decoration-rose-600 truncate max-w-[200px] min-w-0 shrink transition-all duration-200 after:absolute after:inset-0" title={hasNameOverride ? `Original AI Value: ${resume.candidateName || "none"}` : undefined}>
@@ -685,21 +687,23 @@ export default async function PositionDetailPage({
                                             {hasNameOverride && <span className="text-rose-500 ml-1" title="Overridden by recruiter">*</span>}
                                           </Link>
                                           {resume.isDuplicate && (
-                                            <span className="inline-flex items-center gap-1 text-[9px] font-bold tracking-widest uppercase text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30 px-1.5 py-0.5 border border-red-200 dark:border-red-900/50 rounded shadow-sm shrink-0 whitespace-nowrap" title="Another vendor or recruiter already submitted this candidate">
+                                            <span className="inline-flex items-center gap-1 text-[9px] font-bold tracking-widest uppercase text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30 px-1.5 py-0.5 border border-red-200 dark:border-red-900/50 rounded shadow-sm shrink-0 whitespace-nowrap relative z-10" title="Another vendor or recruiter already submitted this candidate">
                                               ⚠️ DUPLICATE
                                             </span>
                                           )}
                                           {canManage && (
-                                            <OverrideCandidateAction
-                                              resumeId={resume.id}
-                                              aiName={resume.candidateName} aiEmail={resume.candidateEmail} aiPhone={resume.phoneNumber} aiLinkedin={resume.linkedinUrl}
-                                              overrideName={resume.overrideName} overrideEmail={resume.overrideEmail} overridePhone={resume.overridePhone} overrideLinkedin={resume.overrideLinkedinUrl}
-                                            />
+                                            <div className="relative z-10">
+                                              <OverrideCandidateAction
+                                                resumeId={resume.id}
+                                                aiName={resume.candidateName} aiEmail={resume.candidateEmail} aiPhone={resume.phoneNumber} aiLinkedin={resume.linkedinUrl}
+                                                overrideName={resume.overrideName} overrideEmail={resume.overrideEmail} overridePhone={resume.overridePhone} overrideLinkedin={resume.overrideLinkedinUrl}
+                                              />
+                                            </div>
                                           )}
                                           {warnings.length > 0 && (
                                             <span
                                               title={`${warnings.length} validation warning(s) — click resume for details`}
-                                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30 cursor-help"
+                                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30 cursor-help relative z-10"
                                             >
                                               <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
                                               {warnings.length}
@@ -708,7 +712,7 @@ export default async function PositionDetailPage({
                                         </div>
                                         <div className="flex items-center gap-2 mt-0.5">
                                           {showPII && finalEmail ? (
-                                            <a href={`mailto:${finalEmail}`} className="text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-rose-600 dark:hover:text-rose-400 hover:underline truncate max-w-[200px] relative" title={hasEmailOverride ? `Original: ${resume.candidateEmail || "none"}` : finalEmail}>
+                                            <a href={`mailto:${finalEmail}`} className="text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-rose-600 dark:hover:text-rose-400 hover:underline truncate max-w-[200px] relative z-10" title={hasEmailOverride ? `Original: ${resume.candidateEmail || "none"}` : finalEmail}>
                                               {finalEmail}
                                               {hasEmailOverride && <span className="text-rose-500 ml-0.5">*</span>}
                                             </a>
@@ -795,7 +799,7 @@ export default async function PositionDetailPage({
                                       // Stage 0 (AI_SCREEN): check AiInterviewSession
                                       if (stage.roundType === "AI_SCREEN") {
                                         const aiSession = aiSessions.find(s => s.resumeId === resume.id)
-                                        if (aiSession?.status === "COMPLETED") return { stage: pStage, status: "COMPLETED" as const }
+                                        if (aiSession?.status === "COMPLETED") return { stage: pStage, status: "COMPLETED" as const, interviewId: aiSession.id }
                                         if (aiSession || (idx === 0 && inviteStatus === "SENT")) return { stage: pStage, status: "SCHEDULED" as const }
                                         return { stage: pStage, status: "AVAILABLE" as const }
                                       }
@@ -832,23 +836,25 @@ export default async function PositionDetailPage({
                                     } catch { }
 
                                     return (
-                                      <PipelineWrapper
-                                        stages={stageStates}
-                                        resumeId={resume.id}
-                                        positionId={position.id}
-                                        candidateName={finalName}
-                                        matchScore={resume.matchScore}
-                                        topSkills={topSkills}
-                                        interviewers={interviewers}
-                                        jdRequiredSkills={jdRequiredSkills}
-                                        candidateSkills={candidateSkills}
-                                        pipelineStatus={(resume as any).pipelineStatus as string}
-                                      />
+                                      <div className="relative z-10">
+                                        <PipelineWrapper
+                                          stages={stageStates}
+                                          resumeId={resume.id}
+                                          positionId={position.id}
+                                          candidateName={finalName}
+                                          matchScore={resume.matchScore}
+                                          topSkills={topSkills}
+                                          interviewers={interviewers}
+                                          jdRequiredSkills={jdRequiredSkills}
+                                          candidateSkills={candidateSkills}
+                                          pipelineStatus={(resume as any).pipelineStatus as string}
+                                        />
+                                      </div>
                                     )
                                   })()}
                                 </td>
                                 <td className="px-2 py-3 text-right relative">
-                                  <div className="flex items-center justify-end gap-2 text-right relative">
+                                  <div className="flex items-center justify-end gap-2 text-right relative z-10">
                                     {canManage && <ShortlistAction resumeId={resume.id} isShortlisted={resume.isShortlisted} initialNotes={resume.recruiterNotes} />}
                                     {canManage && <DeleteResumeButton resumeId={resume.id} candidateName={finalName} />}
 

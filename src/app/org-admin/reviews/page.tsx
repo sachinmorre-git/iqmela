@@ -147,7 +147,7 @@ export default async function ReviewsDashboard() {
                   AI flagged nuances requiring human judgment before the candidate can advance.
                 </p>
                 <div className="flex gap-2 mt-1">
-                  <Link href={`/org-admin/ai-interview/${session.id}/scorecard`}
+                  <Link href={`/org-admin/candidates/${session.resumeId}/intelligence`}
                     className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold text-center transition-colors shadow-sm shadow-amber-500/20">
                     View AI Report
                   </Link>
@@ -271,7 +271,7 @@ export default async function ReviewsDashboard() {
                   <p className="text-[10px] text-gray-400 dark:text-zinc-500 font-semibold uppercase tracking-wide">{session.position?.title}</p>
                 </div>
                 <div className="flex flex-col gap-1.5 shrink-0">
-                  <Link href={`/org-admin/ai-interview/${session.id}/scorecard`}
+                  <Link href={`/org-admin/candidates/${session.resumeId}/intelligence`}
                     className="text-[10px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 transition-colors">
                     View Report →
                   </Link>

@@ -9,6 +9,7 @@ import { BehaviorReportCard } from "./BehaviorReportCard";
 import { CandidateFitCard } from "../../../positions/[id]/CandidateFitCard";
 import { CandidateDecisionBar } from "@/components/ui/CandidateDecisionBar";
 import { AiAuditDrawer } from "@/components/ui/AiAuditDrawer";
+import { CompletedRoundView } from "../../../positions/[id]/CompletedRoundView";
 // ── Type helpers ───────────────────────────────────────────────────────────────
 type ResumeData = any; // full prisma include
 
@@ -306,11 +307,18 @@ export function IntelligenceHubClient({
                   {latestAiSession.summary}
                 </p>
               )}
-              <Link href={`/org-admin/ai-interview/${latestAiSession.id}/scorecard`}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-pink-600 hover:text-pink-700 transition-colors">
-                View full AI scorecard
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-              </Link>
+              <div className="pt-2">
+                <CompletedRoundView
+                  interviewId={latestAiSession.id}
+                  resumeId={resume.id}
+                  positionId={resume.positionId}
+                  candidateName={resume.candidateName}
+                  stageIndex={0}
+                  roundLabel="AI Interview"
+                  totalStages={totalStages}
+                  hideDecisionActions={true}
+                />
+              </div>
             </div>
           </div>
         )}

@@ -46,7 +46,20 @@ export async function createAiInterviewSessionAction(
     }
 
     if (!resume.isShortlisted) {
-      return { success: false, error: "Candidate must be shortlisted before assigning an AI interview." };
+      await prisma.resume.update({
+        where: { id: resumeId },
+        data: { isShortlisted: true },
+      });
+      await prisma.auditLog.create({
+        data: {
+          action: "UPDATE",
+          resourceType: "Resume",
+          resourceId: resumeId,
+          organizationId: resume.position.organizationId,
+          userId: perms.userId,
+          metadata: { reason: "Candidate auto-shortlisted upon AI interview scheduling" }
+        }
+      });
     }
 
     // Check if a session already exists — don't create duplicates
