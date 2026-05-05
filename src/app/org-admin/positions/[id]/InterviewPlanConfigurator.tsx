@@ -39,9 +39,9 @@ interface ExistingStage {
   roundLabel: string;
   roundType: InterviewRoundType;
   durationMinutes: number;
-  interviewMode: InterviewMode;
+
   isRequired: boolean;
-  description: string | null;
+  description?: string | null;
   assignedPanelJson?: any;
 }
 
@@ -69,7 +69,7 @@ export function InterviewPlanConfigurator({
       roundLabel: s.roundLabel,
       roundType: s.roundType,
       durationMinutes: s.durationMinutes,
-      interviewMode: s.interviewMode,
+
       isRequired: s.isRequired,
       description: s.description || undefined,
       assignedPanelJson: s.assignedPanelJson,
@@ -91,9 +91,9 @@ export function InterviewPlanConfigurator({
   const handleCreateDefault = () => {
     if (isControlled) {
       const defaultStages: StageInput[] = [
-        { roundLabel: "AI Screen", roundType: "AI_SCREEN", durationMinutes: 30, interviewMode: "AI_AVATAR", isRequired: true, description: undefined, assignedPanelJson: null },
-        { roundLabel: "Panel Round 1", roundType: "PANEL", durationMinutes: 45, interviewMode: "HUMAN", isRequired: true, description: undefined, assignedPanelJson: null },
-        { roundLabel: "Panel Round 2", roundType: "PANEL", durationMinutes: 45, interviewMode: "HUMAN", isRequired: true, description: undefined, assignedPanelJson: null },
+        { roundLabel: "AI Screen", roundType: "AI_SCREEN", durationMinutes: 30, isRequired: true, description: undefined, assignedPanelJson: null },
+        { roundLabel: "Panel Round 1", roundType: "PANEL", durationMinutes: 45, isRequired: true, description: undefined, assignedPanelJson: null },
+        { roundLabel: "Panel Round 2", roundType: "PANEL", durationMinutes: 45, isRequired: true, description: undefined, assignedPanelJson: null },
       ];
       setStages(defaultStages);
       setDirty(true);
@@ -126,7 +126,7 @@ export function InterviewPlanConfigurator({
         roundLabel: `Round ${nextIndex}`,
         roundType: "CUSTOM" as InterviewRoundType,
         durationMinutes: 45,
-        interviewMode: "HUMAN" as InterviewMode,
+
         isRequired: true,
         assignedPanelJson: null,
       },
@@ -368,7 +368,7 @@ export function InterviewPlanConfigurator({
                     updateStage(idx, {
                       roundType: val,
                       roundLabel: opt?.label ?? stage.roundLabel,
-                      interviewMode: val === "AI_SCREEN" ? "AI_AVATAR" as InterviewMode : "HUMAN" as InterviewMode,
+
                     });
                   }}
                   className={`bg-transparent border border-gray-200 dark:border-zinc-700 rounded-lg text-gray-700 dark:text-zinc-300 focus:outline-none focus:border-rose-400 shrink-0 ${

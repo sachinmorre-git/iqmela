@@ -12,12 +12,11 @@ const DEFAULT_STAGES: {
   roundLabel: string;
   roundType: InterviewRoundType;
   durationMinutes: number;
-  interviewMode: InterviewMode;
   description?: string;
 }[] = [
-  { stageIndex: 0, roundLabel: "AI Screen",       roundType: "AI_SCREEN",  durationMinutes: 30, interviewMode: "AI_AVATAR", description: "Automated AI-led screening interview" },
-  { stageIndex: 1, roundLabel: "Panel Round 1",   roundType: "PANEL",      durationMinutes: 45, interviewMode: "HUMAN",     description: "First panel interview round" },
-  { stageIndex: 2, roundLabel: "Panel Round 2",   roundType: "PANEL",      durationMinutes: 45, interviewMode: "HUMAN",     description: "Second panel interview round" },
+  { stageIndex: 0, roundLabel: "AI Screen",       roundType: "AI_SCREEN",  durationMinutes: 30, description: "Automated AI-led screening interview" },
+  { stageIndex: 1, roundLabel: "Panel Round 1",   roundType: "PANEL",      durationMinutes: 45, description: "First panel interview round" },
+  { stageIndex: 2, roundLabel: "Panel Round 2",   roundType: "PANEL",      durationMinutes: 45, description: "Second panel interview round" },
 ];
 
 // ── Ensure a plan exists (creates default if missing) ───────────────────────
@@ -50,7 +49,6 @@ export async function ensureInterviewPlanAction(positionId: string): Promise<{
             roundLabel: s.roundLabel,
             roundType: s.roundType,
             durationMinutes: s.durationMinutes,
-            interviewMode: s.interviewMode,
             description: s.description,
           })),
         },
@@ -73,7 +71,6 @@ export interface StageInput {
   roundLabel: string;
   roundType: InterviewRoundType;
   durationMinutes: number;
-  interviewMode: InterviewMode;
   isRequired?: boolean;
   description?: string;
   assignedPanelJson?: any;
@@ -109,7 +106,6 @@ export async function updateInterviewPlanAction(
         roundLabel: s.roundLabel,
         roundType: s.roundType,
         durationMinutes: s.durationMinutes,
-        interviewMode: s.interviewMode,
         isRequired: s.isRequired ?? true,
         description: s.description || null,
         assignedPanelJson: s.assignedPanelJson || null,
@@ -196,7 +192,7 @@ export async function scheduleRoundAction(input: {
         scheduledAt: new Date(input.scheduledAt),
         durationMinutes: input.durationMinutes || stage.durationMinutes,
         status: "SCHEDULED",
-        interviewMode: stage.interviewMode,
+        interviewMode: stage.roundType === "AI_SCREEN" ? "AI_AVATAR" : "HUMAN",
         roomName: input.externalLink || null,
         notes: input.notes || null,
         candidateId: candidateUser?.id || null,

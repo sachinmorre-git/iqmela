@@ -11,9 +11,9 @@ interface ExistingStage {
   roundLabel: string;
   roundType: InterviewRoundType;
   durationMinutes: number;
-  interviewMode: InterviewMode;
+
   isRequired: boolean;
-  description: string | null;
+  description?: string | null;
 }
 
 interface EditPipelineButtonProps {
