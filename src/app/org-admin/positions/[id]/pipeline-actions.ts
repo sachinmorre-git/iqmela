@@ -72,7 +72,7 @@ export interface StageInput {
   roundType: InterviewRoundType;
   durationMinutes: number;
   isRequired?: boolean;
-  description?: string;
+  description?: string | null;
   assignedPanelJson?: any;
 }
 
