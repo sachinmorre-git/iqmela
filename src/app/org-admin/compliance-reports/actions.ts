@@ -22,7 +22,7 @@ export async function generateComplianceReport(formData: FormData) {
   const periodEnd = new Date(formData.get("periodEnd") as string);
   const scope = formData.get("scope") as string; // "org" or "platform"
 
-  const reportOrgId = scope === "platform" && isSuperAdmin ? null : orgId;
+  const reportOrgId = (scope === "platform" && isSuperAdmin ? null : orgId) || null;
 
   try {
     // Generate the report data from live DB
@@ -46,7 +46,7 @@ export async function generateComplianceReport(formData: FormData) {
       data: {
         type: type as any,
         status: "FAILED",
-        orgId: orgId,
+        orgId: orgId || null,
         periodStart,
         periodEnd,
         requestedBy: userId,
