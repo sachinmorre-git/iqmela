@@ -24,9 +24,9 @@ interface JdFields {
 }
 
 const DEFAULT_PIPELINE: StageInput[] = [
-  { stageIndex: 0, roundLabel: "AI Screen", roundType: "AI_SCREEN", durationMinutes: 30, interviewMode: "AI_AVATAR", isRequired: true },
-  { stageIndex: 1, roundLabel: "Panel Round 1", roundType: "PANEL", durationMinutes: 45, interviewMode: "HUMAN", isRequired: true },
-  { stageIndex: 2, roundLabel: "Panel Round 2", roundType: "PANEL", durationMinutes: 45, interviewMode: "HUMAN", isRequired: true },
+  { stageIndex: 0, roundLabel: "AI Screen", roundType: "AI_SCREEN", durationMinutes: 30, isRequired: true },
+  { stageIndex: 1, roundLabel: "Panel Round 1", roundType: "PANEL", durationMinutes: 45, isRequired: true },
+  { stageIndex: 2, roundLabel: "Panel Round 2", roundType: "PANEL", durationMinutes: 45, isRequired: true },
 ]
 
 type UploadState = "idle" | "uploading" | "success" | "error"
@@ -81,7 +81,6 @@ export default function PositionForm({
     roundLabel: s.roundLabel,
     roundType: s.roundType,
     durationMinutes: s.durationMinutes,
-    interviewMode: s.interviewMode ?? (s.roundType === "AI_SCREEN" ? "AI_AVATAR" : "HUMAN"),
     isRequired: s.isRequired ?? true,
     description: s.description ?? undefined,
     assignedPanelJson: s.assignedPanelJson ?? undefined,

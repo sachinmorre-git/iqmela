@@ -91,9 +91,9 @@ export function InterviewPlanConfigurator({
   const handleCreateDefault = () => {
     if (isControlled) {
       const defaultStages: StageInput[] = [
-        { roundLabel: "AI Screen", roundType: "AI_SCREEN", durationMinutes: 30, isRequired: true, description: undefined, assignedPanelJson: null },
-        { roundLabel: "Panel Round 1", roundType: "PANEL", durationMinutes: 45, isRequired: true, description: undefined, assignedPanelJson: null },
-        { roundLabel: "Panel Round 2", roundType: "PANEL", durationMinutes: 45, isRequired: true, description: undefined, assignedPanelJson: null },
+        { stageIndex: 0, roundLabel: "AI Screen", roundType: "AI_SCREEN", durationMinutes: 30, isRequired: true, description: undefined, assignedPanelJson: null },
+        { stageIndex: 1, roundLabel: "Panel Round 1", roundType: "PANEL", durationMinutes: 45, isRequired: true, description: undefined, assignedPanelJson: null },
+        { stageIndex: 2, roundLabel: "Panel Round 2", roundType: "PANEL", durationMinutes: 45, isRequired: true, description: undefined, assignedPanelJson: null },
       ];
       setStages(defaultStages);
       setDirty(true);

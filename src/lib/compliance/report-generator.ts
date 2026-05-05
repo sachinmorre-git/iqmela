@@ -45,13 +45,13 @@ async function generateBiasAudit(orgId: string | null, start: Date, end: Date): 
   if (orgId) where.organizationId = orgId;
 
   // Count total AI interview sessions in period
-  const totalSessions = await prisma.interviewSession.count({
-    where: { ...where, type: { in: ["AI_AVATAR", "AI_ORB"] } },
+  const totalSessions = await prisma.aiInterviewSession.count({
+    where: { ...where },
   });
 
   // Count candidates who passed vs. didn't (scored >= 70 = "selected")
-  const sessions = await prisma.interviewSession.findMany({
-    where: { ...where, type: { in: ["AI_AVATAR", "AI_ORB"] }, overallScore: { not: null } },
+  const sessions = await prisma.aiInterviewSession.findMany({
+    where: { ...where, overallScore: { not: null } },
     select: { overallScore: true, candidateId: true },
   });
 
@@ -116,16 +116,16 @@ async function generateEeocReport(orgId: string | null, start: Date, end: Date):
   if (orgId) where.organizationId = orgId;
 
   // Funnel data
-  const totalApplicants = await prisma.application.count({ where });
-  const screened = await prisma.application.count({ where: { ...where, status: { not: "SUBMITTED" } } });
-  const interviewed = await prisma.interviewSession.count({
+  const totalApplicants = await prisma.resume.count({ where });
+  const screened = await prisma.resume.count({ where: { ...where, pipelineStatus: { not: "ACTIVE" } } });
+  const interviewed = await prisma.aiInterviewSession.count({
     where: { createdAt: { gte: start, lte: end }, ...(orgId ? { organizationId: orgId } : {}) },
   });
-  const hired = await prisma.application.count({ where: { ...where, status: "HIRED" } });
+  const hired = await prisma.resume.count({ where: { ...where, pipelineStatus: "HIRED" } });
 
   // Positions filled
   const positionsFilled = await prisma.position.count({
-    where: { ...(orgId ? { orgId } : {}), status: "CLOSED", closedAt: { gte: start, lte: end } },
+    where: { ...(orgId ? { organizationId: orgId } : {}), status: "CLOSED", updatedAt: { gte: start, lte: end } },
   });
 
   return {
@@ -168,24 +168,20 @@ async function generateEeocReport(orgId: string | null, start: Date, end: Date):
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function generateDsarReport(orgId: string | null, start: Date, end: Date): Promise<ReportPayload> {
-  // Count candidate data in the system
-  const totalCandidates = await prisma.candidate.count({
-    where: orgId ? { applications: { some: { organizationId: orgId } } } : {},
-  });
+  const totalCandidates = await prisma.candidateProfile.count();
 
   // Count applications with resumes (PII stored)
-  const candidatesWithResumes = await prisma.application.count({
+  const candidatesWithResumes = await prisma.resume.count({
     where: {
       ...(orgId ? { organizationId: orgId } : {}),
-      resumeUrl: { not: null },
+      storagePath: { not: "" },
     },
   });
 
   // Count AI interview recordings
-  const aiSessions = await prisma.interviewSession.count({
+  const aiSessions = await prisma.aiInterviewSession.count({
     where: {
       ...(orgId ? { organizationId: orgId } : {}),
-      type: { in: ["AI_AVATAR", "AI_ORB"] },
       createdAt: { gte: start, lte: end },
     },
   });
@@ -250,19 +246,17 @@ async function generateDsarReport(orgId: string | null, start: Date, end: Date):
 
 async function generateAiviaConsentLog(orgId: string | null, start: Date, end: Date): Promise<ReportPayload> {
   // Count AI interview sessions in the period
-  const aiSessions = await prisma.interviewSession.count({
+  const aiSessions = await prisma.aiInterviewSession.count({
     where: {
       ...(orgId ? { organizationId: orgId } : {}),
-      type: { in: ["AI_AVATAR", "AI_ORB"] },
       createdAt: { gte: start, lte: end },
     },
   });
 
   // Count completed sessions
-  const completedSessions = await prisma.interviewSession.count({
+  const completedSessions = await prisma.aiInterviewSession.count({
     where: {
       ...(orgId ? { organizationId: orgId } : {}),
-      type: { in: ["AI_AVATAR", "AI_ORB"] },
       status: "COMPLETED",
       createdAt: { gte: start, lte: end },
     },
@@ -321,22 +315,22 @@ async function generateDataMinimizationAudit(orgId: string | null, start: Date, 
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  const totalApplications = await prisma.application.count({
+  const totalApplications = await prisma.resume.count({
     where: orgId ? { organizationId: orgId } : {},
   });
 
-  const staleResumes = await prisma.application.count({
+  const staleResumes = await prisma.resume.count({
     where: {
       ...(orgId ? { organizationId: orgId } : {}),
-      resumeUrl: { not: null },
-      position: { status: "CLOSED", closedAt: { lte: sixMonthsAgo } },
+      storagePath: { not: "" },
+      position: { status: "CLOSED", updatedAt: { lte: sixMonthsAgo } },
     },
   });
 
-  const activeResumes = await prisma.application.count({
+  const activeResumes = await prisma.resume.count({
     where: {
       ...(orgId ? { organizationId: orgId } : {}),
-      resumeUrl: { not: null },
+      storagePath: { not: "" },
       position: { status: { in: ["OPEN", "PAUSED"] } },
     },
   });
@@ -396,14 +390,11 @@ async function generateDataMinimizationAudit(orgId: string | null, start: Date, 
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function generatePipedaReport(orgId: string | null, start: Date, end: Date): Promise<ReportPayload> {
-  const totalCandidates = await prisma.candidate.count({
-    where: orgId ? { applications: { some: { organizationId: orgId } } } : {},
-  });
+  const totalCandidates = await prisma.candidateProfile.count();
 
-  const aiSessions = await prisma.interviewSession.count({
+  const aiSessions = await prisma.aiInterviewSession.count({
     where: {
       ...(orgId ? { organizationId: orgId } : {}),
-      type: { in: ["AI_AVATAR", "AI_ORB"] },
       createdAt: { gte: start, lte: end },
     },
   });

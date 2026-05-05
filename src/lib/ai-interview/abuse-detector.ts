@@ -61,7 +61,7 @@ const MIN_THINKING_TIME_MS = 3000;   // At least 3s to think before answering
 const LLM_PATTERNS = [
   /^(Sure|Certainly|Absolutely|Of course|Great question)[,!.]/i,
   /\b(In summary|To summarize|In conclusion|Overall)\b/i,
-  /\b(First(?:ly)?|Second(?:ly)?|Third(?:ly)?|Finally)\b.*\b(First(?:ly)?|Second(?:ly)?|Third(?:ly)?|Finally)\b/is,
+  /\b(First(?:ly)?|Second(?:ly)?|Third(?:ly)?|Finally)\b[\s\S]*\b(First(?:ly)?|Second(?:ly)?|Third(?:ly)?|Finally)\b/i,
   /\b(key (takeaway|point|aspect)|important to note|worth mentioning)\b/i,
   /\b(As an AI|As a language model|I don't have personal)\b/i, // Dead giveaway
 ];

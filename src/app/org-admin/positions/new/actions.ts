@@ -77,6 +77,9 @@ export async function createPosition(formData: FormData) {
           roundLabel: string;
           roundType: string;
           durationMinutes: number;
+          isRequired?: boolean;
+          description?: string | null;
+          assignedPanelJson?: any;
         }[];
         if (Array.isArray(stages) && stages.length > 0) {
           await prisma.interviewPlan.create({
@@ -88,7 +91,7 @@ export async function createPosition(formData: FormData) {
                   roundLabel: s.roundLabel,
                   roundType: s.roundType as any,
                   durationMinutes: s.durationMinutes,
-                  interviewMode: s.interviewMode || (s.roundType === "AI_SCREEN" ? "AI_AVATAR" : "HUMAN"),
+
                   isRequired: s.isRequired ?? true,
                   description: s.description || null,
                   assignedPanelJson: s.assignedPanelJson || null,

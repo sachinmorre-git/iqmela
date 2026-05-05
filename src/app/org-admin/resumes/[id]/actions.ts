@@ -244,7 +244,7 @@ export async function overrideAiDecision(
   reason: string
 ) {
   const perms = await getCallerPermissions()
-  if (!perms || !perms.canWrite) return { success: false, error: "Unauthorized" }
+  if (!perms || !perms.canMakeHireDecision) return { success: false, error: "Unauthorized" }
 
   const resume = await prisma.resume.findUnique({
     where: { id: resumeId },
