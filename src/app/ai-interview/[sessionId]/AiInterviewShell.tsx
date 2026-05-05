@@ -82,8 +82,22 @@ function categoryLabel(cat: AiQuestionCategory) {
 function CandidateVideoCard({ phase }: { phase: InterviewPhase }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const [camState, setCamState] = useState<"idle" | "active" | "denied" | "unavailable">("idle");
+  const [camState, setCamState] = useState<"idle" | "active" | "denied" | "unavailable" | "disabled">("idle");
   const [muted, setMuted] = useState(false);
+
+  const requestCamera = useCallback(() => {
+    setCamState("idle");
+    navigator.mediaDevices
+      .getUserMedia({ video: { width: 640, height: 480, facingMode: "user" }, audio: false })
+      .then((stream) => {
+        streamRef.current = stream;
+        setCamState("active");
+      })
+      .catch((err) => {
+        if (err?.name === "NotAllowedError") setCamState("denied");
+        else setCamState("unavailable");
+      });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,19 +105,9 @@ function CandidateVideoCard({ phase }: { phase: InterviewPhase }) {
     if (phase === "ready" || phase === "results" || phase === "error") return;
     if (camState !== "idle") return;
 
-    navigator.mediaDevices
-      .getUserMedia({ video: { width: 640, height: 480, facingMode: "user" }, audio: false })
-      .then((stream) => {
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-        streamRef.current = stream;
-        setCamState("active");
-        // srcObject is wired after the video element mounts (see effect below)
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        if (err?.name === "NotAllowedError") setCamState("denied");
-        else setCamState("unavailable");
-      });
+    if (camState !== "idle") return;
+
+    requestCamera();
 
     return () => {
       cancelled = true;
@@ -128,13 +132,21 @@ function CandidateVideoCard({ phase }: { phase: InterviewPhase }) {
 
   if (camState === "idle") return null;
 
-  if (camState === "denied" || camState === "unavailable") {
+  if (camState === "denied" || camState === "unavailable" || camState === "disabled") {
     return (
-      <div className="w-[300px] sm:w-[400px] md:w-[500px] aspect-video rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center gap-2 text-center p-3">
-        <span className="text-2xl">📷</span>
-        <p className="text-[10px] text-zinc-500 font-medium leading-tight">
-          {camState === "denied" ? "Camera blocked" : "No camera found"}
+      <div className="w-[300px] sm:w-[400px] md:w-[500px] aspect-video rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center gap-3 text-center p-3 relative group shadow-lg shadow-black/40">
+        <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center">
+          <span className="text-xl">{camState === "disabled" ? "📷" : "🚫"}</span>
+        </div>
+        <p className="text-xs text-zinc-400 font-medium leading-tight">
+          {camState === "disabled" ? "Camera disabled" : camState === "denied" ? "Camera blocked by browser" : "No camera found"}
         </p>
+        <button
+          onClick={requestCamera}
+          className="text-xs font-bold text-white bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl transition shadow-sm border border-zinc-700/50"
+        >
+          {camState === "disabled" ? "Enable Camera" : "Retry Camera"}
+        </button>
       </div>
     );
   }
@@ -169,14 +181,19 @@ function CandidateVideoCard({ phase }: { phase: InterviewPhase }) {
         </span>
       </div>
 
-      {/* Mute toggle */}
-      <button
-        onClick={() => setMuted(m => !m)}
-        className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center hover:bg-black/80 transition-all"
-        title={muted ? "Unmute" : "Mute camera indicator"}
-      >
-        <span className="text-[10px]">{muted ? "🔇" : "🎙️"}</span>
-      </button>
+      {/* Controls overlay */}
+      <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <button
+          onClick={() => {
+            streamRef.current?.getTracks().forEach(t => t.stop());
+            setCamState("disabled");
+          }}
+          className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center hover:bg-rose-500/80 transition-all text-white border border-white/10"
+          title="Disable Camera"
+        >
+          <span className="text-[12px]">📷</span>
+        </button>
+      </div>
 
       {/* Listening ring pulse */}
       {isListening && (
@@ -876,68 +893,7 @@ export function AiInterviewShell({
         />
       </div>
 
-      {/* Step 225 — Anti-cheat status bar */}
-      {phase !== "ready" && phase !== "results" && (
-        <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Tab switch counter */}
-            <span
-              title="Number of times you switched to another tab during this interview"
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                tabSwitchCount === 0
-                  ? "bg-zinc-800 text-zinc-400 border-zinc-700"
-                  : tabSwitchCount <= 2
-                  ? "bg-amber-900/40 text-amber-400 border-amber-700/40"
-                  : "bg-red-900/40 text-red-400 border-red-700/40"
-              }`}
-            >
-              <span>⇄</span> {tabSwitchCount} tab switch{tabSwitchCount !== 1 ? "es" : ""}
-            </span>
 
-            {/* Paste counter */}
-            <span
-              title="Number of paste events detected during answering"
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                pasteCount === 0
-                  ? "bg-zinc-800 text-zinc-400 border-zinc-700"
-                  : "bg-red-900/40 text-red-400 border-red-700/40"
-              }`}
-            >
-              <span>⎘</span> {pasteCount} paste{pasteCount !== 1 ? "s" : ""}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Microphone */}
-            <span
-              title={`Microphone permission: ${micPermission}`}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                micPermission === "granted"
-                  ? "bg-emerald-900/30 text-emerald-400 border-emerald-700/30"
-                  : micPermission === "denied"
-                  ? "bg-red-900/40 text-red-400 border-red-700/40"
-                  : "bg-zinc-800 text-zinc-500 border-zinc-700"
-              }`}
-            >
-              🎤 mic {micPermission}
-            </span>
-
-            {/* Camera */}
-            <span
-              title={`Camera permission: ${camPermission}`}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                camPermission === "granted"
-                  ? "bg-emerald-900/30 text-emerald-400 border-emerald-700/30"
-                  : camPermission === "denied"
-                  ? "bg-red-900/40 text-red-400 border-red-700/40"
-                  : "bg-zinc-800 text-zinc-500 border-zinc-700"
-              }`}
-            >
-              📷 camera {camPermission}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
 
       {/* Centre content */}
