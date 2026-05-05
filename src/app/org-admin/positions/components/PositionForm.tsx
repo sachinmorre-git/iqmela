@@ -414,20 +414,46 @@ export default function PositionForm({
                     </label>
                 </div>
 
-                {/* AI Generation Strategy Dropdown */}
+                {/* AI Screening Round Questions Strategy */}
                 <div className="bg-gray-50 dark:bg-[#1a1b1e] rounded-xl border border-gray-200 dark:border-zinc-800 p-4">
                   <div className="flex justify-between items-center mb-2">
-                    <div className="text-[14px] font-bold text-gray-800 dark:text-gray-200">AI Generation Strategy</div>
+                    <div className="text-[14px] font-bold text-gray-800 dark:text-gray-200">AI Screening Round Questions Strategy</div>
                   </div>
-                  <select
-                    name="aiGenerationStrategy"
-                    value={settings.aiGenerationStrategy}
-                    onChange={(e) => setSetting("aiGenerationStrategy", e.target.value as any)}
-                    className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
-                  >
-                    <option value="STANDARDIZED">Standardized (0 cost, instant, requires Question Bank)</option>
-                    <option value="TAILORED">Tailored (dynamic per candidate, queued, uses AI tokens)</option>
-                  </select>
+                  <input type="hidden" name="aiGenerationStrategy" value={settings.aiGenerationStrategy} />
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <div className="flex items-center h-5">
+                        <input
+                          type="radio"
+                          name="aiGenerationStrategyRadio"
+                          value="STANDARDIZED"
+                          checked={settings.aiGenerationStrategy === "STANDARDIZED"}
+                          onChange={() => setSetting("aiGenerationStrategy", "STANDARDIZED")}
+                          className="w-4 h-4 text-rose-600 bg-gray-100 border-gray-300 focus:ring-rose-500 dark:focus:ring-rose-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-zinc-700 dark:border-zinc-600 mt-0.5"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-rose-600 transition-colors">Common Questions</span>
+                        <span className="text-xs text-gray-500 dark:text-zinc-400">Job description based</span>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <div className="flex items-center h-5">
+                        <input
+                          type="radio"
+                          name="aiGenerationStrategyRadio"
+                          value="TAILORED"
+                          checked={settings.aiGenerationStrategy === "TAILORED"}
+                          onChange={() => setSetting("aiGenerationStrategy", "TAILORED")}
+                          className="w-4 h-4 text-rose-600 bg-gray-100 border-gray-300 focus:ring-rose-500 dark:focus:ring-rose-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-zinc-700 dark:border-zinc-600 mt-0.5"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-rose-600 transition-colors">Tailored Questions</span>
+                        <span className="text-xs text-gray-500 dark:text-zinc-400">Individual resume based</span>
+                      </div>
+                    </label>
+                  </div>
                 </div>
 
               </div>

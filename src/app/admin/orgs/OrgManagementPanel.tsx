@@ -179,37 +179,79 @@ export function OrgManagementPanel({ orgId, orgName, currentTier, features, defa
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-5 h-5 text-pink-400" />
-          <h3 className="text-lg font-bold text-white">Default AI Generation Strategy</h3>
+          <h3 className="text-lg font-bold text-white">Default AI Screening Round Questions Strategy</h3>
           <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 ml-2">
             Applied to all new positions
           </span>
         </div>
 
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-          <select
-            value={activeAiStrategy}
-            disabled={isPending}
-            onChange={(e) => {
-              const val = e.target.value;
-              startTransition(async () => {
-                try {
-                  if (!currentTier) await ensureOrgRecord(orgId, orgName)
-                  const result = await updateOrgAiStrategy(orgId, val)
-                  if (result.success) {
-                    setActiveAiStrategy(val)
-                    setSuccessMsg(`Default AI Strategy updated to ${val}`)
-                    setTimeout(() => setSuccessMsg(""), 3000)
-                  }
-                } catch (err: any) {
-                  console.error("Failed to update AI strategy:", err)
-                }
-              })
-            }}
-            className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg p-3 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors"
-          >
-            <option value="STANDARDIZED">STANDARDIZED - Zero Cost, High Volume (Requires Question Bank)</option>
-            <option value="TAILORED">TAILORED - Dynamic per candidate, uses AI tokens, async queue</option>
-          </select>
+          <div className="flex flex-col gap-4">
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <div className="flex items-center h-5">
+                <input
+                  type="radio"
+                  name="aiGenerationStrategyRadioAdmin"
+                  value="STANDARDIZED"
+                  checked={activeAiStrategy === "STANDARDIZED"}
+                  disabled={isPending}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    startTransition(async () => {
+                      try {
+                        if (!currentTier) await ensureOrgRecord(orgId, orgName)
+                        const result = await updateOrgAiStrategy(orgId, val)
+                        if (result.success) {
+                          setActiveAiStrategy(val)
+                          setSuccessMsg(`Default strategy updated to Common Questions`)
+                          setTimeout(() => setSuccessMsg(""), 3000)
+                        }
+                      } catch (err) {
+                        console.error("Failed to update AI strategy:", err)
+                      }
+                    })
+                  }}
+                  className="w-4 h-4 text-pink-500 bg-zinc-800 border-zinc-700 focus:ring-pink-500 dark:focus:ring-pink-600 dark:ring-offset-zinc-900 focus:ring-2 mt-0.5"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-white group-hover:text-pink-400 transition-colors">Common Questions</span>
+                <span className="text-xs text-zinc-400">Job description based</span>
+              </div>
+            </label>
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <div className="flex items-center h-5">
+                <input
+                  type="radio"
+                  name="aiGenerationStrategyRadioAdmin"
+                  value="TAILORED"
+                  checked={activeAiStrategy === "TAILORED"}
+                  disabled={isPending}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    startTransition(async () => {
+                      try {
+                        if (!currentTier) await ensureOrgRecord(orgId, orgName)
+                        const result = await updateOrgAiStrategy(orgId, val)
+                        if (result.success) {
+                          setActiveAiStrategy(val)
+                          setSuccessMsg(`Default strategy updated to Tailored Questions`)
+                          setTimeout(() => setSuccessMsg(""), 3000)
+                        }
+                      } catch (err) {
+                        console.error("Failed to update AI strategy:", err)
+                      }
+                    })
+                  }}
+                  className="w-4 h-4 text-pink-500 bg-zinc-800 border-zinc-700 focus:ring-pink-500 dark:focus:ring-pink-600 dark:ring-offset-zinc-900 focus:ring-2 mt-0.5"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-white group-hover:text-pink-400 transition-colors">Tailored Questions</span>
+                <span className="text-xs text-zinc-400">Individual resume based</span>
+              </div>
+            </label>
+          </div>
         </div>
       </div>
 
