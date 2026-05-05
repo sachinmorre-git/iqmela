@@ -923,9 +923,23 @@ export function AiInterviewShell({
           <div className="pt-2">
             <button
               onClick={() => {
+                // Request camera and microphone
                 navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                   .then(stream => {
                     stream.getTracks().forEach(t => t.stop());
+                    
+                    // Trigger Speech Recognition prompt silently (Safari requires this separately)
+                    try {
+                      const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                      if (SpeechRec) {
+                        const sr = new SpeechRec();
+                        sr.start();
+                        setTimeout(() => sr.stop(), 500);
+                      }
+                    } catch (e) {
+                      console.warn("SpeechRecognition pre-auth failed", e);
+                    }
+
                     setPermissionsGranted(true);
                   })
                   .catch(err => {
