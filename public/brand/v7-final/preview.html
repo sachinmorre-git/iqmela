@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IQMela — Final Polished Logo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Montserrat',sans-serif;background:#F0F0F2;padding:40px}
+    h1{font-size:26px;font-weight:800;color:#18181B;letter-spacing:-0.5px}
+    .sub{color:#71717A;font-size:13px;margin-bottom:40px;font-weight:500}
+    .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#A1A1AA;margin-bottom:16px;margin-top:8px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:48px}
+    .card{background:#fff;border-radius:16px;border:1px solid #E4E4E7;overflow:hidden;transition:box-shadow .3s}
+    .card:hover{box-shadow:0 8px 30px rgba(0,0,0,.08)}
+    .ci{padding:32px 20px 20px;display:flex;align-items:center;justify-content:center;min-height:340px}
+    .ci.dk{background:#0A0A0C}
+    .cf{padding:14px 20px;border-top:1px solid #F4F4F5;display:flex;justify-content:space-between;align-items:center}
+    .cf.dkf{border-color:#1E1E22;background:#131316}
+    .ct{font-size:12px;font-weight:700;color:#3F3F46;text-transform:uppercase;letter-spacing:1.2px}
+    .dkf .ct{color:#71717A}
+    .cd{font-size:10px;color:#A1A1AA;margin-top:1px;font-weight:500}
+    .dkf .cd{color:#52525B}
+    .sw{width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(0,0,0,.08);display:inline-block}
+    .btn{border:1px solid #E4E4E7;padding:5px 12px;border-radius:6px;font-size:10px;font-weight:600;color:#52525B;cursor:pointer;font-family:inherit;background:#F4F4F5;transition:all .15s}
+    .btn:hover{background:#E4E4E7}
+    .btn.ok{background:#10B981;color:#fff;border-color:#10B981}
+    /* Scale preview */
+    .scale-section{margin-bottom:48px}
+    .scale-row{display:flex;gap:40px;align-items:flex-end;flex-wrap:wrap;margin-top:12px;background:#fff;border-radius:16px;padding:32px;border:1px solid #E4E4E7}
+    .scale-item{text-align:center}
+    .scale-item .sz{font-size:10px;color:#A1A1AA;margin-top:8px;font-weight:600}
+  </style>
+</head>
+<body>
+<h1>IQMela — Final Polished Logo</h1>
+<p class="sub">Refined proportions · dramatic dot hierarchy · subtle connections · clean junctions</p>
+
+<div class="label">Scalability Test (Reference Style)</div>
+<div class="scale-section">
+  <div class="scale-row" id="scale-row"></div>
+</div>
+
+<div class="label">Light Background</div>
+<div class="grid" id="lg"></div>
+<div class="label">Dark Background</div>
+<div class="grid" id="dg"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// COLOR
+// ══════════════════════════════════════════════
+function hx(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+function rh(r,g,b){return'#'+[r,g,b].map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('')}
+function lrp(a,b,t){const A=hx(a),B=hx(b);return rh(A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t)}
+
+function colX(x,cs){
+  const t=Math.max(0,Math.min(1,(x-10)/505));
+  if(t<0.15)return cs[0];
+  if(t<0.25)return lrp(cs[0],cs[1],(t-0.15)/0.1);
+  if(t<0.50)return cs[1];
+  if(t<0.60)return lrp(cs[1],cs[2],(t-0.50)/0.1);
+  return cs[2];
+}
+
+// ══════════════════════════════════════════════
+// BAR MESH — directional node+edge strip
+// ══════════════════════════════════════════════
+function meshBar(x1,y1,x2,y2,hW,nA,nC){
+  const N=[],E=[];
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy);
+  if(len<.01)return{N,E};
+  const ux=dx/len,uy=dy/len,nx=-uy,ny=ux;
+  for(let a=0;a<nA;a++){
+    const t=a/(nA-1),ax=x1+dx*t,ay=y1+dy*t;
+    for(let c=0;c<nC;c++){
+      const s=nC===1?0:(c/(nC-1))*2-1;
+      const idx=N.length;
+      // edge = outer boundary of the bar
+      const isOuterEdge=(c===0||c===nC-1);
+      // tip = end of the bar
+      const isTip=(a===0||a===nA-1);
+      N.push({x:ax+nx*s*hW,y:ay+ny*s*hW,edge:isOuterEdge,tip:isTip});
+      if(c>0)E.push([idx-1,idx]);
+      if(a>0){
+        E.push([idx-nC,idx]);
+        if(c>0)E.push([idx-nC-1,idx]);
+        if(c<nC-1)E.push([idx-nC+1,idx]);
+      }
+    }
+  }
+  return{N,E};
+}
+
+// ══════════════════════════════════════════════
+// RING MESH — for Q letter
+// ══════════════════════════════════════════════
+function meshRing(cx,cy,r,hW,nAr,nC){
+  const N=[],E=[];
+  for(let a=0;a<nAr;a++){
+    const ang=(a/nAr)*Math.PI*2-Math.PI/2;
+    const cs=Math.cos(ang),sn=Math.sin(ang);
+    for(let c=0;c<nC;c++){
+      const s=nC===1?0:(c/(nC-1))*2-1;
+      const rd=r+s*hW;
+      const idx=N.length;
+      N.push({x:cx+rd*cs,y:cy+rd*sn,edge:c===0||c===nC-1,tip:false});
+      if(c>0)E.push([idx-1,idx]);
+      if(a>0){
+        E.push([idx-nC,idx]);
+        if(c>0)E.push([idx-nC-1,idx]);
+        if(c<nC-1)E.push([idx-nC+1,idx]);
+      }
+    }
+  }
+  for(let c=0;c<nC;c++){
+    E.push([(nAr-1)*nC+c,c]);
+    if(c>0){E.push([(nAr-1)*nC+c,c-1]);E.push([(nAr-1)*nC+c-1,c]);}
+  }
+  return{N,E};
+}
+
+// ══════════════════════════════════════════════
+// COMBINE + JUNCTION STITCH
+// ══════════════════════════════════════════════
+function combine(){
+  let AN=[],AE=[];
+  for(let i=0;i<arguments.length;i++){
+    const m=arguments[i],off=AN.length;
+    m.N.forEach(n=>AN.push({...n}));
+    m.E.forEach(([a,b])=>AE.push([a+off,b+off]));
+  }
+  // Tight junction stitching
+  const es=new Set(AE.map(([a,b])=>a<b?a+','+b:b+','+a));
+  for(let i=0;i<AN.length;i++){
+    for(let j=i+1;j<AN.length;j++){
+      const d=Math.hypot(AN[i].x-AN[j].x,AN[i].y-AN[j].y);
+      if(d<11&&d>1){
+        const k=i<j?i+','+j:j+','+i;
+        if(!es.has(k)){es.add(k);AE.push([i,j]);}
+      }
+    }
+  }
+  return{N:AN,E:AE};
+}
+
+// ══════════════════════════════════════════════
+// BUILD REFINED IQM LETTERFORMS
+// ══════════════════════════════════════════════
+function buildLogo(){
+  // ── I Letter: wider, 4 columns across ──
+  const iBar=meshBar(45,234,45,4,19,22,4);
+
+  // ── Q Letter: smoother ring (32 nodes), thicker ──
+  const qRing=meshRing(182,122,74,21,32,4);
+  const qTail=meshBar(225,180,278,240,10,6,2);
+  const qAll=combine(qRing,qTail);
+
+  // ── M Letter: wider legs, 4-wide diagonals ──
+  const mLL=meshBar(315,234,315,4,16,22,4);
+  const mLD=meshBar(319,8,402,182,13,16,3);
+  const mRD=meshBar(402,182,485,8,13,16,3);
+  const mRL=meshBar(489,4,489,234,16,22,4);
+  const mAll=combine(mLL,mLD,mRD,mRL);
+
+  return combine(iBar,qAll,mAll);
+}
+
+// ══════════════════════════════════════════════
+// RENDER POLISHED SVG
+// ══════════════════════════════════════════════
+function renderSVG(mesh,colors,dark){
+  const W=590,H=385,OX=40,OY=44;
+  const bg=dark?'#0A0A0C':'none';
+  const txtC=dark?'#F5F5F5':'#1A1A2E';
+  const subC=dark?'#636366':'#8E8E93';
+
+  // Color each node by x-position
+  mesh.N.forEach(n=>{n.color=colX(n.x,colors)});
+
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" fill="none">`;
+  if(dark)s+=`<rect width="${W}" height="${H}" fill="${bg}"/>`;
+
+  // Subtle glow filter for dark mode
+  if(dark){
+    s+=`<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%">`;
+    s+=`<feGaussianBlur stdDeviation="2" result="blur"/>`;
+    s+=`<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>`;
+    s+=`</filter></defs>`;
+  }
+
+  s+=`<g transform="translate(${OX},${OY})"${dark?' filter="url(#glow)"':''}>`;
+
+  // ── EDGES: ultra-thin, subtle ──
+  mesh.E.forEach(([i,j])=>{
+    const a=mesh.N[i],b=mesh.N[j];
+    s+=`<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" stroke="${a.color}" stroke-width="0.9" stroke-opacity="${dark?'0.3':'0.32'}" stroke-linecap="round"/>`;
+  });
+
+  // ── NODES: dramatic hierarchy ──
+  mesh.N.forEach(n=>{
+    let r;
+    if(n.tip&&n.edge) r=6.2;     // corner nodes: largest
+    else if(n.edge)   r=5.0;     // boundary nodes: large
+    else if(n.tip)    r=4.2;     // endpoint nodes: medium-large
+    else              r=2.8;     // interior nodes: small
+    s+=`<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${r}" fill="${n.color}" fill-opacity="${dark?'0.95':'0.9'}"/>`;
+  });
+
+  s+=`</g>`;
+
+  // ── WORDMARK: refined kerning ──
+  s+=`<text x="${W/2}" y="${H-40}" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="700" font-size="34" letter-spacing="0.22em" fill="${txtC}">`;
+  s+=`<tspan fill="${colors[0]}">I</tspan>`;
+  s+=`<tspan fill="${colors[0]}">Q</tspan>`;
+  s+=`<tspan dx="6" fill="${txtC}"> </tspan>`;
+  s+=`<tspan fill="${colors[2]}">M</tspan>`;
+  s+=`<tspan fill="${txtC}">ELA</tspan>`;
+  s+=`</text>`;
+
+  // ── TAGLINE ──
+  s+=`<text x="${W/2}" y="${H-18}" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="500" font-size="7.5" letter-spacing="0.38em" fill="${subC}">INTELLIGENCE · INNOVATION · AMPLIFIED</text>`;
+
+  s+=`</svg>`;
+  return s;
+}
+
+// ══════════════════════════════════════════════
+// PALETTES
+// ══════════════════════════════════════════════
+const PAL=[
+  {name:"Reference Classic",colors:["#1E40AF","#0D9488","#D97706"],desc:"Deep Navy → Teal → Amber"},
+  {name:"Website Gradient",colors:["#6366F1","#8B5CF6","#EC4899"],desc:"Indigo → Violet → Pink"},
+  {name:"Success Intelligence",colors:["#4F46E5","#10B981","#7C3AED"],desc:"Indigo → Emerald → Violet"},
+  {name:"Mono Indigo",colors:["#4338CA","#6366F1","#818CF8"],desc:"Deep → Mid → Light Indigo"}
+];
+
+// ── Build mesh once, recolor per palette ──
+const MESH=buildLogo();
+
+// ────── Scale preview ──────
+(function(){
+  const sr=document.getElementById('scale-row');
+  const sizes=[64,120,200,360];
+  sizes.forEach(w=>{
+    const d=document.createElement('div');d.className='scale-item';
+    const meshCopy={N:MESH.N.map(n=>({...n})),E:[...MESH.E]};
+    const sv=renderSVG(meshCopy,PAL[0].colors,false);
+    d.innerHTML=`<div style="width:${w}px">${sv}</div><div class="sz">${w}px</div>`;
+    sr.appendChild(d);
+  });
+})();
+
+// ────── Gallery cards ──────
+PAL.forEach((p,i)=>{
+  const m1={N:MESH.N.map(n=>({...n})),E:[...MESH.E]};
+  const m2={N:MESH.N.map(n=>({...n})),E:[...MESH.E]};
+  const lSvg=renderSVG(m1,p.colors,false);
+  const dSvg=renderSVG(m2,p.colors,true);
+  window['_l'+i]=lSvg;window['_d'+i]=dSvg;
+
+  function mk(pid,svg,dk){
+    const c=document.createElement('div');c.className='card';
+    c.innerHTML=`<div class="ci${dk?' dk':''}">${svg}</div>
+      <div class="cf${dk?' dkf':''}">
+        <div><div class="ct">${p.name}</div><div class="cd">${p.desc}</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="display:flex;gap:4px"><span class="sw" style="background:${p.colors[0]}"></span><span class="sw" style="background:${p.colors[1]}"></span><span class="sw" style="background:${p.colors[2]}"></span></div>
+          <button class="btn" onclick="cpy(this,'${dk?'_d':'_l'}${i}')">Copy SVG</button>
+          <button class="btn" onclick="dl('IQMela-${p.name.replace(/\s/g,'-')}-${dk?'dark':'light'}.svg','${dk?'_d':'_l'}${i}')">↓ File</button>
+        </div>
+      </div>`;
+    document.getElementById(pid).appendChild(c);
+  }
+  mk('lg',lSvg,false);
+  mk('dg',dSvg,true);
+});
+
+function cpy(b,k){navigator.clipboard.writeText(window[k]).then(()=>{b.textContent='Copied!';b.classList.add('ok');setTimeout(()=>{b.textContent='Copy SVG';b.classList.remove('ok')},1500)})}
+function dl(n,k){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([window[k]],{type:'image/svg+xml'}));a.download=n;a.click()}
+</script>
+</body>
+</html>

@@ -44,9 +44,9 @@ const ROLES = [
 
 
 const PILL_COLORS: Record<string, string> = {
-  indigo: "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
+  indigo: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
   purple: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800",
-  teal: "bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800",
+  teal: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
   amber: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
   orange: "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800",
   gray: "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400 border-gray-200 dark:border-zinc-700",
@@ -54,7 +54,7 @@ const PILL_COLORS: Record<string, string> = {
 
 const EDIT_PILL: Record<string, { active: string; inactive: string }> = {
   indigo: {
-    active: "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700",
+    active: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700",
     inactive: "bg-transparent text-gray-400 dark:text-zinc-600 border-gray-200 dark:border-zinc-700 hover:text-gray-600 dark:hover:text-zinc-400",
   },
   purple: {
@@ -62,7 +62,7 @@ const EDIT_PILL: Record<string, { active: string; inactive: string }> = {
     inactive: "bg-transparent text-gray-400 dark:text-zinc-600 border-gray-200 dark:border-zinc-700 hover:text-gray-600 dark:hover:text-zinc-400",
   },
   teal: {
-    active: "bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border-teal-300 dark:border-teal-700",
+    active: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700",
     inactive: "bg-transparent text-gray-400 dark:text-zinc-600 border-gray-200 dark:border-zinc-700 hover:text-gray-600 dark:hover:text-zinc-400",
   },
   amber: {
@@ -181,7 +181,7 @@ export function TeamMembersTable({
           const canModify = !isSelf && !callerOutranked && !isOutOfScope;
 
           return (
-            <div key={member.id} className={`px-6 py-4 transition-colors ${isEditing ? "bg-indigo-50/30 dark:bg-indigo-950/10" : ""} ${isOutOfScope || callerOutranked ? "opacity-50" : ""}`}>
+            <div key={member.id} className={`px-6 py-4 transition-colors ${isEditing ? "bg-rose-50/30 dark:bg-rose-950/10" : ""} ${isOutOfScope || callerOutranked ? "opacity-50" : ""}`}>
               <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
                 {/* Avatar + Info */}
                 <div className="flex items-center gap-3 min-w-[240px]">
@@ -281,7 +281,7 @@ export function TeamMembersTable({
                             }}
                             className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all ${
                               allSelected
-                                ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700"
+                                ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700"
                                 : "bg-transparent text-gray-400 dark:text-zinc-600 border-gray-200 dark:border-zinc-700"
                             }`}
                           >
@@ -301,7 +301,7 @@ export function TeamMembersTable({
                                 }
                                 className={`px-2 py-0.5 rounded text-[11px] font-medium border transition-all ${
                                   selected
-                                    ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700"
+                                    ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700"
                                     : "bg-transparent text-gray-400 dark:text-zinc-600 border-gray-200 dark:border-zinc-700"
                                 }`}
                               >

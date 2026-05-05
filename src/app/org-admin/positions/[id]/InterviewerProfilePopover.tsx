@@ -43,7 +43,10 @@ export function InterviewerProfilePopover({
 
   if (!isOpen) return null;
 
-  const initials = (interviewer.name || interviewer.email)
+  const displayLabel = interviewer.source === "MARKETPLACE" && (!interviewer.name || interviewer.name === interviewer.email)
+    ? "Interview Expert"
+    : interviewer.name || interviewer.email;
+  const initials = displayLabel
     .split(" ")
     .map((w) => w[0])
     .join("")
@@ -75,14 +78,14 @@ export function InterviewerProfilePopover({
               className="w-12 h-12 rounded-full object-cover border-2 border-gray-100 dark:border-zinc-700"
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
               {initials}
             </div>
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                {interviewer.name || interviewer.email}
+                {displayLabel}
               </p>
               {interviewer.isVerified && (
                 <ShieldCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
@@ -94,14 +97,19 @@ export function InterviewerProfilePopover({
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-full ${
                 interviewer.source === "INTERNAL"
-                  ? "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400"
-                  : "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
+                  ? "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
+                  : "bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400"
               }`}>
                 {interviewer.source === "INTERNAL" ? "Internal" : "Marketplace"}
               </span>
               {interviewer.hourlyRate != null && (
                 <span className="text-[10px] font-semibold text-gray-500 dark:text-zinc-400">
                   ${interviewer.hourlyRate}/hr
+                </span>
+              )}
+              {interviewer.source === "MARKETPLACE" && (
+                <span className="text-[10px] text-gray-400 dark:text-zinc-500 italic">
+                  Contact via IQMela
                 </span>
               )}
             </div>
@@ -136,7 +144,7 @@ export function InterviewerProfilePopover({
           <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1.5">Matching Skills</p>
           <div className="flex flex-wrap gap-1">
             {matchedSkills.slice(0, 8).map((s) => (
-              <span key={s} className="px-1.5 py-0.5 text-[10px] font-semibold bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 rounded border border-teal-100 dark:border-teal-800/40">
+              <span key={s} className="px-1.5 py-0.5 text-[10px] font-semibold bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 rounded border border-rose-100 dark:border-rose-800/40">
                 {s}
               </span>
             ))}
@@ -177,7 +185,7 @@ export function InterviewerProfilePopover({
             <div key={b.label} className="flex items-center gap-2">
               <span className="text-[10px] text-gray-500 w-16 shrink-0">{b.label}</span>
               <div className="flex-1 h-1 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                <div className="h-full bg-teal-500 rounded-full" style={{ width: `${(b.value / b.max) * 100}%` }} />
+                <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(b.value / b.max) * 100}%` }} />
               </div>
               <span className="text-[10px] text-gray-400 w-8 text-right">{b.value}/{b.max}</span>
             </div>
@@ -196,7 +204,7 @@ export function InterviewerProfilePopover({
           className={`w-full py-2 rounded-xl text-sm font-bold transition-all ${
             isSelected
               ? "bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400"
-              : "bg-teal-600 text-white hover:bg-teal-700 shadow-sm"
+              : "bg-rose-600 text-white hover:bg-rose-700 shadow-sm"
           }`}
         >
           {isSelected ? "✓ Selected" : "Select Interviewer"}

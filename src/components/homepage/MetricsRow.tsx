@@ -48,7 +48,7 @@ export function MetricsRow({ totalInterviews, totalOrgs, totalPositions, avgScor
   ];
 
   return (
-    <section className="border-y border-zinc-800/60 bg-zinc-900/30 py-10 px-4">
+    <section className="border-y border-gray-200 dark:border-zinc-800/60 bg-gray-50 dark:bg-zinc-900/30 py-10 px-4">
       <div className="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
         {live.map(({ label, value, suffix, fallback }) => (
           <div key={label} className="flex flex-col items-center text-center">
@@ -62,7 +62,7 @@ export function MetricsRow({ totalInterviews, totalOrgs, totalPositions, avgScor
         ))}
         {STATIC_METRICS.map(({ label, value, sub }) => (
           <div key={label} className="flex flex-col items-center text-center">
-            <p className="text-2xl font-black text-indigo-400">{value}</p>
+            <p className="text-2xl font-black text-rose-400">{value}</p>
             <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-1">{sub}</p>
           </div>
         ))}

@@ -35,7 +35,7 @@ export function SyncClerkButton() {
         px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-bold transition-all
         ${status === "success" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : 
           status === "error" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : 
-          "bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50"}
+          "bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:hover:bg-rose-900/50"}
       `}
     >
       {loading ? (

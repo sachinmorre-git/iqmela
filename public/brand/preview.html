@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IQMela Brand Assets Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Inter, -apple-system, sans-serif;
+      background: #F5F5F5;
+      padding: 40px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #18181B;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #71717A;
+      font-size: 14px;
+      margin-bottom: 48px;
+    }
+    .section {
+      margin-bottom: 56px;
+    }
+    .section h2 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #A1A1AA;
+      margin-bottom: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #E4E4E7;
+      position: relative;
+    }
+    .card.dark {
+      background: #18181B;
+      border-color: #27272A;
+    }
+    .card img, .card object {
+      max-width: 100%;
+      max-height: 200px;
+    }
+    .card .label {
+      position: absolute;
+      bottom: 12px;
+      left: 16px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #A1A1AA;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .card.dark .label {
+      color: #52525B;
+    }
+    .small-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .size-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid #E4E4E7;
+    }
+    .size-card img {
+      image-rendering: pixelated;
+    }
+    .size-card .dim {
+      font-size: 10px;
+      font-weight: 600;
+      color: #A1A1AA;
+    }
+  </style>
+</head>
+<body>
+  <h1>IQMela — Brand Assets</h1>
+  <p class="subtitle">Production SVGs · Import into Figma for editing</p>
+
+  <!-- Q+Check Icon -->
+  <div class="section">
+    <h2>Icon Mark — Q + Checkmark</h2>
+    <div class="grid">
+      <div class="card">
+        <img src="/brand/iqmela-icon-q-check.svg" alt="Q Check Teal" width="180">
+        <span class="label">Color · Light BG</span>
+      </div>
+      <div class="card dark">
+        <img src="/brand/iqmela-icon-q-check-white.svg" alt="Q Check White" width="180">
+        <span class="label">White · Dark BG</span>
+      </div>
+      <div class="card">
+        <img src="/brand/iqmela-icon-q-check-black.svg" alt="Q Check Black" width="180">
+        <span class="label">Black · Trademark</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Circles Icon -->
+  <div class="section">
+    <h2>Icon Mark — Three Circles (Trefoil)</h2>
+    <div class="grid">
+      <div class="card">
+        <img src="/brand/iqmela-icon-circles.svg" alt="Circles Icon" width="200">
+        <span class="label">Color · Light BG</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wordmark -->
+  <div class="section">
+    <h2>Wordmark — Two-Tone Typography</h2>
+    <div class="grid">
+      <div class="card" style="padding: 48px 60px;">
+        <img src="/brand/iqmela-wordmark.svg" alt="Wordmark" width="360">
+        <span class="label">IQ Indigo + Mela Teal</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Lockups -->
+  <div class="section">
+    <h2>Full Lockups — Icon + Wordmark</h2>
+    <div class="grid">
+      <div class="card" style="padding: 32px 48px;">
+        <img src="/brand/iqmela-lockup-q-horizontal.svg" alt="Q Lockup" width="480">
+        <span class="label">Q+Check Lockup</span>
+      </div>
+      <div class="card" style="padding: 32px 48px;">
+        <img src="/brand/iqmela-lockup-circles-horizontal.svg" alt="Circles Lockup" width="480">
+        <span class="label">Circles Lockup</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Favicon Sizes -->
+  <div class="section">
+    <h2>Favicon Size Tests</h2>
+    <div class="small-grid">
+      <div class="size-card">
+        <img src="/brand/iqmela-icon-q-check.svg" width="16" height="16">
+        <span class="dim">16 × 16</span>
+      </div>
+      <div class="size-card">
+        <img src="/brand/iqmela-icon-q-check.svg" width="32" height="32">
+        <span class="dim">32 × 32</span>
+      </div>
+      <div class="size-card">
+        <img src="/brand/iqmela-icon-q-check.svg" width="64" height="64">
+        <span class="dim">64 × 64</span>
+      </div>
+      <div class="size-card">
+        <img src="/brand/iqmela-icon-q-check.svg" width="128" height="128">
+        <span class="dim">128 × 128</span>
+      </div>
+      <div class="size-card">
+        <img src="/brand/iqmela-icon-q-check.svg" width="192" height="192">
+        <span class="dim">192 × 192</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

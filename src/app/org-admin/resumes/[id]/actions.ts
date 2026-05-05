@@ -8,6 +8,54 @@ import { revalidatePath } from "next/cache"
 import path from "path"
 import { getCallerPermissions } from "@/lib/rbac"
 
+export async function getFullResumeData(resumeId: string) {
+  const perms = await getCallerPermissions()
+  if (!perms) return null
+
+  const resume = await prisma.resume.findUnique({
+    where: { id: resumeId },
+    include: {
+      position: {
+        include: {
+          interviewPlan: { include: { stages: { orderBy: { stageIndex: "asc" } } } },
+        },
+      },
+      interviews: {
+        orderBy: { stageIndex: "asc" },
+        include: {
+          panelists:        { include: { interviewer: { select: { id: true, name: true, email: true } } } },
+          panelistFeedbacks: { include: { interviewer: { select: { id: true, name: true, email: true } } } },
+          feedback:   true,
+          aiAnalysis: true,
+          behaviorReport: true,
+        },
+      },
+      aiInterviewSessions: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        include: { 
+          candidate: { select: { name: true, email: true } },
+          turns: { orderBy: { turnIndex: "asc" } }
+        },
+      },
+      panelistFeedbacks: {
+        include: { interviewer: { select: { id: true, name: true, email: true } } },
+        orderBy: { submittedAt: "asc" },
+      },
+      hiringDecisions: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { decidedBy: { select: { name: true, email: true } } },
+      },
+      bgvChecks: { orderBy: { createdAt: "desc" } },
+      jobOffers: { orderBy: { createdAt: "desc" } },
+    },
+  })
+
+  if (!resume || resume.position?.organizationId !== perms.orgId) return null
+  return resume
+}
+
 export async function extractResumeTextAction(resumeId: string) {
   const perms = await getCallerPermissions()
   if (!perms || !perms.canRunAI) return { success: false, error: "Unauthorized" }
@@ -186,5 +234,60 @@ export async function runAiExtractionAction(resumeId: string) {
     })
     revalidatePath(`/org-admin/resumes/${resumeId}`)
     return { success: false, error: "AI extraction failed. Check server logs." }
+  }
+}
+
+export async function overrideAiDecision(
+  resumeId: string,
+  newScore: number,
+  newLabel: string,
+  reason: string
+) {
+  const perms = await getCallerPermissions()
+  if (!perms || !perms.canWrite) return { success: false, error: "Unauthorized" }
+
+  const resume = await prisma.resume.findUnique({
+    where: { id: resumeId },
+    include: { position: true },
+  })
+
+  if (!resume || resume.position.organizationId !== perms.orgId) {
+    return { success: false, error: "Resume not found or unauthorized" }
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Update the Resume with override data and replace active score
+      await tx.resume.update({
+        where: { id: resumeId },
+        data: {
+          jdMatchScore: newScore,
+          jdMatchLabel: newLabel,
+          aiOverrideScore: newScore,
+          aiOverrideLabel: newLabel,
+          aiOverrideReason: reason,
+          aiOverrideById: perms.userId,
+          aiOverrideAt: new Date(),
+        },
+      })
+
+      // 2. Create the compliance Audit Log entry
+      await tx.hiringDecision.create({
+        data: {
+          resumeId,
+          positionId: resume.positionId,
+          decidedById: perms.userId,
+          action: "AI_OVERRIDE",
+          note: `AI Override: ${reason} (New Score: ${newScore}, Label: ${newLabel})`,
+        },
+      })
+    })
+
+    revalidatePath(`/org-admin/resumes/${resumeId}`)
+    revalidatePath(`/org-admin/positions/${resume.positionId}`)
+    return { success: true }
+  } catch (error) {
+    console.error(`[overrideAiDecision] Error:`, error)
+    return { success: false, error: "Failed to override AI decision" }
   }
 }

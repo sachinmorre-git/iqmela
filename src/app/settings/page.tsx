@@ -22,7 +22,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab('account')}
               className={`px-5 py-3.5 text-sm sm:text-base text-left rounded-xl whitespace-nowrap transition-all duration-200 ${
                 activeTab === 'account' 
-                ? 'bg-indigo-50 dark:bg-zinc-900 bg-opacity-80 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm' 
+                ? 'bg-rose-50 dark:bg-zinc-900 bg-opacity-80 text-rose-600 dark:text-rose-400 font-bold shadow-sm' 
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-900/50 font-medium'
               }`}
             >
@@ -32,7 +32,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab('notifications')}
               className={`px-5 py-3.5 text-sm sm:text-base text-left rounded-xl whitespace-nowrap transition-all duration-200 ${
                 activeTab === 'notifications' 
-                ? 'bg-indigo-50 dark:bg-zinc-900 bg-opacity-80 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm' 
+                ? 'bg-rose-50 dark:bg-zinc-900 bg-opacity-80 text-rose-600 dark:text-rose-400 font-bold shadow-sm' 
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-900/50 font-medium'
               }`}
             >
@@ -42,7 +42,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab('devices')}
               className={`px-5 py-3.5 text-sm sm:text-base text-left rounded-xl whitespace-nowrap transition-all duration-200 ${
                 activeTab === 'devices' 
-                ? 'bg-indigo-50 dark:bg-zinc-900 bg-opacity-80 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm' 
+                ? 'bg-rose-50 dark:bg-zinc-900 bg-opacity-80 text-rose-600 dark:text-rose-400 font-bold shadow-sm' 
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-900/50 font-medium'
               }`}
             >
@@ -62,7 +62,7 @@ export default function SettingsPage() {
                     <div>
                       <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-1">Email Address</h4>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Update the core email associated with your platform identity.</p>
-                      <input type="email" placeholder="user@domain.com" className="w-full max-w-md px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white" />
+                      <input type="email" placeholder="user@domain.com" className="w-full max-w-md px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:ring-rose-500 dark:text-white" />
                     </div>
                   </div>
                   <div className="space-y-4 border-b border-gray-100 dark:border-zinc-800 pb-8 pt-2">
@@ -95,7 +95,7 @@ export default function SettingsPage() {
                       <p className="text-sm text-gray-500 dark:text-gray-400 w-[80%]">Receive a comprehensive weekly summary of your recent interactions.</p>
                     </div>
                     {/* Mock Toggle - Active */}
-                    <div className="w-12 h-6 bg-indigo-600 rounded-full flex items-center px-1 justify-end cursor-pointer shrink-0 transition-opacity hover:opacity-80">
+                    <div className="w-12 h-6 bg-rose-600 rounded-full flex items-center px-1 justify-end cursor-pointer shrink-0 transition-opacity hover:opacity-80">
                       <div className="w-4 h-4 bg-white rounded-full shadow-sm"></div>
                     </div>
                   </div>
@@ -120,8 +120,8 @@ export default function SettingsPage() {
                    <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">Active Sessions</CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center gap-5 p-5 border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-2xl">
-                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-zinc-900 border border-indigo-100 dark:border-zinc-800 shadow-sm flex items-center justify-center shrink-0 text-indigo-600">
+                  <div className="flex items-center gap-5 p-5 border border-rose-100 dark:border-rose-900/40 bg-rose-50/30 dark:bg-rose-900/10 rounded-2xl">
+                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 shadow-sm flex items-center justify-center shrink-0 text-rose-600">
                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
                     </div>
                     <div className="flex-1">

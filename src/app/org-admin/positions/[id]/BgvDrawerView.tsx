@@ -29,6 +29,7 @@ import { getPackagesForVendor } from "@/lib/bgv/packages";
 import type { BgvVendorType, BgvAdjudication, BgvCheck, BgvAuditLog } from "@prisma/client";
 import type { BgvPackage } from "@/lib/bgv/types";
 import type { PiiDetection } from "@/lib/bgv/pii-shield";
+import { formatDate } from "@/lib/locale-utils";
 
 // ── Props ───────────────────────────────────────────────────────────────────
 
@@ -309,7 +310,7 @@ export function BgvDrawerView({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
+        <Loader2 className="w-6 h-6 text-pink-500 animate-spin" />
         <span className="ml-2 text-sm text-gray-500">Loading BGV status...</span>
       </div>
     );
@@ -342,7 +343,7 @@ export function BgvDrawerView({
     return (
       <div className="flex-1 overflow-y-auto pb-4">
         {/* Section Header */}
-        <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-violet-50 dark:from-blue-900/10 dark:to-violet-900/10 border-b border-blue-100 dark:border-blue-800/30">
+        <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-pink-50 dark:from-blue-900/10 dark:to-pink-900/10 border-b border-blue-100 dark:border-blue-800/30">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-blue-600" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">Background Verification</h3>
@@ -367,9 +368,9 @@ export function BgvDrawerView({
                 disabled={!v.enabled}
                 className={`p-3 rounded-xl border-2 text-left transition-all duration-200 ${
                   selectedVendor === v.type && v.enabled
-                    ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20 ring-2 ring-violet-500/30 scale-[1.02]"
+                    ? "border-pink-500 bg-pink-50 dark:bg-pink-900/20 ring-2 ring-pink-500/30 scale-[1.02]"
                     : v.enabled
-                      ? "border-gray-200 dark:border-zinc-700 hover:border-violet-300 dark:hover:border-violet-700 bg-white dark:bg-zinc-800/50"
+                      ? "border-gray-200 dark:border-zinc-700 hover:border-pink-300 dark:hover:border-pink-700 bg-white dark:bg-zinc-800/50"
                       : "border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/50 opacity-50 cursor-not-allowed"
                 }`}
               >
@@ -394,8 +395,8 @@ export function BgvDrawerView({
                   onClick={() => setSelectedPackage(pkg.slug)}
                   className={`w-full p-3 rounded-xl border-2 text-left transition-all duration-200 ${
                     selectedPackage === pkg.slug
-                      ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20 ring-2 ring-teal-500/30"
-                      : "border-gray-200 dark:border-zinc-700 hover:border-teal-300 bg-white dark:bg-zinc-800/50"
+                      ? "border-rose-500 bg-rose-50 dark:bg-rose-900/20 ring-2 ring-rose-500/30"
+                      : "border-gray-200 dark:border-zinc-700 hover:border-rose-300 bg-white dark:bg-zinc-800/50"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -439,7 +440,7 @@ export function BgvDrawerView({
             <select
               value={workLocation}
               onChange={(e) => setWorkLocation(e.target.value)}
-              className="mt-2 w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+              className="mt-2 w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
             >
               {US_STATES.map((s) => (
                 <option key={s} value={s}>{s}</option>
@@ -471,7 +472,7 @@ export function BgvDrawerView({
           <button
             onClick={handleInitiate}
             disabled={isPending || !selectedPackage}
-            className="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-rose-500 hover:from-emerald-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
           >
             {isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -521,7 +522,7 @@ export function BgvDrawerView({
   if (isInProgress && !needsUpload) {
     return (
       <div className="flex-1 overflow-y-auto pb-4">
-        <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-b border-blue-100 dark:border-blue-800/30">
+        <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-rose-50 dark:from-blue-900/10 dark:to-rose-900/10 border-b border-blue-100 dark:border-blue-800/30">
           <div className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-blue-600 animate-pulse" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">BGV In Progress</h3>
@@ -582,7 +583,7 @@ export function BgvDrawerView({
   if (needsUpload) {
     return (
       <div className="flex-1 overflow-y-auto pb-4">
-        <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-violet-50 dark:from-blue-900/10 dark:to-violet-900/10 border-b border-blue-100 dark:border-blue-800/30">
+        <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-pink-50 dark:from-blue-900/10 dark:to-pink-900/10 border-b border-blue-100 dark:border-blue-800/30">
           <div className="flex items-center gap-2">
             <Upload className="w-5 h-5 text-blue-600" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">Upload BGV Report</h3>
@@ -596,23 +597,23 @@ export function BgvDrawerView({
 
         {/* Shareable Upload Link */}
         {(bgvCheck.uploadLinkToken || uploadUrl) && (
-          <div className="mx-4 mt-4 px-4 py-3 bg-violet-50 dark:bg-violet-900/10 rounded-xl border border-violet-200 dark:border-violet-800/30">
-            <p className="text-xs font-semibold text-violet-700 dark:text-violet-400 mb-2">📎 Shareable Upload Link</p>
+          <div className="mx-4 mt-4 px-4 py-3 bg-pink-50 dark:bg-pink-900/10 rounded-xl border border-pink-200 dark:border-pink-800/30">
+            <p className="text-xs font-semibold text-pink-700 dark:text-pink-400 mb-2">📎 Shareable Upload Link</p>
             <div className="flex items-center gap-2">
               <input
                 readOnly
                 value={uploadUrl || `${typeof window !== "undefined" ? window.location.origin : ""}/bgv-upload/${bgvCheck.uploadLinkToken}`}
-                className="flex-1 px-2 py-1.5 text-[10px] bg-white dark:bg-zinc-800 border border-violet-200 dark:border-violet-700 rounded-lg text-gray-700 dark:text-gray-300"
+                className="flex-1 px-2 py-1.5 text-[10px] bg-white dark:bg-zinc-800 border border-pink-200 dark:border-pink-700 rounded-lg text-gray-700 dark:text-gray-300"
               />
               <button
                 onClick={handleCopyLink}
-                className="px-2 py-1.5 bg-violet-100 dark:bg-violet-800/30 rounded-lg text-violet-700 dark:text-violet-400 hover:bg-violet-200 transition-colors"
+                className="px-2 py-1.5 bg-pink-100 dark:bg-pink-800/30 rounded-lg text-pink-700 dark:text-pink-400 hover:bg-pink-200 transition-colors"
               >
                 {copied ? <CheckCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
             </div>
-            <p className="text-[10px] text-violet-500 mt-1">
-              Expires: {bgvCheck.uploadLinkExpiresAt ? new Date(bgvCheck.uploadLinkExpiresAt).toLocaleDateString() : "7 days"}
+            <p className="text-[10px] text-pink-500 mt-1">
+              Expires: {bgvCheck.uploadLinkExpiresAt ? formatDate(new Date(bgvCheck.uploadLinkExpiresAt)) : "7 days"}
             </p>
           </div>
         )}
@@ -638,7 +639,7 @@ export function BgvDrawerView({
             className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ${
               uploadFile
                 ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-900/10"
-                : "border-gray-300 dark:border-zinc-600 hover:border-violet-400 dark:hover:border-violet-600 bg-white dark:bg-zinc-800/50"
+                : "border-gray-300 dark:border-zinc-600 hover:border-pink-400 dark:hover:border-pink-600 bg-white dark:bg-zinc-800/50"
             }`}
           >
             {uploadFile ? (
@@ -719,7 +720,7 @@ export function BgvDrawerView({
             <button
               onClick={handleUpload}
               disabled={!uploadFile || !piiConsent || isPending || scanningPii}
-              className="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-violet-500 hover:from-blue-600 hover:to-violet-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
             >
               {isPending || scanningPii ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -738,7 +739,7 @@ export function BgvDrawerView({
   if (isCompleted || isReviewed) {
     return (
       <div className="flex-1 overflow-y-auto pb-4">
-        <div className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/10 dark:to-teal-900/10 border-b border-emerald-100 dark:border-emerald-800/30">
+        <div className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-rose-50 dark:from-emerald-900/10 dark:to-rose-900/10 border-b border-emerald-100 dark:border-emerald-800/30">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-emerald-600" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">BGV Report Ready</h3>
@@ -805,7 +806,7 @@ export function BgvDrawerView({
         {/* View Full Report */}
         {bgvCheck.reportUrl && (
           <div className="px-4 mt-3">
-            <button className="flex items-center gap-2 text-xs text-violet-600 dark:text-violet-400 hover:underline">
+            <button className="flex items-center gap-2 text-xs text-pink-600 dark:text-pink-400 hover:underline">
               <ExternalLink className="w-3.5 h-3.5" /> View Full Report PDF
             </button>
           </div>
@@ -820,7 +821,7 @@ export function BgvDrawerView({
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
                 placeholder="Add notes about this BGV review..."
-                className="mt-1 w-full px-3 py-2 text-xs bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg resize-none h-16 focus:ring-2 focus:ring-violet-500"
+                className="mt-1 w-full px-3 py-2 text-xs bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg resize-none h-16 focus:ring-2 focus:ring-pink-500"
               />
             </div>
 
@@ -829,7 +830,7 @@ export function BgvDrawerView({
               <button
                 onClick={() => handleReview("CLEAR")}
                 disabled={isPending}
-                className="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 transition-all duration-200 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-rose-500 hover:from-emerald-600 hover:to-rose-600 disabled:opacity-50 transition-all duration-200 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
               >
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <>✅ Clear — Proceed</>}
               </button>
@@ -895,7 +896,7 @@ export function BgvDrawerView({
               {daysLeft} day{daysLeft !== 1 ? "s" : ""} remaining
             </div>
             <p className="text-[10px] text-amber-600 mt-1">
-              Candidate may dispute findings until {disputeDeadline?.toLocaleDateString()}
+              Candidate may dispute findings until {disputeDeadline ? formatDate(disputeDeadline) : ""}
             </p>
           </div>
         )}
@@ -908,7 +909,7 @@ export function BgvDrawerView({
               <span className="text-xs font-bold text-red-700 dark:text-red-400">Adverse Action Confirmed</span>
             </div>
             <p className="text-[10px] text-red-600 mt-1">
-              Confirmed: {bgvCheck.adverseAt ? new Date(bgvCheck.adverseAt).toLocaleDateString() : ""}
+              Confirmed: {bgvCheck.adverseAt ? formatDate(new Date(bgvCheck.adverseAt)) : ""}
             </p>
           </div>
         )}
@@ -942,7 +943,7 @@ export function BgvDrawerView({
                 ? "text-gray-400 bg-gray-100 dark:bg-zinc-800 border-2 border-gray-200 dark:border-zinc-700 cursor-not-allowed"
                 : "text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/20"
             }`}
-            title={isDisputeActive ? `Locked until ${disputeDeadline?.toLocaleDateString()} (FCRA dispute period)` : undefined}
+            title={isDisputeActive ? `Locked until ${disputeDeadline ? formatDate(disputeDeadline) : ""} (FCRA dispute period)` : undefined}
           >
             {isDisputeActive ? (
               <>

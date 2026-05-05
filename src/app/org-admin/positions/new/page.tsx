@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { getCallerPermissions } from "@/lib/rbac"
-import NewPositionForm from "./NewPositionForm"
+import PositionForm from "../components/PositionForm"
+import { createPosition } from "./actions"
 
 export const metadata = {
   title: "Post New Position | IQMela",
@@ -23,5 +24,11 @@ export default async function NewPositionPage() {
     orderBy: { name: "asc" },
   })
 
-  return <NewPositionForm departments={departments} />
+  return (
+    <PositionForm
+      mode="create"
+      departments={departments}
+      serverAction={createPosition}
+    />
+  )
 }

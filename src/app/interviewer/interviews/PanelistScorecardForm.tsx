@@ -11,7 +11,7 @@ const DIMENSIONS = [
     label: "Technical",
     sublabel: "Depth & accuracy of knowledge",
     icon: "⚙️",
-    color: "from-blue-500 to-indigo-600",
+    color: "from-blue-500 to-rose-600",
     trackColor: "bg-blue-500",
   },
   {
@@ -19,16 +19,16 @@ const DIMENSIONS = [
     label: "Communication",
     sublabel: "Clarity, listening & articulation",
     icon: "💬",
-    color: "from-teal-500 to-emerald-600",
-    trackColor: "bg-teal-500",
+    color: "from-rose-500 to-emerald-600",
+    trackColor: "bg-rose-500",
   },
   {
     key: "problemSolvingScore" as const,
     label: "Problem Solving",
     sublabel: "Reasoning, creativity & approach",
     icon: "🧩",
-    color: "from-violet-500 to-purple-600",
-    trackColor: "bg-violet-500",
+    color: "from-pink-500 to-purple-600",
+    trackColor: "bg-pink-500",
   },
   {
     key: "cultureFitScore" as const,
@@ -53,9 +53,9 @@ const RECOMMENDATIONS: { id: Rec; label: string; emoji: string; color: string; b
     id: "HIRE",
     label: "Hire",
     emoji: "✅",
-    color: "text-teal-700 dark:text-teal-300",
-    bg: "bg-teal-50 dark:bg-teal-900/30",
-    border: "border-teal-400 dark:border-teal-600",
+    color: "text-rose-700 dark:text-rose-300",
+    bg: "bg-rose-50 dark:bg-rose-900/30",
+    border: "border-rose-400 dark:border-rose-600",
   },
   {
     id: "NO_HIRE",
@@ -160,7 +160,7 @@ export function PanelistScorecardForm({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
         <div className="relative bg-white dark:bg-zinc-950 rounded-3xl shadow-2xl w-full max-w-md p-10 text-center border border-gray-100 dark:border-zinc-800 animate-in zoom-in-90 duration-300">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-4xl shadow-lg shadow-emerald-500/20">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-400 to-rose-600 flex items-center justify-center text-4xl shadow-lg shadow-emerald-500/20">
             ✓
           </div>
           <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Scorecard Locked</h2>
@@ -189,7 +189,7 @@ export function PanelistScorecardForm({
         {/* ── Header ── */}
         <div className="sticky top-0 z-10 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-gray-100 dark:border-zinc-800 px-6 py-4 flex items-start justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-violet-500 mb-0.5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-pink-500 mb-0.5">
               {stageLabel || "Interview Evaluation"}
             </p>
             <h2 className="text-lg font-extrabold text-gray-900 dark:text-white leading-tight">{candidateName}</h2>
@@ -296,7 +296,7 @@ export function PanelistScorecardForm({
               <textarea
                 value={summary} onChange={(e) => setSummary(e.target.value)} rows={3}
                 placeholder="Overall impression — what stood out most in this interview?"
-                className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition-shadow resize-none dark:text-white placeholder:text-gray-400"
+                className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 transition-shadow resize-none dark:text-white placeholder:text-gray-400"
               />
             </div>
 
@@ -359,7 +359,7 @@ export function PanelistScorecardForm({
             type="button"
             onClick={handleSubmit}
             disabled={isPending || !recommendation || !summary.trim()}
-            className="w-full h-14 rounded-2xl text-sm font-extrabold bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+            className="w-full h-14 rounded-2xl text-sm font-extrabold bg-gradient-to-r from-pink-600 to-rose-600 text-white hover:from-pink-700 hover:to-rose-700 shadow-lg shadow-pink-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
           >
             {isPending ? (
               <>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IQMela — Website Theme Logo Variations</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Inter, sans-serif; background: #F5F5F5; padding: 40px; }
+    h1 { font-size: 28px; font-weight: 800; color: #18181B; margin-bottom: 4px; }
+    .sub { color: #71717A; font-size: 14px; margin-bottom: 12px; }
+    .palette-note {
+      background: white; border-radius: 12px; padding: 16px 20px;
+      border: 1px solid #E4E4E7; margin-bottom: 40px; font-size: 13px; color: #52525B;
+      line-height: 1.6;
+    }
+    .palette-note code { background: #F4F4F5; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .section { margin-bottom: 56px; }
+    .section h2 {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: #A1A1AA; margin-bottom: 6px;
+    }
+    .section .desc {
+      font-size: 13px; color: #71717A; margin-bottom: 16px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .card {
+      background: white; border-radius: 16px; padding: 32px;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; border: 1px solid #E4E4E7;
+      position: relative; min-height: 280px;
+    }
+    .card.dark { background: #09090B; border-color: #27272A; }
+    .card img { max-width: 100%; max-height: 220px; }
+    .card .label {
+      position: absolute; bottom: 12px; left: 16px;
+      font-size: 11px; font-weight: 600; color: #A1A1AA;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .card.dark .label { color: #52525B; }
+    .colors { display: flex; gap: 8px; margin-top: 12px; }
+    .swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); }
+    .color-label { font-size: 10px; color: #A1A1AA; text-align: center; margin-top: 4px; font-weight: 600; }
+    .swatch-group { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  </style>
+</head>
+<body>
+  <h1>IQMela — Website Theme Logo Variations</h1>
+  <p class="sub">Colors matched to your actual website palette</p>
+
+  <div class="palette-note">
+    <strong>Website Color Palette (extracted from your codebase):</strong><br>
+    Primary: <code>#6366F1</code> Indigo-500 · 
+    Secondary: <code>#818CF8</code> Indigo-400 · 
+    Accent: <code>#8B5CF6</code> Violet-500 · 
+    Gradient end: <code>#C084FC</code> Purple-400 · 
+    Highlight: <code>#F472B6</code> Pink-400 · 
+    Success: <code>#10B981</code> / <code>#22C55E</code> Emerald · 
+    Sidebar teal: <code>#14B8A6</code> Teal-500
+  </div>
+
+  <!-- Theme 1 -->
+  <div class="section">
+    <h2>Theme 1 — Gradient Palette (Indigo · Violet · Pink)</h2>
+    <p class="desc">Uses the exact gradient from your hero sections and CTAs</p>
+    <div class="grid">
+      <div class="card">
+        <img src="iqm-icon-theme1-indigo-violet-pink.svg" alt="Theme 1">
+        <div class="colors">
+          <div class="swatch-group"><div class="swatch" style="background:#6366F1"></div><div class="color-label">I</div></div>
+          <div class="swatch-group"><div class="swatch" style="background:#8B5CF6"></div><div class="color-label">Q</div></div>
+          <div class="swatch-group"><div class="swatch" style="background:#F472B6"></div><div class="color-label">M</div></div>
+        </div>
+        <span class="label">Light BG</span>
+      </div>
+      <div class="card dark">
+        <img src="iqm-icon-theme1-indigo-violet-pink.svg" alt="Theme 1 Dark">
+        <span class="label">Dark BG (#09090b)</span>
+      </div>
+      <div class="card" style="min-height:350px">
+        <img src="iqm-lockup-theme1.svg" alt="Theme 1 Lockup">
+        <span class="label">Lockup</span>
+      </div>
+      <div class="card dark" style="min-height:350px">
+        <img src="iqm-lockup-theme1.svg" alt="Theme 1 Lockup Dark">
+        <span class="label">Lockup · Dark</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theme 2 -->
+  <div class="section">
+    <h2>Theme 2 — Intelligence + Success (Indigo · Emerald · Violet)</h2>
+    <p class="desc">Matches the hiring intelligence (indigo) + success green from status pills</p>
+    <div class="grid">
+      <div class="card">
+        <img src="iqm-icon-theme2-indigo-emerald-violet.svg" alt="Theme 2">
+        <div class="colors">
+          <div class="swatch-group"><div class="swatch" style="background:#6366F1"></div><div class="color-label">I</div></div>
+          <div class="swatch-group"><div class="swatch" style="background:#10B981"></div><div class="color-label">Q</div></div>
+          <div class="swatch-group"><div class="swatch" style="background:#8B5CF6"></div><div class="color-label">M</div></div>
+        </div>
+        <span class="label">Light BG</span>
+      </div>
+      <div class="card dark">
+        <img src="iqm-icon-theme2-indigo-emerald-violet.svg" alt="Theme 2 Dark">
+        <span class="label">Dark BG (#09090b)</span>
+      </div>
+      <div class="card" style="min-height:350px">
+        <img src="iqm-lockup-theme2.svg" alt="Theme 2 Lockup">
+        <span class="label">Lockup</span>
+      </div>
+      <div class="card dark" style="min-height:350px">
+        <img src="iqm-lockup-theme2.svg" alt="Theme 2 Lockup Dark">
+        <span class="label">Lockup · Dark</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theme 3 -->
+  <div class="section">
+    <h2>Theme 3 — Monochrome Purple (Light Indigo · Indigo · Lilac)</h2>
+    <p class="desc">Single-family purple spectrum — most premium and cohesive</p>
+    <div class="grid">
+      <div class="card">
+        <img src="iqm-icon-theme3-mono-purple.svg" alt="Theme 3">
+        <div class="colors">
+          <div class="swatch-group"><div class="swatch" style="background:#818CF8"></div><div class="color-label">I</div></div>
+          <div class="swatch-group"><div class="swatch" style="background:#6366F1"></div><div class="color-label">Q</div></div>
+          <div class="swatch-group"><div class="swatch" style="background:#C084FC"></div><div class="color-label">M</div></div>
+        </div>
+        <span class="label">Light BG</span>
+      </div>
+      <div class="card dark">
+        <img src="iqm-icon-theme3-mono-purple.svg" alt="Theme 3 Dark">
+        <span class="label">Dark BG (#09090b)</span>
+      </div>
+      <div class="card" style="min-height:350px">
+        <img src="iqm-lockup-theme3.svg" alt="Theme 3 Lockup">
+        <span class="label">Lockup</span>
+      </div>
+      <div class="card dark" style="min-height:350px">
+        <img src="iqm-lockup-theme3.svg" alt="Theme 3 Lockup Dark">
+        <span class="label">Lockup · Dark</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theme 4 -->
+  <div class="section">
+    <h2>Theme 4 — Admin Sidebar (Indigo · Teal · Amber)</h2>
+    <p class="desc">Matches the teal + indigo from admin sidebar, warm amber accent</p>
+    <div class="grid">
+      <div class="card">
+        <img src="iqm-icon-theme4-indigo-teal-amber.svg" alt="Theme 4">
+        <div class="colors">
+          <div class="swatch-group"><div class="swatch" style="background:#6366F1"></div><div class="color-label">I</div></div>
+          <div class="swatch-group"><div class="swatch" style="background:#14B8A6"></div><div class="color-label">Q</div></div>
+          <div class="swatch-group"><div class="swatch" style="background:#FBBF24"></div><div class="color-label">M</div></div>
+        </div>
+        <span class="label">Light BG</span>
+      </div>
+      <div class="card dark">
+        <img src="iqm-icon-theme4-indigo-teal-amber.svg" alt="Theme 4 Dark">
+        <span class="label">Dark BG (#09090b)</span>
+      </div>
+      <div class="card" style="min-height:350px">
+        <img src="iqm-lockup-theme4.svg" alt="Theme 4 Lockup">
+        <span class="label">Lockup</span>
+      </div>
+      <div class="card dark" style="min-height:350px">
+        <img src="iqm-lockup-theme4.svg" alt="Theme 4 Lockup Dark">
+        <span class="label">Lockup · Dark</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

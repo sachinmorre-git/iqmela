@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!--
+    IQMela — IQM Monogram (Website Theme v3)
+    Light Indigo I · Indigo Q · Lilac/Purple M
+    Monochrome purple family — premium SaaS feel
+  -->
+  <!-- M — Lilac peaks (behind Q) -->
+  <path d="M 150 420 L 150 100 L 270 240 L 390 60 L 390 420 L 340 420 L 340 190 L 270 300 L 200 190 L 200 420 Z" fill="#C084FC"/>
+  <!-- Q — Indigo ring (primary brand) -->
+  <circle cx="270" cy="275" r="138" fill="#6366F1"/>
+  <circle cx="270" cy="275" r="78" fill="white"/>
+  <!-- Q tail -->
+  <path d="M 350 365 L 430 445 L 400 475 L 320 395 Z" fill="#6366F1"/>
+  <!-- I — Light indigo bar -->
+  <rect x="40" y="80" width="40" height="350" rx="20" fill="#818CF8"/>
+</svg>

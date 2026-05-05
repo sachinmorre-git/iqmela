@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { formatDate } from "@/lib/locale-utils"
 
 interface Props {
   countsByDate: Record<string, number>;
@@ -11,9 +12,9 @@ const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 function getCellColor(count: number): string {
   if (count === 0) return "bg-zinc-900 border-zinc-800";
-  if (count === 1) return "bg-indigo-900/60 border-indigo-700/40";
-  if (count === 2) return "bg-indigo-700/70 border-indigo-600/50";
-  return                  "bg-indigo-500 border-indigo-400/60";
+  if (count === 1) return "bg-rose-900/60 border-rose-700/40";
+  if (count === 2) return "bg-rose-700/70 border-rose-600/50";
+  return                  "bg-rose-500 border-rose-400/60";
 }
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
@@ -44,7 +45,7 @@ export function ActivityHeatmap({ countsByDate, startDate }: Props) {
   const months = useMemo(() => {
     const seen = new Set<string>();
     return weeks.map((wk) => {
-      const lbl = wk[0].date.toLocaleDateString("en-US", { month: "short" });
+      const lbl = formatDate(wk[0].date, { style: "short" }).split(" ")[0];
       if (seen.has(lbl)) return "";
       seen.add(lbl);
       return lbl;

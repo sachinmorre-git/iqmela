@@ -88,7 +88,7 @@ export function AiQuestionBankPanel({
     <Card className="border-gray-100 dark:border-zinc-800 shadow-sm mt-4">
       <CardHeader className="pb-3 pt-5 px-6 border-b border-gray-100 dark:border-zinc-800/60 sticky top-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur z-10 flex flex-row items-start justify-between">
         <div>
-          <CardTitle className="text-sm font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
+          <CardTitle className="text-sm font-bold uppercase tracking-widest text-rose-600 dark:text-rose-400 flex items-center gap-2">
              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
              AI Question Bank
           </CardTitle>
@@ -97,15 +97,15 @@ export function AiQuestionBankPanel({
           </p>
         </div>
         <div className="flex gap-3">
-           <div className="text-xs font-semibold px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+           <div className="text-xs font-semibold px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
              {totalApproved} Approved
            </div>
            {questions.length === 0 ? (
-             <Button size="sm" onClick={handleGenerate} disabled={isPending} className="bg-indigo-600 hover:bg-indigo-500 transition-all font-bold">
+             <Button size="sm" onClick={handleGenerate} disabled={isPending} className="bg-rose-600 hover:bg-rose-500 transition-all font-bold">
                 {isPending ? "Generating..." : "Generate from JD"}
              </Button>
            ) : (
-            <Button size="sm" onClick={handleGenerate} disabled={isPending} variant="outline" className="font-bold border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20">
+            <Button size="sm" onClick={handleGenerate} disabled={isPending} variant="outline" className="font-bold border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20">
                 {isPending ? "Regenerating..." : "Regenerate All"}
              </Button>
            )}
@@ -121,8 +121,8 @@ export function AiQuestionBankPanel({
 
         {questions.length === 0 && !isPending && !error ? (
           <div className="p-16 text-center border-b border-gray-100 dark:border-zinc-800 last:border-0 bg-gray-50/30 dark:bg-zinc-900/10">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mx-auto mb-3">
-               <svg className="text-indigo-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center mx-auto mb-3">
+               <svg className="text-rose-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
             </div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">Your Question Bank is empty</p>
             <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">Click "Generate from JD" to automatically build a foundational set of technical and behavioral questions tailored to this position.</p>
@@ -158,7 +158,7 @@ export function AiQuestionBankPanel({
                      value={q.questionText}
                      onChange={(e) => handleTextEdit(q.id, e.target.value)}
                      onBlur={(e) => saveTextEdit(q.id, e.target.value)}
-                     className={`flex min-h-[60px] w-full rounded-md border text-base shadow-sm px-3 pt-2 resize-none text-sm font-semibold transition-colors focus:ring-1 focus:ring-indigo-500 focus:outline-none ${
+                     className={`flex min-h-[60px] w-full rounded-md border text-base shadow-sm px-3 pt-2 resize-none text-sm font-semibold transition-colors focus:ring-1 focus:ring-rose-500 focus:outline-none ${
                        q.isApproved 
                          ? 'text-gray-900 dark:text-white border-transparent hover:border-gray-200 dark:hover:border-zinc-700 bg-transparent' 
                          : 'text-gray-600 dark:text-gray-300 border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950'

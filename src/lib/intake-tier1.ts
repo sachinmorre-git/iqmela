@@ -25,6 +25,8 @@ export interface Tier1Input {
   // Knockout answers from job board
   knockoutAnswers?: Record<string, string | number | boolean> | null;
   knockoutConfig?: KnockoutQuestion[] | null;
+  // Configurable threshold (from Position.tier1PassThreshold)
+  passThreshold?: number;
 }
 
 export interface KnockoutQuestion {
@@ -44,7 +46,7 @@ export interface Tier1Result {
   matchedPreferredSkills: string[];
 }
 
-const TIER1_PASS_THRESHOLD = 35; // Minimum score to advance to Tier 2
+const DEFAULT_PASS_THRESHOLD = 35;
 
 /**
  * Runs Tier 1 rules-based filtering on a single candidate.
@@ -53,6 +55,7 @@ const TIER1_PASS_THRESHOLD = 35; // Minimum score to advance to Tier 2
 export function runTier1Filter(input: Tier1Input): Tier1Result {
   const reasons: string[] = [];
   let totalScore = 0;
+  const threshold = input.passThreshold ?? DEFAULT_PASS_THRESHOLD;
 
   const resumeLower = input.resumeText.toLowerCase();
 
@@ -139,10 +142,9 @@ export function runTier1Filter(input: Tier1Input): Tier1Result {
     reasons.push("Remote position — location match automatic (+15)");
   } else if (input.location) {
     const locationLower = input.location.toLowerCase();
-    const locationParts = locationLower.split(/[,\s]+/).filter(Boolean);
-    const locationMatch = locationParts.some((part) =>
-      resumeLower.includes(part)
-    );
+    // Expand location with aliases
+    const locationTerms = expandLocationAliases(locationLower);
+    const locationMatch = locationTerms.some((term) => resumeLower.includes(term));
     if (locationMatch) {
       totalScore += 15;
       reasons.push(`Location match: ${input.location} (+15)`);
@@ -175,7 +177,8 @@ export function runTier1Filter(input: Tier1Input): Tier1Result {
   }
 
   // ── Final Verdict ─────────────────────────────────────────────────────────
-  const pass = totalScore >= TIER1_PASS_THRESHOLD;
+  const pass = totalScore >= threshold;
+  reasons.push(`Threshold: ${threshold}/100 — ${pass ? "PASS" : "FAIL"}`);
 
   return {
     pass,
@@ -202,13 +205,42 @@ function extractExperienceYears(text: string): number | null {
     /over\s*(\d{1,2})\s*(?:years?|yrs?)/i,
     // "10-year career"
     /(\d{1,2})\s*-?\s*year\s*career/i,
+    // "worked for X years" / "working for X years"
+    /(?:worked|working)\s+(?:for\s+)?(\d{1,2})\+?\s*(?:years?|yrs?)/i,
+    // "X years in the industry" / "X years in software"
+    /(\d{1,2})\+?\s*(?:years?|yrs?)\s*(?:in\s+(?:the\s+)?(?:industry|field|sector|software|technology|engineering|development|IT))/i,
+    // "a decade of experience" / "more than a decade"
+    /(?:more\s+than\s+)?(?:a|one)\s*decade/i,
+    // "half a decade"
+    /half\s+a\s+decade/i,
+    // "X+ years" at the start of a line or sentence
+    /(?:^|\.\s+)(\d{1,2})\+?\s*(?:years?|yrs?)\s/im,
+    // "experienced since 2014"
+    /(?:experienced?|working|career)\s+since\s+(\d{4})/i,
   ];
 
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match && match[1]) {
-      const years = parseInt(match[1], 10);
-      if (years >= 0 && years <= 50) return years;
+    if (match) {
+      // Handle "a decade" / "half a decade"
+      if (pattern.source.includes("decade") && !pattern.source.includes("half")) {
+        return 10;
+      }
+      if (pattern.source.includes("half.*decade") || pattern.source.includes("half\\s+a\\s+decade")) {
+        return 5;
+      }
+      // Handle "since YYYY"
+      if (pattern.source.includes("since") && match[1]) {
+        const sinceYear = parseInt(match[1], 10);
+        const currentYear = new Date().getFullYear();
+        const years = currentYear - sinceYear;
+        if (years >= 0 && years <= 50) return years;
+      }
+      // Standard numeric extraction
+      if (match[1]) {
+        const years = parseInt(match[1], 10);
+        if (years >= 0 && years <= 50) return years;
+      }
     }
   }
 
@@ -224,41 +256,145 @@ function extractExperienceYears(text: string): number | null {
 }
 
 /**
+ * Expands a location string into all known aliases.
+ * e.g., "new york" → ["new york", "nyc", "manhattan", "ny"]
+ */
+function expandLocationAliases(location: string): string[] {
+  const terms = [location];
+  // Split compound locations ("New York, NY") into parts
+  const parts = location.split(/[,\s]+/).filter(Boolean);
+  terms.push(...parts);
+
+  const aliasMap: Record<string, string[]> = {
+    "new york": ["new york", "nyc", "manhattan", "brooklyn", "queens", "ny"],
+    "san francisco": ["san francisco", "sf", "bay area", "silicon valley"],
+    "los angeles": ["los angeles", "la", "socal", "southern california"],
+    chicago: ["chicago", "chicagoland"],
+    seattle: ["seattle", "bellevue", "puget sound"],
+    boston: ["boston", "cambridge", "somerville"],
+    austin: ["austin", "atx"],
+    denver: ["denver", "boulder", "front range"],
+    dallas: ["dallas", "dfw", "fort worth", "plano"],
+    houston: ["houston", "htx"],
+    atlanta: ["atlanta", "atl"],
+    portland: ["portland", "pdx"],
+    miami: ["miami", "south florida", "ft lauderdale"],
+    dc: ["dc", "washington dc", "washington d.c.", "dmv", "arlington", "nova"],
+    "washington dc": ["washington dc", "washington d.c.", "dc", "dmv", "arlington"],
+    bangalore: ["bangalore", "bengaluru"],
+    mumbai: ["mumbai", "bombay"],
+    hyderabad: ["hyderabad", "hyd"],
+    london: ["london", "greater london"],
+    toronto: ["toronto", "gta"],
+    // State abbreviations
+    california: ["california", "ca"],
+    texas: ["texas", "tx"],
+    florida: ["florida", "fl"],
+    illinois: ["illinois", "il"],
+    pennsylvania: ["pennsylvania", "pa"],
+    "north carolina": ["north carolina", "nc"],
+    virginia: ["virginia", "va"],
+    georgia: ["georgia", "ga"],
+    ohio: ["ohio", "oh"],
+    massachusetts: ["massachusetts", "ma"],
+  };
+
+  for (const [key, aliases] of Object.entries(aliasMap)) {
+    if (location.includes(key) || parts.some((p) => p === key)) {
+      for (const alias of aliases) {
+        if (!terms.includes(alias)) terms.push(alias);
+      }
+    }
+  }
+
+  return terms;
+}
+
+/**
  * Returns common variations of a skill name for fuzzy matching.
- * e.g., "javascript" → ["javascript", "js", "node.js", "nodejs"]
+ * e.g., "javascript" → ["javascript", "js", "ecmascript"]
  */
 function getSkillVariations(skill: string): string[] {
   const variations: string[] = [skill];
 
   const aliasMap: Record<string, string[]> = {
+    // Languages
     javascript: ["javascript", "js", "ecmascript"],
     typescript: ["typescript", "ts"],
     python: ["python", "py"],
-    react: ["react", "reactjs", "react.js"],
-    "node.js": ["node.js", "nodejs", "node"],
-    angular: ["angular", "angularjs"],
-    vue: ["vue", "vuejs", "vue.js"],
-    aws: ["aws", "amazon web services"],
-    gcp: ["gcp", "google cloud"],
-    azure: ["azure", "microsoft azure"],
-    docker: ["docker", "containerization"],
-    kubernetes: ["kubernetes", "k8s"],
-    sql: ["sql", "mysql", "postgresql", "postgres", "mssql"],
-    nosql: ["nosql", "mongodb", "dynamodb", "cassandra"],
     java: ["java", "jvm"],
-    "c#": ["c#", "csharp", "c-sharp", ".net"],
+    "c#": ["c#", "csharp", "c-sharp", ".net", "dotnet"],
     "c++": ["c++", "cpp"],
-    go: ["golang", "go lang"],
+    go: ["golang", "go lang", "go"],
     rust: ["rust", "rust-lang"],
     ruby: ["ruby", "rails", "ruby on rails"],
-    php: ["php", "laravel"],
-    swift: ["swift", "ios"],
+    php: ["php", "laravel", "symfony"],
+    swift: ["swift", "ios", "swiftui"],
     kotlin: ["kotlin", "android"],
-    "machine learning": ["machine learning", "ml", "deep learning", "ai"],
-    devops: ["devops", "ci/cd", "cicd"],
-    agile: ["agile", "scrum", "kanban"],
+    scala: ["scala", "akka"],
+    r: ["r language", "r programming", "rstudio"],
+    // Frontend frameworks
+    react: ["react", "reactjs", "react.js", "next.js", "nextjs"],
+    angular: ["angular", "angularjs", "angular.js"],
+    vue: ["vue", "vuejs", "vue.js", "nuxt"],
+    svelte: ["svelte", "sveltekit"],
+    // Backend / Runtime
+    "node.js": ["node.js", "nodejs", "node", "express", "expressjs"],
+    django: ["django", "drf"],
+    flask: ["flask"],
+    "spring boot": ["spring boot", "spring", "springboot"],
+    fastapi: ["fastapi", "fast api"],
+    // Cloud
+    aws: ["aws", "amazon web services", "ec2", "s3", "lambda"],
+    gcp: ["gcp", "google cloud", "google cloud platform", "bigquery"],
+    azure: ["azure", "microsoft azure"],
+    // DevOps / Infra
+    docker: ["docker", "containerization", "containers"],
+    kubernetes: ["kubernetes", "k8s", "helm"],
+    terraform: ["terraform", "tf", "iac", "infrastructure as code"],
+    ansible: ["ansible", "playbook"],
+    jenkins: ["jenkins", "ci/cd pipeline"],
+    // Databases
+    sql: ["sql", "mysql", "postgresql", "postgres", "mssql", "sql server"],
+    nosql: ["nosql", "mongodb", "dynamodb", "cassandra", "couchdb"],
+    redis: ["redis", "elasticache"],
+    elasticsearch: ["elasticsearch", "elastic search", "elk", "opensearch"],
+    // Data
+    spark: ["spark", "pyspark", "apache spark"],
+    kafka: ["kafka", "event streaming", "apache kafka"],
+    snowflake: ["snowflake"],
+    databricks: ["databricks"],
+    dbt: ["dbt", "data build tool"],
+    airflow: ["airflow", "apache airflow", "dag"],
+    tableau: ["tableau"],
+    "power bi": ["power bi", "powerbi"],
+    // AI / ML
+    "machine learning": ["machine learning", "ml", "deep learning", "ai", "artificial intelligence"],
+    tensorflow: ["tensorflow", "tf"],
+    pytorch: ["pytorch", "torch"],
+    nlp: ["nlp", "natural language processing", "llm", "large language model"],
+    "computer vision": ["computer vision", "cv", "image recognition", "object detection"],
+    // Methodologies
+    devops: ["devops", "ci/cd", "cicd", "continuous integration", "continuous deployment"],
+    agile: ["agile", "scrum", "kanban", "sprint"],
+    // Design
     figma: ["figma"],
-    "ui/ux": ["ui/ux", "ux", "ui", "user experience", "user interface"],
+    sketch: ["sketch"],
+    "ui/ux": ["ui/ux", "ux", "ui", "user experience", "user interface", "ux design", "ui design"],
+    // Testing
+    cypress: ["cypress"],
+    jest: ["jest"],
+    selenium: ["selenium", "webdriver"],
+    // Security
+    "information security": ["information security", "infosec", "cybersecurity", "cyber security"],
+    "penetration testing": ["penetration testing", "pentest", "pen test", "ethical hacking"],
+    soc2: ["soc2", "soc 2", "soc-2"],
+    // Other
+    graphql: ["graphql", "graph ql", "apollo"],
+    rest: ["rest", "restful", "rest api"],
+    grpc: ["grpc", "g-rpc", "protobuf"],
+    microservices: ["microservices", "micro services", "micro-services"],
+    blockchain: ["blockchain", "web3", "smart contracts", "solidity"],
   };
 
   if (aliasMap[skill]) {

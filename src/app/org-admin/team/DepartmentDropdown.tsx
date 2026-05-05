@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState, useRef, useEffect } from "react";
 import { Building2, ChevronDown, Check, Plus, Loader2, Search } from "lucide-react";
@@ -73,10 +74,10 @@ export function DepartmentDropdown({
       if (res.success) {
         window.location.reload();
       } else {
-        alert(res.error);
+        toast.error(res.error || "Operation failed");
       }
     } catch (e) {
-      alert("Failed to create department");
+      toast.error("Failed to create department");
     } finally {
       setIsCreating(false);
     }
@@ -99,7 +100,7 @@ export function DepartmentDropdown({
         }}
         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
           isOpen || selectedIds.length > 0
-            ? "bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300"
+            ? "bg-rose-50 dark:bg-rose-900/40 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300"
             : "border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800/50"
         } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       >
@@ -133,7 +134,7 @@ export function DepartmentDropdown({
                     handleCreate();
                   }
                 }}
-                className="w-full bg-gray-50 dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-lg pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400"
+                className="w-full bg-gray-50 dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-lg pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-400"
               />
             </div>
           </div>
@@ -151,13 +152,13 @@ export function DepartmentDropdown({
                       onClick={() => toggleDept(dept.id)}
                       className={`w-full flex items-center justify-between px-3 py-2 text-left text-xs rounded-lg transition-colors ${
                         isSelected
-                          ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"
+                          ? "bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300"
                           : "text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800/70"
                       }`}
                     >
                       <span className="truncate">{dept.name}</span>
                       {isSelected && (
-                        <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0 ml-2" />
+                        <Check className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0 ml-2" />
                       )}
                     </button>
                   );
@@ -177,7 +178,7 @@ export function DepartmentDropdown({
                 type="button"
                 onClick={handleCreate}
                 disabled={isCreating}
-                className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs font-semibold rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors disabled:opacity-50"
+                className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs font-semibold rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors disabled:opacity-50"
               >
                 {isCreating ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

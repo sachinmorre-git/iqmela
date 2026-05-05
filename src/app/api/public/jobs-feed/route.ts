@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import {
   buildCompliantJdText,
 } from "@/lib/compliance-constants";
+import { isIntakeOpen, intakeClosesAt } from "@/lib/intake-window";
 
 /**
  * GET /api/public/jobs-feed
@@ -36,13 +37,18 @@ export async function GET() {
         createdAt: true,
         updatedAt: true,
         organizationId: true,
+        isPublished: true,
+        intakeWindowDays: true,
       },
     });
+
+    // Filter out positions where intake window has closed
+    const activePositions = positions.filter((p) => isIntakeOpen(p));
 
     // Build XML feed
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.iqmela.com";
 
-    const jobEntries = positions
+    const jobEntries = activePositions
       .map((pos) => {
         const jdBody = pos.jdText || pos.description || "";
         const compliantJd = buildCompliantJdText(jdBody);
@@ -70,6 +76,9 @@ export async function GET() {
           }
         }
 
+        // Expiration date from intake window
+        const expirationDate = intakeClosesAt(pos).toISOString();
+
         return `  <job>
     <title><![CDATA[${pos.title}]]></title>
     <date><![CDATA[${pos.createdAt.toISOString()}]]></date>
@@ -80,6 +89,7 @@ export async function GET() {
     <description><![CDATA[${compliantJd}]]></description>
     <jobtype><![CDATA[${indeedJobType}]]></jobtype>
     ${salaryTag}
+    <expirationdate><![CDATA[${expirationDate}]]></expirationdate>
     ${pos.remotePolicy === "REMOTE" ? "<remotetype>COVID19</remotetype>" : ""}
   </job>`;
       })

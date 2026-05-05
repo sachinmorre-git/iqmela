@@ -5,7 +5,7 @@ export function SelectAllCheckbox() {
     <input
       type="checkbox"
       title="Select all actionable candidates"
-      className="w-4 h-4 rounded border-gray-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-600 dark:bg-zinc-800 cursor-pointer shadow-sm"
+      className="w-4 h-4 rounded border-gray-300 dark:border-zinc-700 text-rose-600 focus:ring-rose-600 dark:bg-zinc-800 cursor-pointer shadow-sm"
       onChange={(e) => {
         const form = e.target.closest('form')
         if (form) {

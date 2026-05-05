@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 
 import { useTransition } from "react"
 import { Button } from "@/components/ui/button"
@@ -17,7 +18,7 @@ export function RunAiExtractionButton({
     startTransition(async () => {
       const result = await runAiExtractionAction(resumeId)
       if (!result.success) {
-        alert(result.error)
+        toast.error(result.error || "Operation failed")
       }
     })
   }
@@ -27,7 +28,7 @@ export function RunAiExtractionButton({
       onClick={handleClick}
       disabled={isPending || disabled}
       size="sm"
-      className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm shadow-violet-500/30 border-0 transition-all rounded-lg"
+      className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white shadow-sm shadow-pink-500/30 border-0 transition-all rounded-lg"
     >
       {isPending ? (
         <>

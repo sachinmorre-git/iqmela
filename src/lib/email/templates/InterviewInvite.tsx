@@ -34,6 +34,10 @@ export const InterviewInviteTemplate: React.FC<InterviewInviteTemplateProps> = (
           your experience. Please click the button below to review your invitation and 
           schedule your interview session.
         </Text>
+
+        <Text style={note}>
+          <strong>Note:</strong> For the video interview, please ensure you use a recent version of Chrome, Edge, or Safari on a desktop or laptop computer.
+        </Text>
         
         <Section style={btnContainer}>
           <Button style={button} href={inviteLink}>
@@ -78,6 +82,17 @@ const paragraph = {
   lineHeight: "26px",
   color: "#475569",
   marginBottom: "20px",
+};
+
+const note = {
+  fontSize: "14px",
+  lineHeight: "22px",
+  color: "#64748b",
+  backgroundColor: "#f8fafc",
+  padding: "12px 16px",
+  borderRadius: "8px",
+  marginBottom: "20px",
+  borderLeft: "4px solid #4f46e5",
 };
 
 const btnContainer = {

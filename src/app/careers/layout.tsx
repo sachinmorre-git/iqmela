@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import "./careers-animations.css";
 
 export const metadata: Metadata = {
   title: "Careers | IQMela — Where AI Meets Opportunity",
@@ -16,23 +17,37 @@ export default function CareersLayout({
     <div
       style={{
         minHeight: "100vh",
-        background: "#09090b",
+        background: "#050507",
         color: "#fafafa",
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        fontFamily:
+          "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         display: "flex",
         flexDirection: "column",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      {/* ── Ambient Gradient Mesh ──────────────────────────────────────────── */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      >
+        <div className="ambient-orb ambient-orb-1" />
+        <div className="ambient-orb ambient-orb-2" />
+        <div className="ambient-orb ambient-orb-3" />
+      </div>
+
+      {/* ── Glassmorphic Header ────────────────────────────────────────────── */}
       <header
+        className="glass-header"
         style={{
           position: "sticky",
           top: 0,
           zIndex: 50,
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          background: "rgba(9,9,11,0.85)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
         }}
       >
         <div
@@ -46,35 +61,75 @@ export default function CareersLayout({
             justifyContent: "space-between",
           }}
         >
-          <Link href="/careers" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "20px", fontWeight: 900, letterSpacing: "-0.02em", color: "#fff" }}>
-              IQ<span style={{ color: "#818cf8" }}>Mela</span>
+          <Link
+            href="/careers"
+            style={{
+              textDecoration: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "22px",
+                fontWeight: 900,
+                letterSpacing: "-0.03em",
+                color: "#fff",
+              }}
+            >
+              IQ
+              <span
+                style={{
+                  background: "linear-gradient(135deg, #818cf8, #c084fc)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                Mela
+              </span>
             </span>
             <span
               style={{
                 fontSize: "11px",
                 fontWeight: 600,
                 color: "#52525b",
-                letterSpacing: "0.05em",
+                letterSpacing: "0.08em",
                 textTransform: "uppercase",
                 borderLeft: "1px solid rgba(255,255,255,0.1)",
                 paddingLeft: "10px",
-                marginLeft: "4px",
               }}
             >
               Careers
             </span>
           </Link>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+            <Link
+              href="/careers"
+              style={{
+                fontSize: "13px",
+                fontWeight: 500,
+                color: "#a1a1aa",
+                textDecoration: "none",
+                transition: "color 0.2s",
+              }}
+            >
+              Open Roles
+            </Link>
             <Link
               href="/sign-in"
               style={{
                 fontSize: "13px",
-                fontWeight: 500,
-                color: "#71717a",
+                fontWeight: 600,
+                color: "#fff",
                 textDecoration: "none",
-                transition: "color 0.2s",
+                padding: "8px 18px",
+                borderRadius: "10px",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                transition: "all 0.2s",
               }}
             >
               For Employers →
@@ -84,14 +139,19 @@ export default function CareersLayout({
       </header>
 
       {/* ── Main Content ───────────────────────────────────────────────────── */}
-      <main style={{ flex: 1 }}>{children}</main>
+      <main style={{ flex: 1, position: "relative", zIndex: 1 }}>
+        {children}
+      </main>
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer
+        className="dot-pattern"
         style={{
-          borderTop: "1px solid rgba(255,255,255,0.06)",
-          padding: "40px 24px",
+          borderTop: "1px solid rgba(255,255,255,0.04)",
+          padding: "60px 24px",
           textAlign: "center",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         <div
@@ -101,29 +161,86 @@ export default function CareersLayout({
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: "16px",
+            gap: "20px",
           }}
         >
-          <span style={{ fontSize: "16px", fontWeight: 900, color: "#fff" }}>
-            IQ<span style={{ color: "#818cf8" }}>Mela</span>
+          {/* Brand */}
+          <span
+            style={{
+              fontSize: "18px",
+              fontWeight: 900,
+              color: "#fff",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            IQ
+            <span
+              style={{
+                background: "linear-gradient(135deg, #818cf8, #c084fc)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              Mela
+            </span>
           </span>
-          <p style={{ fontSize: "13px", color: "#52525b", maxWidth: "420px", lineHeight: 1.6 }}>
-            The intelligent hiring platform. AI-powered interviews, structured scorecards,
-            and data-driven decisions.
+
+          <p
+            style={{
+              fontSize: "13px",
+              color: "#3f3f46",
+              maxWidth: "420px",
+              lineHeight: 1.7,
+            }}
+          >
+            The intelligent hiring platform. AI-powered interviews, structured
+            scorecards, and data-driven decisions.
           </p>
-          <div style={{ display: "flex", gap: "24px", fontSize: "12px" }}>
-            <Link href="/careers/privacy" style={{ color: "#71717a", textDecoration: "none" }}>
+
+          {/* Links */}
+          <div
+            style={{
+              display: "flex",
+              gap: "28px",
+              fontSize: "12px",
+            }}
+          >
+            <Link
+              href="/careers/privacy"
+              style={{
+                color: "#52525b",
+                textDecoration: "none",
+                transition: "color 0.2s",
+              }}
+            >
               Privacy Policy
             </Link>
-            <Link href="/legal/terms" style={{ color: "#71717a", textDecoration: "none" }}>
+            <Link
+              href="/legal/terms"
+              style={{
+                color: "#52525b",
+                textDecoration: "none",
+                transition: "color 0.2s",
+              }}
+            >
               Terms of Service
             </Link>
-            <Link href="/legal/cookies" style={{ color: "#71717a", textDecoration: "none" }}>
+            <Link
+              href="/legal/cookies"
+              style={{
+                color: "#52525b",
+                textDecoration: "none",
+                transition: "color 0.2s",
+              }}
+            >
               Cookies
             </Link>
           </div>
-          <p style={{ fontSize: "11px", color: "#3f3f46" }}>
-            © {new Date().getFullYear()} RelyOnAI LLP. IQMela™ is a product of RelyOnAI LLP. All rights reserved.
+
+          <p style={{ fontSize: "11px", color: "#27272a" }}>
+            © {new Date().getFullYear()} RelyOnAI LLP. IQMela™ is a product of
+            RelyOnAI LLP. All rights reserved.
           </p>
         </div>
       </footer>

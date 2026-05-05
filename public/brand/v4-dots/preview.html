@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IQMela — Particle Dot Logo Variations</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Inter, sans-serif; background: #F5F5F5; padding: 40px; }
+    h1 { font-size: 28px; font-weight: 800; color: #18181B; margin-bottom: 4px; }
+    .sub { color: #71717A; font-size: 14px; margin-bottom: 40px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 56px; }
+    .card {
+      background: white; border-radius: 20px; padding: 0;
+      border: 1px solid #E4E4E7; overflow: hidden;
+      position: relative;
+    }
+    .card-inner { padding: 40px 48px 32px; display: flex; align-items: center; justify-content: center; }
+    .card-inner.dark { background: #09090B; }
+    .card-inner svg { width: 100%; max-height: 300px; }
+    .card-footer {
+      padding: 16px 24px; border-top: 1px solid #F4F4F5;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .card-footer.dark-footer { border-color: #27272A; background: #18181B; }
+    .card-title { font-size: 13px; font-weight: 700; color: #3F3F46; text-transform: uppercase; letter-spacing: 1px; }
+    .card-footer.dark-footer .card-title { color: #71717A; }
+    .swatches { display: flex; gap: 6px; }
+    .sw { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.06); }
+    .btn-copy {
+      background: #F4F4F5; border: none; padding: 6px 14px; border-radius: 8px;
+      font-size: 11px; font-weight: 600; color: #52525B; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover { background: #E4E4E7; }
+    .btn-copy.copied { background: #10B981; color: white; }
+    .section-label {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: #A1A1AA; margin-bottom: 16px; margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>IQMela — Particle Dot Logo</h1>
+  <p class="sub">Dot-scatter monogram in your website theme colors · 4 palettes × light & dark</p>
+
+  <div class="section-label">On Light Background</div>
+  <div class="grid" id="light-grid"></div>
+
+  <div class="section-label">On Dark Background (#09090B)</div>
+  <div class="grid" id="dark-grid"></div>
+
+  <script>
+    // ── Seeded PRNG (Mulberry32) ──
+    function mulberry32(a) {
+      return function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    // ── Color palettes (website-themed) ──
+    const palettes = [
+      {
+        name: "Hero Gradient",
+        colors: ["#6366F1", "#8B5CF6", "#F472B6"],
+        desc: "Indigo → Violet → Pink"
+      },
+      {
+        name: "Intelligence + Success",
+        colors: ["#6366F1", "#10B981", "#8B5CF6"],
+        desc: "Indigo → Emerald → Violet"
+      },
+      {
+        name: "Classic Teal-Amber",
+        colors: ["#4F46E5", "#14B8A6", "#F59E0B"],
+        desc: "Deep Indigo → Teal → Amber"
+      },
+      {
+        name: "Mono Purple",
+        colors: ["#818CF8", "#6366F1", "#A78BFA"],
+        desc: "Light Indigo → Indigo → Lavender"
+      }
+    ];
+
+    // ── Generate dot positions for the IQM letters ──
+    function generateDots(seed, colors) {
+      const rand = mulberry32(seed);
+      const dots = [];
+      const [c1, c2, c3] = colors;
+
+      function addDot(cx, cy, r, fill, opacity) {
+        dots.push({ cx: +cx.toFixed(1), cy: +cy.toFixed(1), r: +r.toFixed(1), fill, opacity: +opacity.toFixed(2) });
+      }
+
+      // Scatter along a line segment
+      function scatterLine(x1, y1, x2, y2, n, color, spread, rMin, rMax) {
+        for (let i = 0; i < n; i++) {
+          const t = (i + rand() * 0.7) / n;
+          const bx = x1 + (x2 - x1) * t;
+          const by = y1 + (y2 - y1) * t;
+          addDot(
+            bx + (rand() - 0.5) * spread,
+            by + (rand() - 0.5) * spread,
+            rMin + rand() * (rMax - rMin),
+            color,
+            0.5 + rand() * 0.5
+          );
+        }
+      }
+
+      // Scatter along circular arc
+      function scatterArc(cx, cy, radius, startA, endA, n, color, spread, rMin, rMax) {
+        for (let i = 0; i < n; i++) {
+          const t = (i + rand() * 0.5) / n;
+          const angle = startA + (endA - startA) * t;
+          const r = radius + (rand() - 0.5) * spread;
+          addDot(
+            cx + r * Math.cos(angle),
+            cy + r * Math.sin(angle),
+            rMin + rand() * (rMax - rMin),
+            color,
+            0.5 + rand() * 0.5
+          );
+        }
+      }
+
+      // Particle scatter (floating dots)
+      function scatter(cx, cy, rangeX, rangeY, n, color) {
+        for (let i = 0; i < n; i++) {
+          addDot(
+            cx + (rand() - 0.5) * rangeX,
+            cy + (rand() - 0.5) * rangeY,
+            1.5 + rand() * 3,
+            color,
+            0.12 + rand() * 0.25
+          );
+        }
+      }
+
+      // ═══ I LETTER ═══
+      scatterLine(55, 22, 55, 268, 32, c1, 24, 3, 7.5);
+      // Serifs / emphasis at top and bottom
+      scatterLine(35, 25, 75, 25, 6, c1, 10, 2.5, 5);
+      scatterLine(35, 265, 75, 265, 6, c1, 10, 2.5, 5);
+      scatter(55, 145, 55, 260, 10, c1);
+
+      // ═══ Q LETTER ═══
+      const qx = 195, qy = 148, qr = 92;
+      // Outer ring
+      scatterArc(qx, qy, qr, 0, Math.PI * 2, 52, c2, 26, 3, 7);
+      // Inner ring (for thickness)
+      scatterArc(qx, qy, qr - 22, 0, Math.PI * 2, 28, c2, 18, 2.5, 5.5);
+      // Q tail — diagonal
+      scatterLine(qx + 52, qy + 58, qx + 115, qy + 118, 12, c2, 15, 3, 6.5);
+      scatter(qx, qy, 220, 240, 12, c2);
+
+      // ═══ M LETTER ═══
+      const mx = 348;
+      // Left outer leg
+      scatterLine(mx, 268, mx, 22, 30, c3, 22, 3, 7);
+      // Left diagonal down to valley
+      scatterLine(mx + 8, 28, mx + 92, 170, 24, c3, 20, 3, 6.5);
+      // Right diagonal up from valley
+      scatterLine(mx + 92, 170, mx + 178, 28, 24, c3, 20, 3, 6.5);
+      // Right outer leg
+      scatterLine(mx + 178, 22, mx + 178, 268, 30, c3, 22, 3, 7);
+      // Extra emphasis at peaks
+      scatterLine(mx - 5, 22, mx + 20, 22, 5, c3, 12, 2, 4.5);
+      scatterLine(mx + 160, 22, mx + 185, 22, 5, c3, 12, 2, 4.5);
+      scatter(mx + 89, 145, 190, 260, 14, c3);
+
+      // ═══ Bridge dots (color blending between letters) ═══
+      scatterLine(80, 100, 110, 160, 5, c1, 25, 2, 4);
+      scatterLine(95, 180, 120, 120, 4, c2, 22, 2, 4);
+      scatterLine(280, 120, 310, 180, 5, c2, 22, 2, 4);
+      scatterLine(295, 160, 325, 100, 4, c3, 20, 2, 4);
+
+      return dots;
+    }
+
+    // ── Build SVG string ──
+    function buildSVG(dots, colors, darkBg) {
+      const [c1, c2, c3] = colors;
+      const bg = darkBg ? '#09090B' : 'none';
+      const textColor = darkBg ? '#FAFAFA' : '#1E1E1E';
+      const elaColor = darkBg ? '#A1A1AA' : '#52525B';
+
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 350" fill="none">`;
+      if (darkBg) svg += `<rect width="580" height="350" fill="${bg}" rx="0"/>`;
+
+      // Sort smaller dots first (depth)
+      const sorted = [...dots].sort((a, b) => a.r - b.r);
+      sorted.forEach(d => {
+        svg += `<circle cx="${d.cx}" cy="${d.cy}" r="${d.r}" fill="${d.fill}" fill-opacity="${d.opacity}"/>`;
+      });
+
+      // Wordmark text
+      svg += `<text x="290" y="332" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="36" letter-spacing="2">`;
+      svg += `<tspan font-weight="700" fill="${c1}">I</tspan>`;
+      svg += `<tspan font-weight="700" fill="${c2}">Q</tspan>`;
+      svg += `<tspan font-weight="700" fill="${c3}">M</tspan>`;
+      svg += `<tspan font-weight="400" fill="${elaColor}">ela</tspan>`;
+      svg += `</text>`;
+      svg += `</svg>`;
+      return svg;
+    }
+
+    // ── Render all cards ──
+    function renderAll() {
+      const lightGrid = document.getElementById('light-grid');
+      const darkGrid = document.getElementById('dark-grid');
+
+      palettes.forEach((p, i) => {
+        const dots = generateDots(42 + i * 1000, p.colors);
+        const lightSVG = buildSVG(dots, p.colors, false);
+        const darkSVG = buildSVG(dots, p.colors, true);
+
+        // Light card
+        const lCard = document.createElement('div');
+        lCard.className = 'card';
+        lCard.innerHTML = `
+          <div class="card-inner">${lightSVG}</div>
+          <div class="card-footer">
+            <div>
+              <div class="card-title">${p.name}</div>
+              <div style="font-size:11px;color:#A1A1AA;margin-top:2px">${p.desc}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="swatches">
+                <div class="sw" style="background:${p.colors[0]}" title="I"></div>
+                <div class="sw" style="background:${p.colors[1]}" title="Q"></div>
+                <div class="sw" style="background:${p.colors[2]}" title="M"></div>
+              </div>
+              <button class="btn-copy" onclick="copySVG(this, '${i}', false)">Copy SVG</button>
+            </div>
+          </div>`;
+        lightGrid.appendChild(lCard);
+
+        // Dark card
+        const dCard = document.createElement('div');
+        dCard.className = 'card';
+        dCard.innerHTML = `
+          <div class="card-inner dark">${darkSVG}</div>
+          <div class="card-footer dark-footer">
+            <div>
+              <div class="card-title">${p.name}</div>
+              <div style="font-size:11px;color:#52525B;margin-top:2px">${p.desc}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="swatches">
+                <div class="sw" style="background:${p.colors[0]}" title="I"></div>
+                <div class="sw" style="background:${p.colors[1]}" title="Q"></div>
+                <div class="sw" style="background:${p.colors[2]}" title="M"></div>
+              </div>
+              <button class="btn-copy" onclick="copySVG(this, '${i}', true)">Copy SVG</button>
+            </div>
+          </div>`;
+        darkGrid.appendChild(dCard);
+
+        // Store SVG data
+        window['svg_light_' + i] = lightSVG;
+        window['svg_dark_' + i] = darkSVG;
+      });
+    }
+
+    function copySVG(btn, idx, dark) {
+      const key = dark ? 'svg_dark_' + idx : 'svg_light_' + idx;
+      navigator.clipboard.writeText(window[key]).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy SVG'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>

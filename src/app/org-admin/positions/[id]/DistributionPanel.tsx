@@ -3,12 +3,14 @@
 import { useState, useTransition } from "react";
 import {
   Globe, Radio, Pause, XCircle, ExternalLink,
-  Eye, MousePointer, FileText, Loader2, Check
+  Eye, MousePointer, FileText, Loader2, Check,
+  Copy, CheckCheck, Link2
 } from "lucide-react";
 import {
   publishPositionAction,
   unpublishPositionAction,
 } from "@/app/org-admin/distribution-actions";
+import { formatDate, formatNumber } from "@/lib/locale-utils";
 
 interface ChannelInfo {
   id: string;
@@ -27,6 +29,11 @@ interface DistributionPanelProps {
 }
 
 const CHANNEL_META: Record<string, { label: string; icon: string; color: string }> = {
+  IQMELA: {
+    label: "IQMela Careers",
+    icon: "✦",
+    color: "#818cf8",
+  },
   INDEED: {
     label: "Indeed",
     icon: "🔵",
@@ -52,6 +59,27 @@ export default function DistributionPanel({
   const [isPublished, setIsPublished] = useState(initialPublished);
   const [channels, setChannels] = useState(initialChannels);
   const [isPending, startTransition] = useTransition();
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const careersUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/careers/${positionId}`;
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(careersUrl);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const input = document.createElement('input');
+      input.value = careersUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
+  };
 
   const handlePublish = () => {
     startTransition(async () => {
@@ -100,110 +128,67 @@ export default function DistributionPanel({
   };
 
   return (
-    <div style={{
-      background: "linear-gradient(135deg, rgba(15,15,25,0.95), rgba(20,20,35,0.95))",
-      border: "1px solid rgba(99,102,241,0.15)",
-      borderRadius: "16px",
-      padding: "24px",
-      marginBottom: "20px",
-    }}>
+    <div className="bg-gradient-to-br from-[rgba(15,15,25,0.95)] to-[rgba(20,20,35,0.95)] border border-indigo-500/15 rounded-2xl p-4 sm:p-6 mb-5">
       {/* Header */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: "20px",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{
-            width: "40px",
-            height: "40px",
-            borderRadius: "10px",
-            background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0">
             <Globe size={20} color="#fff" />
           </div>
           <div>
-            <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#fff", margin: 0 }}>
+            <h3 className="text-base font-semibold text-white m-0">
               Job Distribution
             </h3>
-            <p style={{ fontSize: "12px", color: "#888", margin: "2px 0 0 0" }}>
-              Publish to Indeed & Google Jobs — free, automated
+            <p className="text-xs text-gray-500 mt-0.5 m-0">
+              Publish to Indeed &amp; Google Jobs — free, automated
             </p>
           </div>
         </div>
-
-        {/* Publish Toggle */}
-        <button
-          onClick={isPublished ? handleUnpublish : handlePublish}
-          disabled={isPending}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 20px",
-            borderRadius: "10px",
-            border: "none",
-            cursor: isPending ? "wait" : "pointer",
-            fontSize: "13px",
-            fontWeight: 600,
-            transition: "all 0.2s",
-            background: isPublished
-              ? "rgba(239,68,68,0.12)"
-              : "linear-gradient(135deg, #6366f1, #8b5cf6)",
-            color: isPublished ? "#ef4444" : "#fff",
-          }}
-        >
-          {isPending ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : isPublished ? (
-            <Pause size={14} />
-          ) : (
-            <Radio size={14} />
-          )}
-          {isPending
-            ? "Processing..."
-            : isPublished
-            ? "Unpublish All"
-            : "Publish to Boards"}
-        </button>
       </div>
 
       {/* Status Badge */}
       {isPublished && (
-        <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "6px",
-          background: "rgba(34,197,94,0.1)",
-          border: "1px solid rgba(34,197,94,0.2)",
-          borderRadius: "8px",
-          padding: "6px 12px",
-          marginBottom: "16px",
-          fontSize: "12px",
-          color: "#22c55e",
-        }}>
-          <div style={{
-            width: "6px",
-            height: "6px",
-            borderRadius: "50%",
-            background: "#22c55e",
-            animation: "pulse 2s infinite",
-          }} />
+        <div className="inline-flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-1.5 mb-4 text-xs text-green-500">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
           Live on {channels.filter((c) => c.status === "LIVE").length} channels
         </div>
       )}
 
       {/* Channel Cards */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-        gap: "12px",
-      }}>
-        {(isPublished ? channels : Object.keys(CHANNEL_META).map((key) => ({
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        {/* IQMela Native Card — always first */}
+        <div className={`rounded-xl p-4 transition-all border ${
+          isPublished
+            ? "bg-gradient-to-br from-indigo-500/[0.08] to-violet-500/[0.04] border-indigo-500/20"
+            : "bg-white/[0.03] border-white/[0.06]"
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-black text-sm">✦</span>
+              <span className="text-sm font-semibold text-white">
+                IQMela Careers
+              </span>
+            </div>
+            <StatusBadge status={isPublished ? "LIVE" : "DRAFT"} />
+          </div>
+
+          {/* Copy Link Button */}
+          {isPublished && (
+            <button
+              onClick={handleCopyLink}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg w-full text-[11px] font-medium cursor-pointer transition-all border ${
+                linkCopied
+                  ? "bg-green-500/10 border-green-500/20 text-green-500"
+                  : "bg-white/5 border-white/[0.08] text-zinc-400 hover:bg-white/[0.08]"
+              }`}
+            >
+              {linkCopied ? <CheckCheck size={12} /> : <Copy size={12} />}
+              {linkCopied ? "Link copied!" : "Copy application link"}
+            </button>
+          )}
+        </div>
+
+        {(isPublished ? channels : Object.keys(CHANNEL_META).filter(k => k !== 'IQMELA').map((key) => ({
           id: key,
           boardName: key,
           status: "DRAFT",
@@ -222,23 +207,14 @@ export default function DistributionPanel({
           return (
             <div
               key={channel.boardName}
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: `1px solid ${isLive ? `${meta.color}30` : "rgba(255,255,255,0.06)"}`,
-                borderRadius: "12px",
-                padding: "16px",
-                transition: "all 0.2s",
-              }}
+              className={`bg-white/[0.03] rounded-xl p-4 transition-all border ${
+                isLive ? "border-white/10" : "border-white/[0.06]"
+              }`}
             >
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "12px",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "20px" }}>{meta.icon}</span>
-                  <span style={{ fontSize: "14px", fontWeight: 600, color: "#fff" }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{meta.icon}</span>
+                  <span className="text-sm font-semibold text-white">
                     {meta.label}
                   </span>
                 </div>
@@ -246,29 +222,24 @@ export default function DistributionPanel({
               </div>
 
               {/* Stats Row */}
-              <div style={{
-                display: "flex",
-                gap: "16px",
-                fontSize: "12px",
-                color: "#888",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <div className="flex gap-4 text-xs text-gray-500">
+                <div className="flex items-center gap-1">
                   <Eye size={12} />
-                  <span>{channel.viewCount.toLocaleString()}</span>
+                  <span>{formatNumber(channel.viewCount)}</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <div className="flex items-center gap-1">
                   <MousePointer size={12} />
-                  <span>{channel.clickCount.toLocaleString()}</span>
+                  <span>{formatNumber(channel.clickCount)}</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <div className="flex items-center gap-1">
                   <FileText size={12} />
-                  <span>{channel.applicationCount.toLocaleString()}</span>
+                  <span>{formatNumber(channel.applicationCount)}</span>
                 </div>
               </div>
 
               {channel.publishedAt && (
-                <p style={{ fontSize: "11px", color: "#555", marginTop: "8px" }}>
-                  Published {new Date(channel.publishedAt).toLocaleDateString()}
+                <p className="text-[11px] text-gray-600 mt-2">
+                  Published {formatDate(new Date(channel.publishedAt))}
                 </p>
               )}
             </div>
@@ -278,64 +249,42 @@ export default function DistributionPanel({
 
       {/* Feed URLs */}
       {isPublished && (
-        <div style={{
-          marginTop: "16px",
-          padding: "12px 16px",
-          background: "rgba(255,255,255,0.02)",
-          borderRadius: "10px",
-          fontSize: "12px",
-          color: "#666",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+        <div className="mt-4 px-4 py-3 bg-white/[0.02] rounded-[10px] text-xs text-gray-600">
+          <div className="flex items-center gap-1.5 mb-1.5">
             <ExternalLink size={12} />
-            <span style={{ fontWeight: 600 }}>Feed URLs</span>
+            <span className="font-semibold">Feed URLs</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <code style={{ fontSize: "11px", color: "#818cf8" }}>
+          <div className="flex flex-col gap-1">
+            <code className="text-[11px] text-indigo-400 break-all">
+              IQMela Careers: /careers/{positionId}
+            </code>
+            <code className="text-[11px] text-indigo-400 break-all">
               Indeed XML: /api/public/jobs-feed
             </code>
-            <code style={{ fontSize: "11px", color: "#818cf8" }}>
+            <code className="text-[11px] text-indigo-400 break-all">
               Google Jobs: /api/public/jobs/{positionId}
             </code>
           </div>
         </div>
       )}
-
-      {/* Pulse animation keyframe */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { bg: string; color: string; label: string }> = {
-    LIVE: { bg: "rgba(34,197,94,0.12)", color: "#22c55e", label: "Live" },
-    DRAFT: { bg: "rgba(255,255,255,0.05)", color: "#666", label: "Draft" },
-    PUBLISHING: { bg: "rgba(234,179,8,0.12)", color: "#eab308", label: "Publishing" },
-    CLOSED: { bg: "rgba(239,68,68,0.12)", color: "#ef4444", label: "Closed" },
-    FAILED: { bg: "rgba(239,68,68,0.12)", color: "#ef4444", label: "Failed" },
-    PAUSED: { bg: "rgba(234,179,8,0.12)", color: "#eab308", label: "Paused" },
+  const config: Record<string, { cls: string; label: string }> = {
+    LIVE: { cls: "bg-green-500/[0.12] text-green-500", label: "Live" },
+    DRAFT: { cls: "bg-white/5 text-gray-600", label: "Draft" },
+    PUBLISHING: { cls: "bg-yellow-500/[0.12] text-yellow-500", label: "Publishing" },
+    CLOSED: { cls: "bg-red-500/[0.12] text-red-500", label: "Closed" },
+    FAILED: { cls: "bg-red-500/[0.12] text-red-500", label: "Failed" },
+    PAUSED: { cls: "bg-yellow-500/[0.12] text-yellow-500", label: "Paused" },
   };
 
   const c = config[status] || config.DRAFT;
 
   return (
-    <span style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "4px",
-      padding: "3px 10px",
-      borderRadius: "6px",
-      fontSize: "11px",
-      fontWeight: 600,
-      background: c.bg,
-      color: c.color,
-    }}>
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold ${c.cls}`}>
       {status === "LIVE" && <Check size={10} />}
       {status === "FAILED" && <XCircle size={10} />}
       {c.label}

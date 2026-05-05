@@ -37,7 +37,7 @@ export default async function MagicLinkLobby({ params }: { params: Promise<{ tok
     return (
       <div className="flex-1 w-full min-h-[100vh] flex items-center justify-center bg-[#0A0A0A] p-4 text-center">
         <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl">
-          <CheckCircle2 className="w-16 h-16 text-teal-400 mx-auto mb-6" />
+          <CheckCircle2 className="w-16 h-16 text-rose-400 mx-auto mb-6" />
           <h1 className="text-2xl font-black text-white mb-2">Interview Completed</h1>
           <p className="text-zinc-400 mb-6">You have already completed this session. Your recruiter will be in touch shortly.</p>
         </div>
@@ -48,10 +48,10 @@ export default async function MagicLinkLobby({ params }: { params: Promise<{ tok
   // The Active Lobby
   return (
     <div className="flex flex-col min-h-[100vh] items-center justify-center bg-zinc-950 p-4">
-      <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-2xl overflow-hidden shadow-teal-500/5">
+      <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-2xl overflow-hidden shadow-rose-500/5">
         
         <div className="p-8 sm:p-12 text-center border-b border-zinc-800 bg-zinc-900/50">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-500/10 text-teal-400 rounded-full text-xs font-bold uppercase tracking-widest mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-rose-500/10 text-rose-400 rounded-full text-xs font-bold uppercase tracking-widest mb-6">
             <ShieldCheck className="w-4 h-4" /> Secure Zero-Auth Entry
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-2">

@@ -30,6 +30,14 @@ export async function updatePosition(formData: FormData) {
     const description    = (formData.get("description")    as string)?.trim() || null;
     const jdText         = (formData.get("jdText")         as string)?.trim() || null;
 
+    // AI Pipeline Configuration
+    const intakeWindowDays   = parseInt((formData.get("intakeWindowDays") as string) || existing.intakeWindowDays.toString(), 10);
+    const atsPreScreenSize   = parseInt((formData.get("atsPreScreenSize") as string) || existing.atsPreScreenSize.toString(), 10);
+    const aiShortlistSize    = parseInt((formData.get("aiShortlistSize")  as string) || existing.aiShortlistSize.toString(), 10);
+    const autoProcessOnClose = formData.get("autoProcessOnClose") === "true";
+    const autoInviteAiScreen  = formData.get("autoInviteAiScreen") === "true";
+    const resumePurgeDays    = parseInt((formData.get("resumePurgeDays")  as string) || existing.resumePurgeDays.toString(), 10);
+
     if (!title) throw new Error("Position title is required.");
 
     // Resolve department name from ID
@@ -46,10 +54,87 @@ export async function updatePosition(formData: FormData) {
     // ── Persist ──────────────────────────────────────────────────
     await prisma.position.update({
       where: { id },
-      data: { title, department, departmentId, location, employmentType, description, jdText, status },
+      data: {
+        title,
+        department,
+        departmentId,
+        location,
+        employmentType,
+        description,
+        jdText,
+        status,
+        intakeWindowDays,
+        atsPreScreenSize,
+        aiShortlistSize,
+        autoProcessOnClose,
+        autoInviteAiScreen,
+        resumePurgeDays,
+      },
     });
 
     console.log(`[updatePosition] Updated position ${id} — "${title}"`);
+
+    // ── Update interview pipeline plan if stages provided ─────
+    const pipelineRaw = (formData.get("pipelineStages") as string)?.trim();
+    if (pipelineRaw) {
+      try {
+        const stages = JSON.parse(pipelineRaw) as {
+          roundLabel: string;
+          roundType: string;
+          durationMinutes: number;
+        }[];
+        if (Array.isArray(stages)) {
+          // Find existing plan
+          const plan = await prisma.interviewPlan.findUnique({ where: { positionId: id } });
+          
+          if (plan) {
+            // Delete existing stages and recreate
+            await prisma.interviewStage.deleteMany({ where: { interviewPlanId: plan.id } });
+            if (stages.length > 0) {
+              await prisma.interviewPlan.update({
+                where: { id: plan.id },
+                data: {
+                  stages: {
+                    create: stages.map((s, i) => ({
+                      stageIndex: i,
+                      roundLabel: s.roundLabel,
+                      roundType: s.roundType as any,
+                      durationMinutes: s.durationMinutes,
+                      interviewMode: s.interviewMode || (s.roundType === "AI_SCREEN" ? "AI_AVATAR" : "HUMAN"),
+                      isRequired: s.isRequired ?? true,
+                      description: s.description || null,
+                      assignedPanelJson: s.assignedPanelJson || null,
+                    })),
+                  },
+                },
+              });
+            }
+          } else if (stages.length > 0) {
+            // Create new plan
+            await prisma.interviewPlan.create({
+              data: {
+                positionId: id,
+                stages: {
+                  create: stages.map((s, i) => ({
+                    stageIndex: i,
+                    roundLabel: s.roundLabel,
+                    roundType: s.roundType as any,
+                    durationMinutes: s.durationMinutes,
+                    interviewMode: s.interviewMode || (s.roundType === "AI_SCREEN" ? "AI_AVATAR" : "HUMAN"),
+                    isRequired: s.isRequired ?? true,
+                    description: s.description || null,
+                    assignedPanelJson: s.assignedPanelJson || null,
+                  })),
+                },
+              },
+            });
+          }
+          console.log(`[updatePosition] Updated interview plan with ${stages.length} stages`);
+        }
+      } catch (planErr) {
+        console.error("[updatePosition] Pipeline update failed (non-blocking):", planErr);
+      }
+    }
 
     // ── Position Close Side-Effects ──────────────────────────────
     // When status transitions to CLOSED, trigger the full ATS close workflow:

@@ -22,7 +22,7 @@ export function BatchActivityPanel({ batchRuns, inline = false }: { batchRuns: a
       {recentRuns.map((run) => (
         <div key={run.id} className="flex flex-col p-4 rounded-xl border border-gray-100 dark:border-zinc-800/60 bg-gray-50/50 dark:bg-zinc-900/40 relative overflow-hidden group">
           <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-            run.status === "COMPLETED" ? "bg-teal-500" :
+            run.status === "COMPLETED" ? "bg-rose-500" :
             run.status === "PARTIAL_SUCCESS" ? "bg-amber-500" :
             "bg-red-500"
           }`} />
@@ -34,7 +34,7 @@ export function BatchActivityPanel({ batchRuns, inline = false }: { batchRuns: a
               </p>
               <div className="flex items-center gap-2">
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider leading-none shrink-0 ${
-                  run.status === "COMPLETED" ? "bg-teal-100/50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" :
+                  run.status === "COMPLETED" ? "bg-rose-100/50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" :
                   run.status === "PARTIAL_SUCCESS" ? "bg-amber-100/50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
                   "bg-red-100/50 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                 }`}>

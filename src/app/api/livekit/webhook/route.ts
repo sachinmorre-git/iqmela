@@ -46,8 +46,9 @@ export async function POST(req: NextRequest) {
       });
 
       // Kick off diarized transcription asynchronously (never blocks webhook response)
+      // Includes exponential backoff retry: attempt 1 → 30s → 120s
       if (fullLocation && process.env.ASSEMBLYAI_API_KEY) {
-        processTranscription(interviewId, fullLocation).catch(console.error);
+        processTranscriptionWithRetry(interviewId, fullLocation).catch(console.error);
       }
 
       // Kick off behavioral integrity analysis (after transcript is done — delayed 90s to allow AAI to finish)
@@ -76,9 +77,51 @@ export async function POST(req: NextRequest) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Phase 4 — AssemblyAI diarized transcription pipeline
+// Phase 4 — AssemblyAI diarized transcription pipeline (with retry)
 // Runs asynchronously after egress_ended. Never blocks the webhook response.
+// Retry schedule: Attempt 1 (immediate) → Attempt 2 (30s) → Attempt 3 (120s)
 // ─────────────────────────────────────────────────────────────────────────────
+
+const TRANSCRIPT_RETRY_DELAYS = [0, 30_000, 120_000]; // delays in ms before each attempt
+
+async function processTranscriptionWithRetry(interviewId: string, recordingUrl: string) {
+  for (let attempt = 0; attempt < TRANSCRIPT_RETRY_DELAYS.length; attempt++) {
+    const delay = TRANSCRIPT_RETRY_DELAYS[attempt];
+
+    if (delay > 0) {
+      console.log(`[Transcript] Retry attempt ${attempt + 1}/${TRANSCRIPT_RETRY_DELAYS.length} for ${interviewId} — waiting ${delay / 1000}s`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    try {
+      await processTranscription(interviewId, recordingUrl);
+      // If we get here, it succeeded — no need to retry
+      return;
+    } catch (error) {
+      console.warn(
+        `[Transcript] Attempt ${attempt + 1}/${TRANSCRIPT_RETRY_DELAYS.length} failed for ${interviewId}:`,
+        error instanceof Error ? error.message : error
+      );
+
+      // Last attempt — log permanent failure
+      if (attempt === TRANSCRIPT_RETRY_DELAYS.length - 1) {
+        console.error(`[Transcript] ✗ All ${TRANSCRIPT_RETRY_DELAYS.length} attempts exhausted for ${interviewId}. Transcription permanently failed.`);
+
+        // Record failure in DB so admin dashboard can surface it
+        try {
+          await prisma.interview.update({
+            where: { id: interviewId },
+            data: {
+              transcriptionUrl: null, // Explicitly null = tried and failed
+            },
+          });
+        } catch {
+          // Don't let DB failure mask the original error
+        }
+      }
+    }
+  }
+}
 
 /** A single turn in the diarized transcript. */
 export interface TranscriptUtterance {
@@ -178,7 +221,8 @@ async function processTranscription(interviewId: string, recordingUrl: string) {
 
   } catch (error) {
     console.error(`[Transcript] ✗ ASR failed for ${interviewId}:`, error);
-    // Non-fatal: recording is still saved; transcript just won't be available
+    // Re-throw so processTranscriptionWithRetry can catch and retry
+    throw error;
   }
 }
 

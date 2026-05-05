@@ -12,12 +12,16 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { formatDate, formatTime, formatDateTime } from "@/lib/locale-utils";
 import { getCallerPermissions } from "@/lib/rbac";
 import { revalidatePath } from "next/cache";
 import { getBgvProvider, isApiVendor } from "@/lib/bgv/provider-factory";
 import { scanForPii, type PiiScanResult } from "@/lib/bgv/pii-shield";
 import { geminiClient, geminiModel } from "@/lib/ai/client";
 import { bgvReportSummaryPrompt } from "@/lib/ai/prompts/interview.prompts";
+import { uploadToR2, isR2Configured } from "@/lib/r2";
+import { emailService } from "@/lib/email";
+import { createBulkNotifications } from "@/lib/notification-service";
 import type { BgvVendorType, BgvStatus, BgvAdjudication } from "@prisma/client";
 
 // ── RBAC ────────────────────────────────────────────────────────────────────
@@ -62,6 +66,45 @@ export async function initiateBgvCheckAction(input: InitiateBgvInput) {
 
     if (!resume?.candidateName || !resume?.candidateEmail) {
       return { success: false, error: "Candidate name and email are required for BGV." };
+    }
+
+    // ── Geo-compliance check ──────────────────────────────────────────────
+    let complianceWarnings: string[] = [];
+    try {
+      // Resolve the best-matching GeoMarket for the work location
+      // workLocation can be a US state code (e.g. "CA") or country code (e.g. "IN")
+      const geoMarket = await prisma.geoMarket.findFirst({
+        where: {
+          OR: [
+            { region: input.workLocation, isEnabled: true },
+            { countryCode: input.workLocation, isEnabled: true },
+          ],
+        },
+        orderBy: { city: "desc" }, // Prefer city-level specificity
+      });
+
+      if (geoMarket) {
+        // Block if BGV is not allowed in this market
+        if (!geoMarket.bgvAllowed) {
+          return {
+            success: false,
+            error: `Background verification is not permitted in ${geoMarket.region || geoMarket.countryName} under ${geoMarket.notes?.slice(0, 100) || "local regulations"}. Please consult your legal team.`,
+          };
+        }
+
+        // Collect compliance warnings for the UI
+        if (geoMarket.biometricProhibited) {
+          complianceWarnings.push(`⚠️ ${geoMarket.region}: Biometric data collection prohibited (${geoMarket.aiVideoLawRef || "BIPA"})`);
+        }
+        if (geoMarket.aiVideoConsentRequired) {
+          complianceWarnings.push(`⚠️ ${geoMarket.region}: AI video analysis requires written consent (${geoMarket.aiVideoLawRef || "AIVIA"})`);
+        }
+        if (geoMarket.facialRecogConsentRequired) {
+          complianceWarnings.push(`⚠️ ${geoMarket.region}: Facial recognition in interviews requires written consent (${geoMarket.facialRecogLawRef || "local law"})`);
+        }
+      }
+    } catch (geoErr) {
+      console.warn("[BGV] Geo-compliance check failed (non-blocking):", geoErr);
     }
 
     // Split name into first/last
@@ -151,6 +194,7 @@ export async function initiateBgvCheckAction(input: InitiateBgvInput) {
       bgvCheck,
       invitationUrl: result.invitationUrl,
       uploadToken: !isApiVendor(input.vendorType) ? result.vendorCheckId : undefined,
+      complianceWarnings: complianceWarnings.length > 0 ? complianceWarnings : undefined,
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -380,12 +424,25 @@ export async function uploadBgvReportAction(input: UploadBgvReportInput) {
       };
     }
 
-    // 3. PII scan passed → store report
-    // In production, this would upload to R2. For now, we store the base64 reference.
+    // 3. PII scan passed → store report to R2
     const reportKey = `bgv-reports/${bgvCheck.organizationId}/${bgvCheck.id}/report.pdf`;
 
-    // TODO: Upload to R2 when R2 client is configured
-    // await r2Client.putObject({ Key: reportKey, Body: Buffer.from(input.reportBase64, 'base64') });
+    if (isR2Configured()) {
+      try {
+        await uploadToR2({
+          key: reportKey,
+          body: Buffer.from(input.reportBase64, "base64"),
+          contentType: "application/pdf",
+          metadata: {
+            bgvCheckId: bgvCheck.id,
+            candidateName: bgvCheck.resume?.candidateName || "Unknown",
+          },
+        });
+      } catch (r2Err) {
+        console.error("[BGV] R2 upload failed (non-blocking):", r2Err);
+        // Non-blocking: report key is still saved in DB for retry
+      }
+    }
 
     // 4. Generate AI summary
     let reportSummary: string | null = null;
@@ -454,6 +511,33 @@ export async function uploadBgvReportAction(input: UploadBgvReportInput) {
       },
     });
 
+    // 6. Notify recruiters/HMs that a report was uploaded
+    try {
+      const bgvAuthorizedUsers = await prisma.user.findMany({
+        where: {
+          organizationId: bgvCheck.organizationId,
+          roles: { hasSome: ["ORG_ADMIN", "DEPT_ADMIN", "HIRING_MANAGER", "RECRUITER"] },
+          isDeleted: false,
+        },
+        select: { id: true },
+      });
+
+      if (bgvAuthorizedUsers.length > 0) {
+        await createBulkNotifications(
+          bgvAuthorizedUsers.map((u) => ({
+            organizationId: bgvCheck.organizationId,
+            userId: u.id,
+            type: "BGV_COMPLETED" as const,
+            title: "BGV Report Uploaded",
+            body: `Background verification report for ${bgvCheck.resume?.candidateName || "a candidate"} has been uploaded and is ready for review.`,
+            link: `/org-admin/positions/${bgvCheck.positionId}`,
+          })),
+        );
+      }
+    } catch (notifyErr) {
+      console.error("[BGV] Notification dispatch failed (non-blocking):", notifyErr);
+    }
+
     revalidatePath(`/org-admin/positions/${bgvCheck.positionId}`);
 
     return { success: true, bgvCheck: updated };
@@ -480,6 +564,18 @@ export async function sendPreAdverseNoticeAction(input: {
     // Calculate 5 business days from now
     const disputeDeadline = addBusinessDays(new Date(), 5);
 
+    // Fetch full BGV check for candidate email + report
+    const bgvCheck = await prisma.bgvCheck.findUnique({
+      where: { id: input.bgvCheckId },
+      include: {
+        resume: { select: { candidateName: true, candidateEmail: true } },
+        position: { select: { title: true } },
+        organization: { select: { name: true } },
+      },
+    });
+
+    if (!bgvCheck) return { success: false, error: "BGV check not found." };
+
     const updated = await prisma.bgvCheck.update({
       where: { id: input.bgvCheckId },
       data: {
@@ -502,10 +598,35 @@ export async function sendPreAdverseNoticeAction(input: {
       },
     });
 
-    // TODO: Send email to candidate with:
-    // 1. Copy of the BGV report
-    // 2. Summary of Rights under FCRA
-    // 3. Notice that adverse action may be taken
+    // FCRA: Send pre-adverse notice email to candidate
+    if (bgvCheck.resume?.candidateEmail) {
+      try {
+        await emailService.sendGenericEmail({
+          to: bgvCheck.resume.candidateEmail,
+          subject: `Pre-Adverse Action Notice — ${bgvCheck.position?.title || "Position"}`,
+          previewText: "Important notice regarding your background verification",
+          heading: "Pre-Adverse Action Notice",
+          body: `Dear ${bgvCheck.resume.candidateName || "Candidate"},
+
+We are writing to inform you that information obtained during your background verification for the ${bgvCheck.position?.title || "position"} role at ${bgvCheck.organization?.name || "our organization"} may adversely affect our employment decision.
+
+Pursuant to the Fair Credit Reporting Act (FCRA), you have the right to:
+
+• Receive a copy of the background check report that was used in this decision
+• Dispute the accuracy or completeness of any information in the report within ${5} business days
+• Contact the consumer reporting agency that furnished the report to dispute any inaccurate information
+
+Your dispute period ends on ${formatDate(disputeDeadline)}. If you wish to dispute any findings, please respond to this email with your concerns.
+
+A copy of your rights under the FCRA ("A Summary of Your Rights Under the Fair Credit Reporting Act") is available at: https://www.consumer.ftc.gov/articles/pdf-0096-fair-credit-reporting-act.pdf
+
+Sincerely,
+${bgvCheck.organization?.name || "The Hiring Team"}`,
+        });
+      } catch (emailErr) {
+        console.error("[BGV] Pre-adverse email failed (non-blocking):", emailErr);
+      }
+    }
 
     revalidatePath(`/org-admin/positions/${input.positionId}`);
 
@@ -549,7 +670,7 @@ export async function confirmAdverseActionAction(input: {
       );
       return {
         success: false,
-        error: `Dispute period still active. ${daysLeft} days remaining until ${bgvCheck.disputeDeadline.toLocaleDateString()}.`,
+        error: `Dispute period still active. ${daysLeft} days remaining until ${formatDate(bgvCheck.disputeDeadline)}.`,
       };
     }
 
@@ -588,7 +709,51 @@ export async function confirmAdverseActionAction(input: {
       },
     });
 
-    // TODO: Send final adverse action notice email to candidate
+    // FCRA: Send final adverse action notice email to candidate
+    try {
+      // Fetch candidate email for the notification
+      const resumeForEmail = await prisma.resume.findUnique({
+        where: { id: input.resumeId },
+        select: {
+          candidateName: true,
+          candidateEmail: true,
+          position: { select: { title: true } },
+        },
+      });
+
+      if (resumeForEmail?.candidateEmail) {
+        const orgForEmail = await prisma.organization.findFirst({
+          where: { id: bgvCheck.organizationId },
+          select: { name: true },
+        });
+
+        await emailService.sendGenericEmail({
+          to: resumeForEmail.candidateEmail,
+          subject: `Adverse Action Notice — ${resumeForEmail.position?.title || "Position"}`,
+          previewText: "Final adverse action notice regarding your background verification",
+          heading: "Adverse Action Notice",
+          body: `Dear ${resumeForEmail.candidateName || "Candidate"},
+
+This letter is to inform you that, based on the results of your background verification, ${orgForEmail?.name || "our organization"} has decided not to proceed with your application for the ${resumeForEmail.position?.title || "position"} role.
+
+This decision was made, in whole or in part, based on information contained in a background check report. The consumer reporting agency that furnished the report did not make this decision and cannot explain why it was made.
+
+Pursuant to the Fair Credit Reporting Act (FCRA), you have the right to:
+
+• Obtain a free copy of your report from the consumer reporting agency within 60 days
+• Dispute the accuracy or completeness of any information in your file with the consumer reporting agency
+
+A copy of your rights under the FCRA is available at: https://www.consumer.ftc.gov/articles/pdf-0096-fair-credit-reporting-act.pdf
+
+We wish you the best in your future endeavors.
+
+Sincerely,
+${orgForEmail?.name || "The Hiring Team"}`,
+        });
+      }
+    } catch (emailErr) {
+      console.error("[BGV] Final adverse action email failed (non-blocking):", emailErr);
+    }
 
     revalidatePath(`/org-admin/positions/${input.positionId}`);
 

@@ -6,6 +6,8 @@ import Link from "next/link"
 import { CancelButton } from "./CancelButton"
 import { RescheduleButton } from "./RescheduleButton"
 import { Lock } from "lucide-react"
+import { maskName } from "@/lib/pii-redact"
+import { formatDate, formatTime } from "@/lib/locale-utils"
 
 export const metadata = {
   title: 'Interview Details | IQMela',
@@ -21,7 +23,7 @@ export default async function InterviewDetailsPage({ params }: { params: Promise
   const interview = await prisma.interview.findUnique({
     where: { id },
     include: {
-      candidate: { select: { id: true, name: true, email: true } },
+      candidate: { select: { id: true, name: true } },
       interviewer: { select: { id: true, name: true, email: true } },
     }
   });
@@ -57,8 +59,8 @@ export default async function InterviewDetailsPage({ params }: { params: Promise
   const themeAccent = isInterviewer ? "purple" : "indigo";
 
   // Formatting strings
-  const formattedDate = interview.scheduledAt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-  const formattedTime = interview.scheduledAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+  const formattedDate = formatDate(interview.scheduledAt, { style: "long" });
+  const formattedTime = formatTime(interview.scheduledAt);
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto py-10 px-4 sm:px-6">
@@ -69,7 +71,7 @@ export default async function InterviewDetailsPage({ params }: { params: Promise
       </Link>
 
       {/* Header Card */}
-      <div className={`relative overflow-hidden bg-white dark:bg-zinc-900 border-2 ${isInterviewer ? 'border-purple-100 dark:border-purple-900/40' : 'border-indigo-100 dark:border-indigo-900/40'} rounded-3xl shadow-xl shadow-${themeAccent}-900/5 dark:shadow-${themeAccent}-900/10 p-8 sm:p-12 mb-8`}>
+      <div className={`relative overflow-hidden bg-white dark:bg-zinc-900 border-2 ${isInterviewer ? 'border-purple-100 dark:border-purple-900/40' : 'border-rose-100 dark:border-rose-900/40'} rounded-3xl shadow-xl shadow-${themeAccent}-900/5 dark:shadow-${themeAccent}-900/10 p-8 sm:p-12 mb-8`}>
         {/* Abstract Background Blob */}
         <div className={`absolute -top-32 -right-32 w-96 h-96 bg-${themeAccent}-400/10 dark:bg-${themeAccent}-600/10 rounded-full blur-3xl`}></div>
         
@@ -138,11 +140,11 @@ export default async function InterviewDetailsPage({ params }: { params: Promise
             {/* Candidate */}
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-400">
-                {interview.candidate.name ? interview.candidate.name.charAt(0) : 'C'}
+                {(interview.candidate?.name || interview.candidateName || "").charAt(0) || 'C'}
               </div>
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Candidate</p>
-                <p className="font-bold text-gray-900 dark:text-white">{interview.candidate.name || interview.candidate.email}</p>
+                <p className="font-bold text-gray-900 dark:text-white">{maskName(interview.candidate?.name || interview.candidateName)}</p>
               </div>
             </div>
           </div>

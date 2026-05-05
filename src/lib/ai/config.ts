@@ -85,7 +85,11 @@ function loadAiConfig(): AiConfig {
       apiKey: deepseekKey,
       baseUrl: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
       chatModel: process.env.DEEPSEEK_CHAT_MODEL || "deepseek-chat",
-      reasonerModel: mode === "prod" ? "deepseek-chat" : (process.env.DEEPSEEK_REASONER_MODEL || "deepseek-reasoner"),
+      // In prod mode, use the faster chat model for ranking (cost-optimized).
+      // In dev mode, use the full reasoner for higher quality (but slower/pricier).
+      reasonerModel: mode === "prod"
+        ? (process.env.DEEPSEEK_REASONER_MODEL || "deepseek-chat")
+        : (process.env.DEEPSEEK_REASONER_MODEL || "deepseek-reasoner"),
     },
     gemini: {
       apiKey: geminiKey,
@@ -98,8 +102,35 @@ function loadAiConfig(): AiConfig {
   };
 }
 
+// ── Singleton with dev-mode hot-reload ────────────────────────────────────────
+
+let _cached: AiConfig | null = null;
+
 /**
- * Singleton AI configuration object.
- * Evaluated once at module load time (server-side only).
+ * Get a fresh AI configuration (re-reads env vars).
+ * Use this when you need to guarantee the latest config (e.g., admin panels).
  */
-export const aiConfig: AiConfig = loadAiConfig();
+export function getAiConfig(): AiConfig {
+  return loadAiConfig();
+}
+
+/**
+ * AI configuration object.
+ *
+ * - In production: evaluated once at module load time (cached singleton).
+ * - In development: re-evaluates on each access to support env var changes
+ *   without restarting the dev server.
+ */
+export const aiConfig: AiConfig =
+  process.env.NODE_ENV === "production"
+    ? loadAiConfig()
+    : new Proxy({} as AiConfig, {
+        get(_target, prop, _receiver) {
+          if (!_cached || Date.now() - (_cached as any).__ts > 5000) {
+            _cached = loadAiConfig();
+            (_cached as any).__ts = Date.now();
+          }
+          return (_cached as any)[prop];
+        },
+      });
+

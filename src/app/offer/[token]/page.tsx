@@ -3,9 +3,16 @@ import { notFound } from "next/navigation";
 import { CandidateOfferClient } from "./CandidateOfferClient";
 import { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Your Offer from RelyOnAI",
-};
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params;
+  const offer = await prisma.jobOffer.findUnique({
+    where: { candidateToken: token },
+    include: { organization: { select: { name: true } } },
+  });
+  return {
+    title: offer ? `Your Offer from ${offer.organization.name}` : "Offer Letter",
+  };
+}
 
 export default async function CandidateOfferPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

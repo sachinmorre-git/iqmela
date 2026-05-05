@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma"
 
-export async function AiCostDashboard() {
+export async function AiCostDashboard({ orgId }: { orgId: string }) {
   const logs = await prisma.aiUsageLog.findMany({
+    where: { organizationId: orgId },
     orderBy: { createdAt: "desc" },
     take: 100,
   })

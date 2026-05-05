@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { PanelistScorecardForm } from "./PanelistScorecardForm";
+import { maskName } from "@/lib/pii-redact";
+import { formatDate, formatTime } from "@/lib/locale-utils"
 
 type InterviewData = {
   id: string;
@@ -13,7 +15,8 @@ type InterviewData = {
   positionId?: string | null;
   stageIndex?: number | null;
   position: { title: string } | null;
-  candidate: { name: string | null; email: string };
+  candidate: { name: string | null } | null;
+  candidateName?: string | null;
   feedback: any | null;
 };
 
@@ -21,14 +24,14 @@ export function InterviewListCard({ interview, isPast }: { interview: InterviewD
   const [showModal, setShowModal] = useState(false);
 
   return (
-    <div className={`bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative ${isPast ? "opacity-80" : "border-t-4 border-t-teal-500"}`}>
+    <div className={`bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative ${isPast ? "opacity-80" : "border-t-4 border-t-rose-500"}`}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1">
             {interview.position?.title || "General Interview"}
           </p>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-            {interview.candidate.name || interview.candidate.email}
+            {maskName(interview.candidate?.name || interview.candidateName)}
           </h3>
         </div>
         <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
@@ -41,11 +44,11 @@ export function InterviewListCard({ interview, isPast }: { interview: InterviewD
       </div>
 
       <div className="mt-4 flex flex-col gap-1 text-sm text-gray-600 dark:text-zinc-400">
-        <p><strong>Date:</strong> {interview.scheduledAt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</p>
-        <p><strong>Time:</strong> {interview.scheduledAt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} ({interview.durationMinutes} min)</p>
+        <p><strong>Date:</strong> {formatDate(interview.scheduledAt)}</p>
+        <p><strong>Time:</strong> {formatTime(interview.scheduledAt, { showTimezone: false })} ({interview.durationMinutes} min)</p>
         {!isPast && interview.roomName && (
           <p className="mt-2">
-            <a href={interview.roomName} target="_blank" rel="noreferrer" className="text-teal-600 dark:text-teal-400 font-semibold hover:underline">
+            <a href={interview.roomName} target="_blank" rel="noreferrer" className="text-rose-600 dark:text-rose-400 font-semibold hover:underline">
               Join Meeting →
             </a>
           </p>
@@ -61,7 +64,7 @@ export function InterviewListCard({ interview, isPast }: { interview: InterviewD
         ) : interview.status !== "CANCELED" ? (
           <button
             onClick={() => setShowModal(true)}
-            className="w-full py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold rounded-xl text-sm transition-all shadow-sm shadow-violet-500/20 flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-bold rounded-xl text-sm transition-all shadow-sm shadow-pink-500/20 flex items-center justify-center gap-2"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Submit Scorecard
@@ -72,7 +75,7 @@ export function InterviewListCard({ interview, isPast }: { interview: InterviewD
       {showModal && (
         <PanelistScorecardForm
           interviewId={interview.id}
-          candidateName={interview.candidate.name || interview.candidate.email}
+          candidateName={maskName(interview.candidate?.name || interview.candidateName || "Candidate")}
           positionTitle={interview.position?.title}
           stageLabel="Interview Evaluation"
           resumeId={interview.resumeId ?? undefined}

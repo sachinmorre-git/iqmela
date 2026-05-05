@@ -19,7 +19,7 @@ interface Props {
 function ScoreBadge({ score }: { score: number }) {
   const [cls, label] =
     score >= 80 ? ["text-emerald-400 bg-emerald-500/10 border-emerald-500/25", "Excellent"]   :
-    score >= 65 ? ["text-teal-400    bg-teal-500/10    border-teal-500/25",    "Strong"]       :
+    score >= 65 ? ["text-rose-400    bg-rose-500/10    border-rose-500/25",    "Strong"]       :
     score >= 50 ? ["text-amber-400   bg-amber-500/10   border-amber-500/25",   "Adequate"]     :
                   ["text-red-400     bg-red-500/10     border-red-500/25",     "Needs work"];
   return (
@@ -60,7 +60,7 @@ function FlipCard({ q, index }: { q: PrepQuestion; index: number }) {
       {/* Question */}
       <div className="px-5 py-4">
         <div className="flex items-start gap-3">
-          <span className="w-6 h-6 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-black text-indigo-400 shrink-0 mt-0.5">
+          <span className="w-6 h-6 rounded-lg bg-rose-600/20 border border-rose-500/30 flex items-center justify-center text-[10px] font-black text-rose-400 shrink-0 mt-0.5">
             {index + 1}
           </span>
           <p className="text-sm font-medium text-white leading-relaxed">{q.question}</p>
@@ -78,7 +78,7 @@ function FlipCard({ q, index }: { q: PrepQuestion; index: number }) {
         </button>
         {showModel && (
           <div className="px-5 pb-4 animate-in fade-in slide-in-from-top-1 duration-200">
-            <p className="text-xs text-zinc-400 leading-relaxed border-l-2 border-indigo-500/40 pl-4">
+            <p className="text-xs text-zinc-400 leading-relaxed border-l-2 border-rose-500/40 pl-4">
               {q.modelAnswer}
             </p>
           </div>
@@ -92,13 +92,13 @@ function FlipCard({ q, index }: { q: PrepQuestion; index: number }) {
           onChange={(e) => setAnswer(e.target.value)}
           placeholder="Type your answer here to get it scored by AI…"
           rows={3}
-          className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-700 resize-none focus:outline-none focus:border-indigo-500 transition-colors"
+          className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-700 resize-none focus:outline-none focus:border-rose-500 transition-colors"
         />
         <div className="flex items-center gap-3">
           <button
             onClick={evaluate}
             disabled={!answer.trim() || evaluating}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs transition-all"
           >
             {evaluating
               ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Evaluating…</>
@@ -162,8 +162,8 @@ export function PrepCoach({ interviewId, positionTitle, jdSnippet, roundLabel }:
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center">
-            <Brain className="w-4 h-4 text-violet-400" />
+          <div className="w-8 h-8 rounded-xl bg-pink-600/20 border border-pink-500/30 flex items-center justify-center">
+            <Brain className="w-4 h-4 text-pink-400" />
           </div>
           <h2 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">AI Prep Coach</h2>
         </div>
@@ -181,8 +181,8 @@ export function PrepCoach({ interviewId, positionTitle, jdSnippet, roundLabel }:
       {!generated ? (
         /* Pre-generate state */
         <div className="flex-1 flex flex-col items-center justify-center text-center py-6 space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center mx-auto">
-            <Sparkles className="w-6 h-6 text-violet-400" />
+          <div className="w-14 h-14 rounded-2xl bg-pink-600/10 border border-pink-500/20 flex items-center justify-center mx-auto">
+            <Sparkles className="w-6 h-6 text-pink-400" />
           </div>
           <div className="space-y-1.5">
             <p className="text-sm font-bold text-white">5 tailored prep questions</p>
@@ -195,7 +195,7 @@ export function PrepCoach({ interviewId, positionTitle, jdSnippet, roundLabel }:
           <button
             onClick={generate}
             disabled={generating}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-bold text-sm transition-all shadow-lg shadow-violet-600/25"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white font-bold text-sm transition-all shadow-lg shadow-pink-600/25"
           >
             {generating
               ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>

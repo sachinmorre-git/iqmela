@@ -1,6 +1,7 @@
 import React from "react";
 import { InterviewScheduler } from "./InterviewScheduler";
 import { Interview, User } from "@prisma/client";
+import { formatDate, formatTime } from "@/lib/locale-utils";
 
 type InterviewData = Interview & {
   candidate: Pick<User, "name" | "email">;
@@ -11,12 +12,14 @@ export function InterviewsTab({
   positionId,
   interviews,
   resumes,
-  interviewers
+  interviewers,
+  showPII = true,
 }: {
   positionId: string;
   interviews: InterviewData[];
   resumes: any[];
   interviewers: any[];
+  showPII?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -62,13 +65,13 @@ export function InterviewsTab({
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-col">
-                        <span className="font-semibold text-gray-900 dark:text-white">{interview.candidate.name || "Unknown"}</span>
-                        <span className="text-xs text-gray-500">{interview.candidate.email}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{interview.candidate?.name || (interview as any).candidateName || "Unknown"}</span>
+                        {showPII && <span className="text-xs text-gray-500">{interview.candidate?.email || (interview as any).candidateEmail || ""}</span>}
                       </div>
                     </td>
                     <td className="px-5 py-3">
                       {interview.interviewMode === "AI_AVATAR" ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
                           🤖 AI Avatar
                         </span>
                       ) : (
@@ -85,10 +88,10 @@ export function InterviewsTab({
                     <td className="px-5 py-3">
                       <div className="flex flex-col">
                         <span className="text-gray-900 dark:text-gray-200">
-                           {interview.scheduledAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                           {formatDate(interview.scheduledAt)}
                         </span>
                         <span className="text-xs text-gray-500">
-                           {interview.scheduledAt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} ({interview.durationMinutes}m)
+                           {formatTime(interview.scheduledAt, { showTimezone: false })} ({interview.durationMinutes}m)
                         </span>
                       </div>
                     </td>
@@ -100,7 +103,7 @@ export function InterviewsTab({
                     <td className="px-5 py-3 text-right">
                        {/* Dropdown or buttons for actions could go here */}
                        {interview.roomName && interview.interviewMode === "HUMAN" && (
-                         <a href={interview.roomName} target="_blank" rel="noreferrer" className="text-xs text-teal-600 hover:text-teal-700 font-semibold underline underline-offset-2">
+                         <a href={interview.roomName} target="_blank" rel="noreferrer" className="text-xs text-rose-600 hover:text-rose-700 font-semibold underline underline-offset-2">
                            Join Link
                          </a>
                        )}

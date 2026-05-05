@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { SmartPollGrid } from "./SmartPollGrid";
 import type { TimeSlot } from "@/lib/poll-utils";
+import { formatDate, formatDateTime } from "@/lib/locale-utils"
 
 export const dynamic = "force-dynamic"; // Always fetch fresh poll state
 
@@ -52,14 +53,7 @@ export default async function AvailabilityPage({ params }: Props) {
   if (poll.status === "CONFIRMED") {
     const slot = poll.confirmedSlot as unknown as TimeSlot | null;
     const dateStr = slot
-      ? new Date(`${slot.date}T${slot.startTime}:00`).toLocaleString("en-US", {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        })
+      ? formatDateTime(new Date(`${slot.date}T${slot.startTime}:00`))
       : "";
     return (
       <StatusPage
@@ -101,11 +95,11 @@ export default async function AvailabilityPage({ params }: Props) {
   const submittedCount = participants.filter((p) => p.hasSubmitted).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-teal-50/20 dark:from-zinc-950 dark:via-zinc-900 dark:to-teal-950/10">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-rose-50/20 dark:from-zinc-950 dark:via-zinc-900 dark:to-rose-950/10">
       {/* ── Sticky Header ─────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-zinc-900/80 border-b border-gray-100 dark:border-zinc-800">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-500 to-cyan-500 flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm">
             IQ
           </div>
           <div className="flex-1 min-w-0">
@@ -136,9 +130,9 @@ export default async function AvailabilityPage({ params }: Props) {
               ⏱ {poll.durationMinutes} min interview
             </span>
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 dark:text-zinc-400 bg-gray-50 dark:bg-zinc-800 px-2.5 py-1 rounded-lg">
-              📅 {new Date(poll.dateRangeStart + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              📅 {formatDate(new Date(poll.dateRangeStart + "T00:00:00"))}
               {" → "}
-              {new Date(poll.dateRangeEnd + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              {formatDate(new Date(poll.dateRangeEnd + "T00:00:00"))}
             </span>
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 dark:text-zinc-400 bg-gray-50 dark:bg-zinc-800 px-2.5 py-1 rounded-lg">
               🕘 9AM – 5PM slots
@@ -193,7 +187,7 @@ function StatusPage({
   const bg = {
     red: "from-red-50 to-rose-50 dark:from-zinc-950 dark:to-red-950/20",
     amber: "from-amber-50 to-yellow-50 dark:from-zinc-950 dark:to-amber-950/20",
-    green: "from-emerald-50 to-teal-50 dark:from-zinc-950 dark:to-teal-950/20",
+    green: "from-emerald-50 to-rose-50 dark:from-zinc-950 dark:to-rose-950/20",
   }[color];
   const iconBg = {
     red: "bg-red-100 dark:bg-red-900/30",

@@ -2,6 +2,9 @@ import { getCallerPermissions } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import { AiTestButton } from "./AiTestButton"
 import { AiCostDashboard } from "./AiCostDashboard"
+import IntegrationsPanel from "./IntegrationsPanel"
+import { prisma } from "@/lib/prisma"
+import { auth } from "@clerk/nextjs/server"
 
 export const metadata = {
   title: "System Settings | Org Admin",
@@ -11,6 +14,27 @@ export default async function OrgAdminSettingsPage() {
   const perms = await getCallerPermissions()
   if (!perms) redirect("/select-role")
   if (!perms.canManageSettings) redirect("/org-admin/dashboard")
+
+  const { orgId } = await auth()
+
+  // Fetch connected integrations
+  const integrations = orgId
+    ? await prisma.orgIntegration.findMany({
+        where: { organizationId: orgId },
+        select: {
+          platform: true,
+          status: true,
+          externalOrgName: true,
+          connectedBy: true,
+          createdAt: true,
+        },
+      })
+    : []
+
+  const serializedIntegrations = integrations.map((i) => ({
+    ...i,
+    createdAt: i.createdAt.toISOString(),
+  }))
 
   // Read environment variables directly (Server Component, secure)
   const providerType = process.env.EMAIL_PROVIDER?.toLowerCase() || "mock"
@@ -61,10 +85,15 @@ export default async function OrgAdminSettingsPage() {
         </div>
       </div>
 
+      {/* Job Board Integrations */}
+      <div className="rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm p-6">
+        <IntegrationsPanel integrations={serializedIntegrations} />
+      </div>
+
       <div className="rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
         <div className="border-b border-gray-200 dark:border-zinc-800 px-6 py-5 bg-gray-50/50 dark:bg-zinc-900/50">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-teal-100 dark:bg-teal-900/30 rounded-lg text-teal-600 dark:text-teal-400">
+            <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-lg text-rose-600 dark:text-rose-400">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="m16 19 2 2 4-4"/></svg>
             </div>
             <div>
@@ -146,9 +175,9 @@ export default async function OrgAdminSettingsPage() {
         </div>
 
         {/* AI Configuration Section */}
-        <div className="border-t border-gray-200 dark:border-zinc-800 px-6 py-5 bg-indigo-50/50 dark:bg-indigo-900/10">
+        <div className="border-t border-gray-200 dark:border-zinc-800 px-6 py-5 bg-rose-50/50 dark:bg-rose-900/10">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
+            <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-lg text-rose-600 dark:text-rose-400">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2a2 2 0 0 1-2-2c0-1.1.9-2 2-2"/><path d="M4 8h16"/><path d="M4 14h16"/><path d="M4 20h16"/><path d="M6 8v12"/><path d="M18 8v12"/></svg>
             </div>
             <div>
@@ -201,7 +230,7 @@ export default async function OrgAdminSettingsPage() {
 
       </div>
 
-      <AiCostDashboard />
+      <AiCostDashboard orgId={perms.orgId} />
     </div>
   )
 }

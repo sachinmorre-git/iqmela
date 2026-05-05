@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!--
+    IQMela — Q+Check Icon (Dark Background version)
+    Usage: Favicon on dark, dark mode app icon
+    White on transparent
+  -->
+
+  <!-- Q body — white ring -->
+  <circle cx="240" cy="232" r="160" fill="white"/>
+  <circle cx="240" cy="232" r="88" fill="none" stroke="none"/>
+
+  <!-- Inner cutout (will be transparent) -->
+  <mask id="q-mask">
+    <rect width="512" height="512" fill="white"/>
+    <circle cx="240" cy="232" r="88" fill="black"/>
+  </mask>
+
+  <circle cx="240" cy="232" r="160" fill="white" mask="url(#q-mask)"/>
+
+  <!-- Checkmark tail — white -->
+  <path
+    d="M 296 312 L 340 356 L 420 260"
+    stroke="white"
+    stroke-width="56"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <circle cx="296" cy="312" r="28" fill="white"/>
+</svg>

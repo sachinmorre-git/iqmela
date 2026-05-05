@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Mic, MicOff, VideoIcon, VideoOff, PhoneOff, MonitorUp,
-  MessageSquare, Maximize, GripHorizontal, Wifi, WifiOff, Send, X, Gauge,
+  MessageSquare, Maximize, GripHorizontal, Wifi, WifiOff, Send, X, Gauge, Code2, UserSquare2, Focus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,9 @@ import { ProctorGuard } from "./ProctorGuard";
 import { IntelligenceSidebar } from "./IntelligenceSidebar";
 import { SignalBuffer } from "./signalBuffer";
 import { saveSessionSignalsAction } from "./proctorActions";
+import { CoderpadPanel } from "./CoderpadPanel";
+import { formatTime } from "@/lib/locale-utils"
+import { BackgroundBlur } from "@livekit/track-processors";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -100,7 +103,7 @@ function ChatPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-indigo-400" />
+          <MessageSquare className="w-4 h-4 text-rose-400" />
           <span className="text-sm font-bold text-white">Room Chat</span>
           {messages.length > 0 && (
             <span className="text-[10px] bg-zinc-700 text-zinc-400 px-1.5 py-0.5 rounded-full font-semibold">{messages.length}</span>
@@ -124,15 +127,15 @@ function ChatPanel({
             <div key={msg.id} className={`flex ${msg.isLocal ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${
                 msg.isLocal
-                  ? "bg-indigo-600 text-white rounded-br-sm"
+                  ? "bg-rose-600 text-white rounded-br-sm"
                   : "bg-zinc-800 text-zinc-200 rounded-bl-sm"
               }`}>
                 {!msg.isLocal && (
-                  <p className="text-[9px] font-bold text-indigo-400 mb-0.5">{msg.from}</p>
+                  <p className="text-[9px] font-bold text-rose-400 mb-0.5">{msg.from}</p>
                 )}
                 <p className="text-xs leading-relaxed">{msg.text}</p>
-                <p className={`text-[8px] mt-0.5 ${msg.isLocal ? "text-indigo-200" : "text-zinc-500"}`}>
-                  {new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                <p className={`text-[8px] mt-0.5 ${msg.isLocal ? "text-rose-200" : "text-zinc-500"}`}>
+                  {formatTime(new Date(msg.ts), { showTimezone: false })}
                 </p>
               </div>
             </div>
@@ -143,7 +146,7 @@ function ChatPanel({
 
       {/* Input */}
       <div className="px-3 py-3 border-t border-zinc-800/60">
-        <div className="flex items-center gap-2 bg-zinc-900 rounded-2xl border border-zinc-700/60 px-3 py-2 focus-within:border-indigo-500/50 transition-colors">
+        <div className="flex items-center gap-2 bg-zinc-900 rounded-2xl border border-zinc-700/60 px-3 py-2 focus-within:border-rose-500/50 transition-colors">
           <input
             type="text"
             value={draft}
@@ -156,7 +159,7 @@ function ChatPanel({
           <button
             onClick={handleSend}
             disabled={!draft.trim()}
-            className="w-7 h-7 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
+            className="w-7 h-7 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
           >
             <Send className="w-3 h-3 text-white" />
           </button>
@@ -267,6 +270,9 @@ function RoomLayout({
   const [unreadCount, setUnreadCount]          = useState(0);
   const [chatMessages, setChatMessages]        = useState<ChatMessage[]>([]);
   const [isLowBandwidth, setIsLowBandwidth]    = useState(false);
+  const [showCoderpad, setShowCoderpad]          = useState(false);
+  const [isBlurEnabled, setIsBlurEnabled]        = useState(false);
+  const blurProcessor                            = useRef<any>(null);
   // Push-to-talk: mic was muted before spacebar hold
   const pttWasMuted = useRef(false);
 
@@ -434,6 +440,28 @@ function RoomLayout({
     } catch (_) {}
   };
 
+  // ── Background Blur toggle ────────────────────────────────────────────────
+  const toggleBlur = async () => {
+    try {
+      const cameraPub = localParticipant.getTrackPublication(Track.Source.Camera);
+      const videoTrack = cameraPub?.videoTrack;
+      if (!videoTrack) return;
+
+      const nextState = !isBlurEnabled;
+      if (nextState) {
+        if (!blurProcessor.current) {
+          blurProcessor.current = BackgroundBlur(10);
+        }
+        await videoTrack.setProcessor(blurProcessor.current);
+      } else {
+        await videoTrack.stopProcessor();
+      }
+      setIsBlurEnabled(nextState);
+    } catch (e) {
+      console.error("Failed to toggle background blur", e);
+    }
+  };
+
   // ── Recording toggle ──────────────────────────────────────────────────────
   const handleRecordToggle = async () => {
     setIsProcessingRecord(true);
@@ -527,19 +555,28 @@ function RoomLayout({
       </div>
 
       {/* ── Main Video Arena ─────────────────────────────────────────────────── */}
-      <div className="flex-1 p-4 md:p-6 pb-28 pt-20 flex justify-center items-center overflow-hidden relative">
+      <div className={`flex-1 pb-28 pt-20 flex overflow-hidden relative ${showCoderpad ? 'flex-row p-2 md:p-3 gap-3' : 'p-4 md:p-6 justify-center items-center'}`}>
+
+        {/* ── Coderpad Panel (left half when open) ─────────────────────────── */}
+        {showCoderpad && (
+          <div className="w-1/2 min-w-[400px] h-full z-10">
+            <CoderpadPanel onClose={() => setShowCoderpad(false)} />
+          </div>
+        )}
+
+        <div className={`${showCoderpad ? 'flex-1 flex flex-col justify-center items-center' : 'w-full h-full flex justify-center items-center'} relative`}>
 
         {/* Screen share request modal */}
         {screenShareRequestPending && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-zinc-950/90 backdrop-blur-xl border border-zinc-700 p-8 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] text-center max-w-sm animate-in zoom-in-95 duration-300">
-            <div className="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-              <MonitorUp className="w-8 h-8 text-indigo-400" />
+            <div className="w-16 h-16 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/50 shadow-[0_0_15px_rgba(99,102,241,0.5)]">
+              <MonitorUp className="w-8 h-8 text-rose-400" />
             </div>
             <h3 className="text-xl font-black text-white mb-2">Screen Share Requested</h3>
             <p className="text-sm font-medium text-zinc-400 mb-6">The interviewer has requested you share your screen for proctoring or technical pairing purposes.</p>
             <div className="flex gap-4 w-full">
               <Button onClick={() => setScreenShareRequestPending(false)} variant="outline" className="flex-1 border-zinc-700 text-zinc-300 hover:text-white bg-zinc-800">Decline</Button>
-              <Button onClick={() => { setScreenShareRequestPending(false); toggleScreenShare(); }} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-600/20">Accept & Share</Button>
+              <Button onClick={() => { setScreenShareRequestPending(false); toggleScreenShare(); }} className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-lg shadow-rose-600/20">Accept & Share</Button>
             </div>
           </div>
         )}
@@ -625,7 +662,7 @@ function RoomLayout({
           // ── Waiting ────────────────────────────────────────────────────────
           <div className="flex flex-col items-center justify-center text-center">
             <div className="relative w-32 h-32 mb-8">
-              <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping" />
+              <div className="absolute inset-0 bg-rose-500/20 rounded-full animate-ping" />
               <div className="absolute inset-2 bg-purple-500/30 rounded-full animate-pulse" />
               <div className="absolute inset-4 bg-zinc-800 rounded-full flex items-center justify-center border-2 border-zinc-700 shadow-2xl">
                 <VideoOff className="w-10 h-10 text-zinc-500" />
@@ -644,6 +681,7 @@ function RoomLayout({
             onClose={() => setIsChatOpen(false)}
           />
         )}
+        </div>{/* end video container */}
       </div>
 
       {/* ── Floating Bottom Controls ─────────────────────────────────────────── */}
@@ -675,6 +713,18 @@ function RoomLayout({
             </button>
             <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-zinc-400 text-[9px] font-semibold px-2 py-1 rounded-lg border border-zinc-700 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">V</span>
           </div>
+          
+          <div className="relative group">
+            <button
+              onClick={toggleBlur}
+              disabled={!isCamEnabled}
+              title="Toggle Background Blur"
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${isBlurEnabled ? "bg-rose-600 text-white shadow-lg shadow-rose-600/20" : "bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"}`}
+            >
+              {isBlurEnabled ? <UserSquare2 className="w-6 h-6" /> : <Focus className="w-6 h-6" />}
+            </button>
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-zinc-400 text-[9px] font-semibold px-2 py-1 rounded-lg border border-zinc-700 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Blur</span>
+          </div>
         </div>
 
         {/* Screen share + Chat + Low-BW */}
@@ -692,7 +742,7 @@ function RoomLayout({
             <button
               onClick={() => toggleScreenShare()}
               title="Share screen [S]"
-              className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all group ${isScreenShareEnabled ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"}`}
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all group ${isScreenShareEnabled ? "bg-rose-600 text-white shadow-lg shadow-rose-600/20" : "bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"}`}
             >
               <MonitorUp className="w-6 h-6 group-hover:-translate-y-0.5 transition-transform" />
             </button>
@@ -706,7 +756,7 @@ function RoomLayout({
               title="Toggle chat"
               className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all relative border ${
                 isChatOpen
-                  ? "bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/20"
+                  ? "bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-600/20"
                   : "bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700"
               }`}
             >
@@ -718,6 +768,22 @@ function RoomLayout({
               )}
             </button>
             <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-zinc-400 text-[9px] font-semibold px-2 py-1 rounded-lg border border-zinc-700 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Chat</span>
+          </div>
+
+          {/* Coderpad toggle */}
+          <div className="relative group">
+            <button
+              onClick={() => setShowCoderpad(v => !v)}
+              title="Toggle Coderpad [C]"
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border ${
+                showCoderpad
+                  ? "bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/20"
+                  : "bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700"
+              }`}
+            >
+              <Code2 className="w-6 h-6" />
+            </button>
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-zinc-400 text-[9px] font-semibold px-2 py-1 rounded-lg border border-zinc-700 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Code</span>
           </div>
 
           {/* Low-bandwidth mode toggle */}

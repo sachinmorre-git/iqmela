@@ -22,6 +22,14 @@ export async function createPosition(formData: FormData) {
     const description    = (formData.get("description")    as string)?.trim() || null;
     const jdText         = (formData.get("jdText")         as string)?.trim() || null;
 
+    // AI Pipeline Configuration
+    const intakeWindowDays   = parseInt((formData.get("intakeWindowDays") as string) || "10", 10);
+    const atsPreScreenSize   = parseInt((formData.get("atsPreScreenSize") as string) || "100", 10);
+    const aiShortlistSize    = parseInt((formData.get("aiShortlistSize")  as string) || "10", 10);
+    const autoProcessOnClose = formData.get("autoProcessOnClose") === "true";
+    const autoInviteAiScreen  = formData.get("autoInviteAiScreen") === "true";
+    const resumePurgeDays    = parseInt((formData.get("resumePurgeDays")  as string) || "90", 10);
+
     // ── Validate required ────────────────────────────────────────
     if (!title) throw new Error("Position title is required.");
 
@@ -48,12 +56,52 @@ export async function createPosition(formData: FormData) {
         description,
         jdText,
         status,
+        intakeWindowDays,
+        atsPreScreenSize,
+        aiShortlistSize,
+        autoProcessOnClose,
+        autoInviteAiScreen,
+        resumePurgeDays,
         createdById: perms.userId,
         organizationId: perms.orgId,
       },
     });
 
     console.log(`[createPosition] Created position ${position.id} — "${position.title}"`);
+
+    // ── Create interview pipeline plan if stages provided ─────
+    const pipelineRaw = (formData.get("pipelineStages") as string)?.trim();
+    if (pipelineRaw) {
+      try {
+        const stages = JSON.parse(pipelineRaw) as {
+          roundLabel: string;
+          roundType: string;
+          durationMinutes: number;
+        }[];
+        if (Array.isArray(stages) && stages.length > 0) {
+          await prisma.interviewPlan.create({
+            data: {
+              positionId: position.id,
+              stages: {
+                create: stages.map((s, i) => ({
+                  stageIndex: i,
+                  roundLabel: s.roundLabel,
+                  roundType: s.roundType as any,
+                  durationMinutes: s.durationMinutes,
+                  interviewMode: s.interviewMode || (s.roundType === "AI_SCREEN" ? "AI_AVATAR" : "HUMAN"),
+                  isRequired: s.isRequired ?? true,
+                  description: s.description || null,
+                  assignedPanelJson: s.assignedPanelJson || null,
+                })),
+              },
+            },
+          });
+          console.log(`[createPosition] Created interview plan with ${stages.length} stages`);
+        }
+      } catch (planErr) {
+        console.error("[createPosition] Pipeline creation failed (non-blocking):", planErr);
+      }
+    }
 
   } catch (error) {
     console.error(">>> [createPosition] Error:", error);

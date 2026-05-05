@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!--
+    IQMela Logo — Three Overlapping Circles Icon Mark
+    Design: Venn-diagram trefoil with negative-space star center
+    Colors: Teal #14B8A6, Deep Teal #0F766E, Indigo #6366F1
+    Usage: Primary brand mark, social avatar, app icon
+  -->
+
+  <!-- Define clip for clean overlaps -->
+  <defs>
+    <style>
+      .circle-teal    { fill: #14B8A6; }
+      .circle-deep    { fill: #0F766E; }
+      .circle-indigo  { fill: #6366F1; }
+      .overlap-teal-deep   { fill: #0B5E56; }
+      .overlap-teal-indigo { fill: #0E7A8C; }
+      .overlap-deep-indigo { fill: #2D4A8A; }
+      .center          { fill: white; }
+    </style>
+  </defs>
+
+  <!--
+    Three circles arranged in equilateral triangle:
+    Top-left:  Teal
+    Top-right: Deep Teal
+    Bottom:    Indigo
+    Center offset to give the arrangement visual weight
+  -->
+
+  <!-- Bottom circle — Indigo (drawn first, sits behind) -->
+  <circle cx="256" cy="312" r="120" class="circle-indigo" opacity="0.9"/>
+
+  <!-- Top-left circle — Teal -->
+  <circle cx="192" cy="200" r="120" class="circle-teal" opacity="0.9"/>
+
+  <!-- Top-right circle — Deep Teal -->
+  <circle cx="320" cy="200" r="120" class="circle-deep" opacity="0.9"/>
+
+</svg>

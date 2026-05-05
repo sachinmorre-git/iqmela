@@ -3,6 +3,7 @@ import { getCallerPermissions } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Mail, CheckCircle2, XCircle, Clock, AlertCircle } from "lucide-react"
+import { formatTime } from "@/lib/locale-utils"
 
 export const metadata = {
   title: "Outbound Email Activity | IQMela",
@@ -132,10 +133,10 @@ export default async function OrgAdminInvitesPage() {
                   }
 
                   return (
-                    <tr key={invite.id} className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/40 transition-colors">
+                    <tr key={invite.id} className="group relative hover:bg-gray-50/50 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs ring-1 ring-indigo-200 dark:ring-indigo-800">
+                          <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-xs ring-1 ring-rose-200 dark:ring-rose-800">
                             {candidateName.charAt(0)}
                           </div>
                           <div className="font-semibold text-gray-900 dark:text-gray-100">
@@ -152,8 +153,8 @@ export default async function OrgAdminInvitesPage() {
                       <td className="px-6 py-4 font-mono text-xs text-gray-600 dark:text-gray-400 bg-gray-50/50 dark:bg-zinc-950 px-2 py-1 rounded w-max border border-gray-100 dark:border-zinc-800 shadow-sm inline-block mt-2">
                         {invite.targetEmail}
                       </td>
-                      <td className="px-6 py-4">
-                        <Link href={`/org-admin/positions/${invite.position.id}`} className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline hover:text-indigo-700 font-medium">
+                      <td className="px-6 py-4 relative z-10">
+                        <Link href={`/org-admin/positions/${invite.position.id}`} className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 group-hover:underline group-hover:text-rose-700 font-medium after:absolute after:inset-0">
                           {invite.position.title}
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                         </Link>
@@ -161,7 +162,7 @@ export default async function OrgAdminInvitesPage() {
                       <td className="px-6 py-4 text-right whitespace-nowrap">
                         <span className="text-gray-500 dark:text-gray-400 text-xs flex flex-col items-end">
                           <span className="font-semibold">{getRelativeTime(invite.updatedAt)}</span>
-                          <span className="text-[10px] mt-0.5 opacity-60">{invite.updatedAt.toLocaleTimeString()}</span>
+                          <span className="text-[10px] mt-0.5 opacity-60">{formatTime(invite.updatedAt, { showTimezone: false })}</span>
                         </span>
                       </td>
                     </tr>

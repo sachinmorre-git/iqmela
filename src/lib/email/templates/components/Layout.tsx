@@ -28,7 +28,13 @@ export const Layout: React.FC<LayoutProps> = ({ previewText, children }) => {
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Heading style={logo}>IQMela</Heading>
+            <Img
+              src={`${APP_URL}/brand/logo/iqmela-logo-400.png`}
+              width="160"
+              height="38"
+              alt="IQMela"
+              style={{ margin: "0 auto" }}
+            />
           </Section>
           
           <Section style={content}>

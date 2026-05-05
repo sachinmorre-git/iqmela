@@ -37,7 +37,7 @@ export function BulkExtractTextButton({
         type="button"
         onClick={handleClick}
         disabled={isPending || totalResumes === 0}
-        className="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white shadow-md shadow-teal-500/20 border border-teal-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 w-full min-w-[220px]"
+        className="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-cyan-600 to-rose-600 hover:from-cyan-700 hover:to-rose-700 text-white shadow-md shadow-rose-500/20 border border-rose-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 w-full min-w-[220px]"
       >
         {isPending ? (
           <>
@@ -67,13 +67,13 @@ export function BulkExtractTextButton({
 
       {/* Result summary */}
       {result && !isPending && (
-        <div className="flex flex-col gap-3 w-full bg-white dark:bg-zinc-800 p-4 rounded-xl border border-teal-100 dark:border-teal-900/30 shadow-sm text-left">
+        <div className="flex flex-col gap-3 w-full bg-white dark:bg-zinc-800 p-4 rounded-xl border border-rose-100 dark:border-rose-900/30 shadow-sm text-left">
           <p className="text-sm font-bold text-gray-800 dark:text-gray-200">Text Extraction Summary</p>
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300">
               Total: {result.total}
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-400">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400">
               ✓ {result.succeeded} Extracted
             </span>
             {result.skipped > 0 && (

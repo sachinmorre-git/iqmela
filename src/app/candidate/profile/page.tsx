@@ -26,24 +26,24 @@ export default function CandidateProfile() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <div className="space-y-2">
                  <label htmlFor="fullname" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Full Name</label>
-                 <input id="fullname" type="text" placeholder="Jane Doe" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white placeholder:text-gray-400" />
+                 <input id="fullname" type="text" placeholder="Jane Doe" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all dark:text-white placeholder:text-gray-400" />
                </div>
                
                <div className="space-y-2">
                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Email Address</label>
-                 <input id="email" type="email" placeholder="jane@company.com" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white placeholder:text-gray-400" />
+                 <input id="email" type="email" placeholder="jane@company.com" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all dark:text-white placeholder:text-gray-400" />
                </div>
 
                <div className="space-y-2">
                  <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Phone Number</label>
-                 <input id="phone" type="tel" placeholder="+1 (555) 000-0000" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white placeholder:text-gray-400" />
+                 <input id="phone" type="tel" placeholder="+1 (555) 000-0000" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all dark:text-white placeholder:text-gray-400" />
                </div>
 
                <div className="space-y-2">
                  <label htmlFor="timezone" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Timezone</label>
                  {/* Wrapper for custom select arrow */}
                  <div className="relative">
-                   <select id="timezone" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white appearance-none pr-10">
+                   <select id="timezone" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all dark:text-white appearance-none pr-10">
                       <option value="">Select a timezone...</option>
                       <option value="PST">Pacific Time (PT)</option>
                       <option value="EST">Eastern Time (ET)</option>
@@ -63,17 +63,17 @@ export default function CandidateProfile() {
               <div className="space-y-6">
                 <div className="space-y-2">
                    <label htmlFor="skills" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Key Skills <span className="text-gray-400 font-normal">(comma separated)</span></label>
-                   <input id="skills" type="text" placeholder="React, Node.js, Python, System Design" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white placeholder:text-gray-400" />
+                   <input id="skills" type="text" placeholder="React, Node.js, Python, System Design" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all dark:text-white placeholder:text-gray-400" />
                 </div>
 
                 <div className="space-y-2">
                    <label htmlFor="resume" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Resume URL</label>
-                   <input id="resume" type="url" placeholder="https://linkedin.com/in/janedoe or Portfolio URL" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white placeholder:text-gray-400" />
+                   <input id="resume" type="url" placeholder="https://linkedin.com/in/janedoe or Portfolio URL" className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all dark:text-white placeholder:text-gray-400" />
                 </div>
 
                 <div className="space-y-2">
                    <label htmlFor="experience" className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Experience Summary</label>
-                   <textarea id="experience" rows={4} placeholder="Briefly describe your background, years of experience, and biggest achievements..." className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white placeholder:text-gray-400 resize-none"></textarea>
+                   <textarea id="experience" rows={4} placeholder="Briefly describe your background, years of experience, and biggest achievements..." className="w-full px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all dark:text-white placeholder:text-gray-400 resize-none"></textarea>
                 </div>
               </div>
             </div>

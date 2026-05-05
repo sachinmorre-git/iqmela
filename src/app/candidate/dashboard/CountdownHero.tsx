@@ -45,12 +45,12 @@ const CFG: Record<CState, {
   pulse:       boolean;
 }> = {
   none:     { label: "No interview scheduled",           sublabel: "Check back when an interview is confirmed.",      gradient: "from-zinc-900 to-zinc-950",                 glow: "hidden",              accent: "text-zinc-600",   pulse: false },
-  far:      { label: "Your interview starts in",         sublabel: "You have plenty of time to prepare well.",        gradient: "from-indigo-950/80 to-zinc-950",            glow: "bg-indigo-700/20",    accent: "text-indigo-300", pulse: false },
-  today:    { label: "Your interview is today",          sublabel: "Get focused — your briefing room is ready.",      gradient: "from-violet-950/80 to-zinc-950",            glow: "bg-violet-700/20",    accent: "text-violet-300", pulse: false },
+  far:      { label: "Your interview starts in",         sublabel: "You have plenty of time to prepare well.",        gradient: "from-rose-950/80 to-zinc-950",            glow: "bg-rose-700/20",    accent: "text-rose-300", pulse: false },
+  today:    { label: "Your interview is today",          sublabel: "Get focused — your briefing room is ready.",      gradient: "from-pink-950/80 to-zinc-950",            glow: "bg-pink-700/20",    accent: "text-pink-300", pulse: false },
   soon:     { label: "Interview starting soon",          sublabel: "Time to lock in. You've got this.",               gradient: "from-amber-950/60 to-zinc-950",             glow: "bg-amber-700/20",     accent: "text-amber-300",  pulse: true  },
   imminent: { label: "Your interview is about to start", sublabel: "Join now — the panel is waiting for you.",        gradient: "from-red-950/70 to-zinc-950",               glow: "bg-red-700/25",       accent: "text-red-300",    pulse: true  },
   live:     { label: "Your interview is LIVE",           sublabel: "Join immediately — you're expected right now!",   gradient: "from-emerald-950/70 to-zinc-950",           glow: "bg-emerald-700/25",   accent: "text-emerald-300",pulse: true  },
-  done:     { label: "Interview complete",               sublabel: "Outstanding! You'll hear back soon.",             gradient: "from-teal-950/40 to-zinc-950",              glow: "bg-teal-700/15",      accent: "text-teal-300",   pulse: false },
+  done:     { label: "Interview complete",               sublabel: "Outstanding! You'll hear back soon.",             gradient: "from-rose-950/40 to-zinc-950",              glow: "bg-rose-700/15",      accent: "text-rose-300",   pulse: false },
 };
 
 export function CountdownHero({ scheduledAt, interviewId, durationMinutes, positionTitle }: Props) {
@@ -113,7 +113,7 @@ export function CountdownHero({ scheduledAt, interviewId, durationMinutes, posit
         {/* Done state */}
         {cd.state === "done" && (
           <div className="py-6">
-            <p className="text-5xl font-black text-teal-400">✓ Complete</p>
+            <p className="text-5xl font-black text-rose-400">✓ Complete</p>
           </div>
         )}
 

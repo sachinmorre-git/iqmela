@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 640" fill="none">
+  <!-- IQMela — Full Vertical Lockup v2 (Blue I · Teal Q · Gold M) -->
+  <path d="M 120 400 L 120 80 L 250 230 L 380 40 L 380 400 L 335 400 L 335 170 L 250 280 L 165 170 L 165 400 Z" fill="#FBBC04"/>
+  <circle cx="250" cy="258" r="128" fill="#0D9488"/>
+  <circle cx="250" cy="258" r="72" fill="white"/>
+  <path d="M 325 345 L 400 420 L 375 445 L 300 370 Z" fill="#0D9488"/>
+  <rect x="20" y="64" width="38" height="340" rx="4" fill="#4285F4"/>
+  <text x="256" y="580" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-weight="600" font-size="72" fill="#1E1E1E" letter-spacing="-1">IQMela</text>
+</svg>

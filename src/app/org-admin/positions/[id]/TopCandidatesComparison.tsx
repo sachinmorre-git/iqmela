@@ -18,7 +18,7 @@ export function TopCandidatesComparison({ resumes }: { resumes: any[] }) {
       <Button 
         variant="outline" 
         onClick={() => setIsOpen(true)}
-        className="w-full mt-4 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800 hover:bg-teal-100 hover:text-teal-800"
+        className="w-full mt-4 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-100 hover:text-rose-800"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8"/><path d="m3 3 7.53 7.53"/><path d="m21 3-7.53 7.53"/></svg>
         Compare Top Candidates ({topCandidates.length})
@@ -27,13 +27,16 @@ export function TopCandidatesComparison({ resumes }: { resumes: any[] }) {
   }
 
   return (
-    <div className="mt-4 rounded-xl border border-teal-200 dark:border-teal-800/40 bg-teal-50/30 dark:bg-zinc-900/40 shadow-sm overflow-hidden flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b border-teal-100 dark:border-teal-900/40 bg-white/50 dark:bg-zinc-900/80">
-        <h3 className="font-bold text-teal-900 dark:text-teal-100 flex items-center gap-2">
+    <div className="mt-4 rounded-xl border border-rose-200 dark:border-rose-800/40 bg-rose-50/30 dark:bg-zinc-900/40 shadow-sm overflow-hidden flex flex-col">
+      <div 
+        className="flex items-center justify-between p-4 border-b border-rose-100 dark:border-rose-900/40 bg-white/50 dark:bg-zinc-900/80 cursor-pointer hover:bg-white/80 dark:hover:bg-zinc-900 transition-colors"
+        onClick={() => setIsOpen(false)}
+      >
+        <h3 className="font-bold text-rose-900 dark:text-rose-100 flex items-center gap-2">
            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8"/><path d="m3 3 7.53 7.53"/><path d="m21 3-7.53 7.53"/></svg>
            Top Candidates Comparison
         </h3>
-        <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-8 w-8 p-0 rounded-full">
+        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setIsOpen(false) }} className="h-8 w-8 p-0 rounded-full">
            <span className="sr-only">Close</span>
            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </Button>
@@ -45,7 +48,7 @@ export function TopCandidatesComparison({ resumes }: { resumes: any[] }) {
             const strengths = Array.isArray(resume.notableStrengthsJson) ? resume.notableStrengthsJson : []
             const gaps = Array.isArray(resume.possibleGapsJson) ? resume.possibleGapsJson : []
             return (
-              <div key={resume.id} className="w-80 shrink-0 bg-white dark:bg-zinc-900 border border-teal-100 dark:border-zinc-800 rounded-lg p-4 flex flex-col gap-4 shadow-sm">
+              <div key={resume.id} className="w-80 shrink-0 bg-white dark:bg-zinc-900 border border-rose-100 dark:border-zinc-800 rounded-lg p-4 flex flex-col gap-4 shadow-sm">
                  <div className="flex justify-between items-start">
                    <div>
                      <h4 className="font-bold text-gray-900 dark:text-white text-base truncate w-48" title={resume.candidateName || resume.originalFileName}>
@@ -55,11 +58,11 @@ export function TopCandidatesComparison({ resumes }: { resumes: any[] }) {
                        {resume.aiRecommendationLabel?.replace("_", " ") || "No Recommendation"}
                      </span>
                    </div>
-                   <span className="text-xl font-black text-teal-600 dark:text-teal-500">{resume.matchScore ?? "-"}%</span>
+                   <span className="text-xl font-black text-rose-600 dark:text-rose-500">{resume.matchScore ?? "-"}%</span>
                  </div>
                  
                  <div>
-                   <h5 className="text-[10px] uppercase tracking-wider font-bold text-teal-600 dark:text-teal-500 mb-1.5 border-b border-teal-100 dark:border-teal-900/40 pb-1">Top Strengths</h5>
+                   <h5 className="text-[10px] uppercase tracking-wider font-bold text-rose-600 dark:text-rose-500 mb-1.5 border-b border-rose-100 dark:border-rose-900/40 pb-1">Top Strengths</h5>
                    <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                      {strengths.slice(0, 3).map((s: string, i: number) => <li key={i} className="truncate">✓ {s}</li>)}
                      {strengths.length === 0 && <span className="italic">None identified</span>}

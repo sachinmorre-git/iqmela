@@ -3,6 +3,7 @@
 import { clerkClient, auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { emailService } from "@/lib/email";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -162,6 +163,17 @@ export async function dispatchPositionToVendor(params: {
       },
     });
 
+    // ── Step 3.5: Auto-add to explicit Vendor Directory ─────────────────
+    await prisma.clientVendorRelation.upsert({
+      where: { clientOrgId_vendorOrgId: { clientOrgId, vendorOrgId: vendorOrg.id } },
+      update: { contactEmail: email },
+      create: {
+        clientOrgId,
+        vendorOrgId: vendorOrg.id,
+        contactEmail: email,
+      }
+    });
+
     // ── Step 4: Ensure the vendor user exists in the vendor org ───────────
     // Check if the specific user is already a member of the vendor org
     const client = await clerkClient();
@@ -226,6 +238,72 @@ export async function dispatchPositionToVendor(params: {
         },
       },
     });
+
+    // ── Step 6: Send transactional emails (non-blocking) ─────────────────
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://iqmela.com";
+    const dropzoneUrl = `${appUrl}/vendor/positions/${positionId}`;
+
+    // Get client org name for email context
+    const clientOrg = await prisma.organization.findUnique({
+      where: { id: clientOrgId },
+      select: { name: true },
+    });
+    const clientOrgName = clientOrg?.name || "A client organization";
+
+    // Get dispatching admin's email for confirmation
+    const dispatchingAdmin = await prisma.user.findUnique({
+      where: { id: dispatchedById },
+      select: { email: true, name: true },
+    });
+
+    // Fire both emails in parallel — never block the dispatch
+    await Promise.allSettled([
+      // Email 1: Notify the VENDOR
+      emailService.sendGenericEmail({
+        to: email,
+        subject: `New Position Dispatched: ${position.title}`,
+        previewText: `${clientOrgName} has shared a position with your agency`,
+        heading: `📋 New Position: ${position.title}`,
+        body: [
+          `<strong>${clientOrgName}</strong> has dispatched a position to your agency.`,
+          ``,
+          `<strong>Position:</strong> ${position.title}`,
+          `<strong>Organization:</strong> ${clientOrgName}`,
+          ``,
+          `You can start uploading candidate resumes immediately using the secure dropzone link below.`,
+          ``,
+          `If you don't have an IQMela account yet, you'll be prompted to create one with your work email.`,
+        ].join("\n"),
+        ctaLabel: "Open Dropzone & Upload Candidates",
+        ctaUrl: dropzoneUrl,
+      }),
+
+      // Email 2: Confirm dispatch to the CLIENT ADMIN
+      ...(dispatchingAdmin?.email
+        ? [
+            emailService.sendGenericEmail({
+              to: dispatchingAdmin.email,
+              subject: `✓ Vendor Dispatched: ${vendorOrg.name} → ${position.title}`,
+              heading: `Vendor Dispatch Confirmed`,
+              body: [
+                `Your dispatch to <strong>${vendorOrg.name}</strong> for <strong>${position.title}</strong> was successful.`,
+                ``,
+                `<strong>Vendor:</strong> ${vendorOrg.name} (${email})`,
+                `<strong>Status:</strong> Active — vendor can now upload candidates`,
+                wasAutoProvisioned
+                  ? `<strong>Note:</strong> This vendor was auto-provisioned (new to IQMela).`
+                  : ``,
+                ``,
+                `You can revoke access or copy the dropzone link from the position page.`,
+              ]
+                .filter(Boolean)
+                .join("\n"),
+              ctaLabel: "View Position",
+              ctaUrl: `${appUrl}/org-admin/positions/${positionId}`,
+            }),
+          ]
+        : []),
+    ]);
 
     revalidatePath(`/org-admin/positions/${positionId}`);
 
@@ -348,4 +426,86 @@ export async function getPositionVendorDispatches(
     resumeCount: countMap.get(d.vendorOrgId) || 0,
     dispatchedAt: d.createdAt,
   }));
+}
+
+/**
+ * Get all past vendor orgs this client org has dispatched to across any position.
+ */
+export async function getClientPastVendors(clientOrgId: string) {
+  const relations = await prisma.clientVendorRelation.findMany({
+    where: { clientOrgId },
+    include: { vendorOrg: true },
+    orderBy: { createdAt: "desc" }
+  });
+
+  return relations.map((r) => ({
+    id: r.vendorOrg.id,
+    name: r.vendorOrg.name,
+    domain: r.vendorOrg.domain,
+    email: r.contactEmail,
+    phone: r.contactPhone || "—"
+  }));
+}
+
+/**
+ * Onboards a new vendor to the client's explicit address book.
+ */
+export async function addManagedVendorToClient(params: {
+  vendorEmail: string;
+  vendorName?: string;
+  vendorPhone?: string;
+  addedById: string;
+  clientOrgId: string;
+}): Promise<{ success: boolean; vendorOrgId?: string; vendorOrgName?: string; wasAutoProvisioned?: boolean; error?: string }> {
+  const { vendorEmail, vendorName, vendorPhone, addedById, clientOrgId } = params;
+  try {
+    const email = vendorEmail.trim().toLowerCase();
+    if (!email || !email.includes("@")) return { success: false, error: "Invalid email address." };
+    const domain = extractDomain(email);
+    if (!domain) return { success: false, error: "Could not extract domain from email." };
+
+    let vendorOrg = await prisma.organization.findFirst({ where: { domain } });
+    let wasAutoProvisioned = false;
+
+    if (!vendorOrg) {
+      const orgName = vendorName || domainToOrgName(domain);
+      const client = await clerkClient();
+      const existingOrgsResult = await client.organizations.getOrganizationList({ query: orgName });
+      const existingOrgs = "data" in existingOrgsResult ? existingOrgsResult.data : existingOrgsResult;
+      const existing = (existingOrgs as any[]).find(org => org.name.toLowerCase() === orgName.toLowerCase());
+      
+      let clerkOrgId: string;
+      if (existing) clerkOrgId = existing.id;
+      else {
+        const newClerkOrg = await client.organizations.createOrganization({ name: orgName, createdBy: addedById });
+        clerkOrgId = newClerkOrg.id;
+      }
+      vendorOrg = await prisma.organization.create({
+        data: { id: clerkOrgId, name: domainToOrgName(domain), domain, planTier: "VENDOR_FREE" },
+      });
+      wasAutoProvisioned = true;
+    }
+
+    if (vendorOrg.id === clientOrgId) return { success: false, error: "Cannot add your own organization." };
+
+    await prisma.clientVendorRelation.upsert({
+      where: { clientOrgId_vendorOrgId: { clientOrgId, vendorOrgId: vendorOrg.id } },
+      update: {
+        contactEmail: email,
+        ...(vendorName && { contactName: vendorName }),
+        ...(vendorPhone && { contactPhone: vendorPhone })
+      },
+      create: {
+        clientOrgId,
+        vendorOrgId: vendorOrg.id,
+        contactName: vendorName || null,
+        contactEmail: email,
+        contactPhone: vendorPhone || null
+      }
+    });
+
+    return { success: true, vendorOrgId: vendorOrg.id, vendorOrgName: vendorOrg.name, wasAutoProvisioned };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to add vendor." };
+  }
 }

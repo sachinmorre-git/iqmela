@@ -5,6 +5,7 @@ import { LEGAL_VERSIONS } from "@/lib/legal-versions";
 import { Scale, CheckCircle2, Clock, Building2, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { formatDate } from "@/lib/locale-utils"
 
 export const metadata: Metadata = { title: "Legal Agreements — IQMela Admin" };
 
@@ -42,8 +43,8 @@ export default async function AdminLegalPage() {
     <div className="p-8 max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-          <Scale className="w-5 h-5 text-indigo-400" />
+        <div className="w-10 h-10 rounded-xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center">
+          <Scale className="w-5 h-5 text-rose-400" />
         </div>
         <div>
           <h1 className="text-2xl font-black text-white">Legal Agreements</h1>
@@ -100,7 +101,7 @@ export default async function AdminLegalPage() {
                   <td className="px-5 py-3 text-zinc-500 text-xs">{LEGAL_VERSIONS.EFFECTIVE_DATE}</td>
                   <td className="px-5 py-3 text-right">
                     <Link href={doc.href} target="_blank"
-                      className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold">
+                      className="text-xs text-rose-400 hover:text-rose-300 font-semibold">
                       View →
                     </Link>
                   </td>
@@ -147,7 +148,7 @@ export default async function AdminLegalPage() {
                     </td>
                     <td className="px-5 py-3 text-zinc-500 text-xs">
                       {org.msaAcceptedAt
-                        ? new Date(org.msaAcceptedAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+                        ? formatDate(new Date(org.msaAcceptedAt))
                         : "—"}
                     </td>
                     <td className="px-5 py-3">

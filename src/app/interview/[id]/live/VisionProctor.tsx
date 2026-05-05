@@ -290,7 +290,7 @@ export function VisionProctor({
   if (!warning) return null;
 
   return (
-    <div className="absolute top-20 right-6 z-[9999] bg-gradient-to-r from-red-900 to-black text-white px-5 py-4 rounded-2xl shadow-indigo-500/20 shadow-2xl border border-red-500/50 flex flex-col max-w-sm animate-in fade-in zoom-in slide-in-from-right-4 duration-500">
+    <div className="absolute top-20 right-6 z-[9999] bg-gradient-to-r from-red-900 to-black text-white px-5 py-4 rounded-2xl shadow-rose-500/20 shadow-2xl border border-red-500/50 flex flex-col max-w-sm animate-in fade-in zoom-in slide-in-from-right-4 duration-500">
       <div className="flex items-center gap-3 mb-2 border-b border-red-500/30 pb-2">
         <ShieldAlert className="w-6 h-6 text-red-500 animate-pulse shrink-0" />
         <h4 className="font-black tracking-widest text-[11px] text-red-500 uppercase">AI Vision Analysis</h4>

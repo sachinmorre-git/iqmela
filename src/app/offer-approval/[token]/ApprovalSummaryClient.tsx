@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatDate, formatTime, formatDateTime } from "@/lib/locale-utils";
 import { Check, X, FileText, Building2, User, HelpCircle, Loader2 } from "lucide-react";
 import { submitApprovalStepAction } from "@/app/org-admin/offer-actions";
 import { useRouter } from "next/navigation";
@@ -59,12 +60,12 @@ export function ApprovalSummaryClient({ approval, token }: ApprovalSummaryClient
   return (
     <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
       
-      <div className="bg-indigo-600 p-10 text-white relative overflow-hidden">
+      <div className="bg-rose-600 p-10 text-white relative overflow-hidden">
         <div className="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
         <div className="relative z-10">
-          <p className="text-indigo-200 text-sm font-semibold tracking-wider uppercase mb-2">Offer Approval Required</p>
+          <p className="text-rose-200 text-sm font-semibold tracking-wider uppercase mb-2">Offer Approval Required</p>
           <h1 className="text-3xl font-bold mb-2">{candidateName}</h1>
-          <p className="text-indigo-100 flex items-center gap-2">
+          <p className="text-rose-100 flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             {offer.position.title} • {offer.position.department || "No Dept"}
           </p>
@@ -102,8 +103,8 @@ export function ApprovalSummaryClient({ approval, token }: ApprovalSummaryClient
             <div>
                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Key Dates</h3>
                <div className="space-y-2 text-sm text-gray-700">
-                 <p><span className="text-gray-400 w-20 inline-block">Start:</span> <strong className="text-gray-900">{new Date(offer.startDate).toLocaleDateString()}</strong></p>
-                 <p><span className="text-gray-400 w-20 inline-block">Expires:</span> <strong className="text-gray-900">{new Date(offer.expirationDate).toLocaleDateString()}</strong></p>
+                 <p><span className="text-gray-400 w-20 inline-block">Start:</span> <strong className="text-gray-900">{formatDate(new Date(offer.startDate))}</strong></p>
+                 <p><span className="text-gray-400 w-20 inline-block">Expires:</span> <strong className="text-gray-900">{formatDate(new Date(offer.expirationDate))}</strong></p>
                </div>
             </div>
           </div>
@@ -146,7 +147,7 @@ export function ApprovalSummaryClient({ approval, token }: ApprovalSummaryClient
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="e.g., Base salary exceeds the approved band. Please lower to $115k."
-            className="w-full h-32 p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full h-32 p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-500 outline-none"
           />
 
           <div className="flex gap-3">

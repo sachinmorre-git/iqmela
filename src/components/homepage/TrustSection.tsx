@@ -18,7 +18,7 @@ const COMPLIANCE = [
 
 export function TrustSection() {
   return (
-    <section className="py-20 px-4 border-t border-zinc-800/60 bg-zinc-950">
+    <section className="py-20 px-4 border-t border-gray-200 dark:border-zinc-800/60 bg-white dark:bg-zinc-950">
       <div className="max-w-5xl mx-auto space-y-14">
         {/* Compliance badges */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">

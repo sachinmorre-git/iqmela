@@ -13,9 +13,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Org Admin role required to accept MSA" }, { status: 403 });
   }
 
-  const body = await req.json() as { name?: string; title?: string };
+  const body = await req.json() as { name?: string; title?: string; viewedDocuments?: string[] };
   if (!body.name?.trim()) {
     return NextResponse.json({ error: "Signatory name is required" }, { status: 400 });
+  }
+  if (!body.viewedDocuments?.length) {
+    return NextResponse.json({ error: "All documents must be reviewed before acceptance" }, { status: 400 });
   }
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
@@ -50,10 +53,14 @@ export async function POST(req: NextRequest) {
     orgId,
     acceptedBy:     userId,
     signatoryName,
+    viewedDocuments: body.viewedDocuments,
     ip,
     userAgent:      req.headers.get("user-agent") ?? "unknown",
     timestamp:      new Date().toISOString(),
   }));
 
-  return NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true });
+  // Long-lived cookie as fallback to Clerk's JWT propagation
+  response.cookies.set("msa_accepted", LEGAL_VERSIONS.ORG_MSA, { path: "/", maxAge: 30 * 24 * 60 * 60, httpOnly: true });
+  return response;
 }

@@ -7,6 +7,8 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const body = await req.json().catch(() => ({})) as { viewedDocuments?: string[] };
+
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
           ?? req.headers.get("x-real-ip")
           ?? "unknown";
@@ -34,10 +36,14 @@ export async function POST(req: NextRequest) {
     type:      "PLATFORM_TOS",
     version:   LEGAL_VERSIONS.PLATFORM_TOS,
     userId,
+    viewedDocuments: body.viewedDocuments ?? [],
     ip,
     userAgent: req.headers.get("user-agent") ?? "unknown",
     timestamp: new Date().toISOString(),
   }));
 
-  return NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true });
+  // Long-lived cookie as fallback to Clerk's JWT propagation
+  response.cookies.set("tos_accepted", LEGAL_VERSIONS.PLATFORM_TOS, { path: "/", maxAge: 30 * 24 * 60 * 60, httpOnly: true });
+  return response;
 }

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!--
+    IQMela — IQM Monogram v2 (Blue I · Teal Q · Gold M)
+    Google-balanced, professional palette
+  -->
+
+  <!-- M — Gold letter (behind Q, prominent peaks) -->
+  <path d="
+    M 150 420
+    L 150 100
+    L 270 240
+    L 390 60
+    L 390 420
+    L 340 420
+    L 340 190
+    L 270 300
+    L 200 190
+    L 200 420
+    Z
+  " fill="#FBBC04"/>
+
+  <!-- Q — Teal ring (center, in front of M) -->
+  <circle cx="270" cy="275" r="138" fill="#0D9488"/>
+  <circle cx="270" cy="275" r="78" fill="white"/>
+
+  <!-- Q tail — diagonal at bottom-right -->
+  <path d="M 350 365 L 430 445 L 400 475 L 320 395 Z" fill="#0D9488"/>
+
+  <!-- I — Blue vertical bar (left, in front) -->
+  <rect x="40" y="80" width="40" height="350" rx="4" fill="#4285F4"/>
+</svg>

@@ -78,9 +78,9 @@ export function AutoActivateOrg({ orgId, orgName }: { orgId: string; orgName: st
               }}
               className="
                 flex items-center gap-2 px-4 py-2.5 rounded-xl
-                bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500
+                bg-gradient-to-r from-rose-600 to-purple-600 hover:from-rose-500 hover:to-purple-500
                 text-white text-sm font-semibold transition-all duration-200
-                shadow-lg shadow-indigo-500/20
+                shadow-lg shadow-rose-500/20
               "
             >
               <RefreshCw className="w-4 h-4" />
@@ -101,8 +101,8 @@ export function AutoActivateOrg({ orgId, orgName }: { orgId: string; orgName: st
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center p-4">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/20 flex items-center justify-center">
-          <Building2 className="w-6 h-6 text-indigo-400" />
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500/20 to-purple-500/20 border border-rose-500/20 flex items-center justify-center">
+          <Building2 className="w-6 h-6 text-rose-400" />
         </div>
         <div className="text-center">
           <h2 className="text-lg font-semibold text-white">Entering {orgName}</h2>
@@ -110,7 +110,7 @@ export function AutoActivateOrg({ orgId, orgName }: { orgId: string; orgName: st
             {retryCount > 0 ? "Retrying..." : "Setting up your workspace..."}
           </p>
         </div>
-        <Loader2 className="w-5 h-5 text-indigo-400 animate-spin mt-2" />
+        <Loader2 className="w-5 h-5 text-rose-400 animate-spin mt-2" />
       </div>
     </div>
   );

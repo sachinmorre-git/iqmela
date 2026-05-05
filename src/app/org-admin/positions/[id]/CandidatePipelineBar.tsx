@@ -57,7 +57,7 @@ const statusConfig: Record<StageStatus, {
     dot: "bg-transparent border-gray-400 dark:border-zinc-500 border-2",
     line: "bg-gray-200 dark:bg-zinc-700",
     label: "text-gray-500 dark:text-zinc-400",
-    cursor: "cursor-pointer hover:border-teal-400 hover:shadow-teal-400/20 hover:shadow-sm",
+    cursor: "cursor-pointer hover:border-rose-400 hover:shadow-rose-400/20 hover:shadow-sm",
   },
 
   SKIPPED: {

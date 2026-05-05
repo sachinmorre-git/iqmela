@@ -79,6 +79,14 @@ export const AiInterviewInviteTemplate: React.FC<AiInterviewInviteTemplateProps>
               </Text>
             </Column>
           </Row>
+          <Row>
+            <Column style={infoItem}>
+              <Text style={infoIcon}>🌐</Text>
+              <Text style={infoText}>
+                <strong>Supported Browsers</strong> — Please use a recent version of Chrome, Edge, or Safari on a desktop/laptop.
+              </Text>
+            </Column>
+          </Row>
         </Section>
 
         <Section style={btnContainer}>

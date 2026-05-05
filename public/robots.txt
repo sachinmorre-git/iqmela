@@ -1,6 +1,4 @@
-# ══════════════════════════════════════════════════════════════
-# IQMela – Testing Phase: Block all search engine crawlers
-# REMOVE THIS FILE when ready for public launch
-# ══════════════════════════════════════════════════════════════
 User-agent: *
-Disallow: /
+Allow: /
+
+Sitemap: https://www.iqmela.com/sitemap.xml

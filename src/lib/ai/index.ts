@@ -3,6 +3,7 @@ import { aiConfig } from "./config";
 import { MockHiringAiProvider } from "./providers/mock-provider";
 import { GeminiHiringAiProvider } from "./providers/gemini-provider";
 import { DeepSeekHiringAiProvider } from "./providers/deepseek-provider";
+import { getCircuitBreaker, type CircuitBreaker } from "./circuit-breaker";
 
 function resolveProvider(forceName?: string): HiringAiProvider {
   if (forceName === "mock") return new MockHiringAiProvider();
@@ -25,26 +26,64 @@ function resolveProvider(forceName?: string): HiringAiProvider {
 }
 
 /**
- * A proxy wrapper that safely intercepts API failures and rolls back to a designated Fallback API provider.
+ * A proxy wrapper that safely intercepts API failures, applies circuit-breaker
+ * logic, and rolls back to a designated fallback provider.
+ *
+ * Circuit Breaker behaviour:
+ *   - CLOSED: Requests go to primary. Failures increment the counter.
+ *   - OPEN: After N consecutive failures, ALL requests bypass primary and
+ *           go directly to fallback for a cooldown period (60s default).
+ *   - HALF_OPEN: After cooldown, a single probe goes to primary.
+ *     - If it succeeds → CLOSED (primary recovered).
+ *     - If it fails → OPEN again.
  */
 class ProxyHiringAiProvider implements HiringAiProvider {
   readonly providerName: string;
   private primary: HiringAiProvider;
+  private breaker: CircuitBreaker;
   
   constructor() {
     this.primary = resolveProvider();
     this.providerName = this.primary.providerName;
+    this.breaker = getCircuitBreaker(this.primary.providerName, {
+      failureThreshold: 3,     // 3 consecutive failures → OPEN
+      cooldownMs: 60_000,      // Wait 60s before probing
+      successThreshold: 2,     // 2 probe successes → CLOSED
+      onStateChange: (from, to, name) => {
+        console.warn(`[HiringAI:CircuitBreaker] ${name}: ${from} → ${to}`);
+      },
+    });
   }
 
   private async withFallback<T>(operation: (provider: HiringAiProvider) => Promise<T>, operationName: string): Promise<T> {
+    // ── Circuit Breaker: skip primary if circuit is OPEN ─────────────────
+    if (!this.breaker.isAllowed()) {
+      console.warn(
+        `[HiringAI:CircuitBreaker] ${operationName}: circuit OPEN for ${this.primary.providerName}, ` +
+        `routing directly to ${aiConfig.fallbackProvider}`
+      );
+      const fallbackProvider = resolveProvider(aiConfig.fallbackProvider);
+      return await operation(fallbackProvider);
+    }
+
     try {
-      return await operation(this.primary);
+      const result = await operation(this.primary);
+      this.breaker.onSuccess();
+      return result;
     } catch (error) {
+      this.breaker.onFailure();
+
       if (!aiConfig.fallbackEnabled || aiConfig.fallbackProvider === this.primary.providerName) {
         throw error;
       }
       
-      console.warn(`[HiringAI:Fallback] ${operationName} failed with ${this.primary.providerName}. Falling back to ${aiConfig.fallbackProvider}. Error:`, error);
+      const breakerState = this.breaker.getState();
+      console.warn(
+        `[HiringAI:Fallback] ${operationName} failed with ${this.primary.providerName} ` +
+        `(breaker: ${breakerState}, failures: ${this.breaker.getStats().consecutiveFailures}). ` +
+        `Falling back to ${aiConfig.fallbackProvider}. Error:`,
+        error
+      );
       const fallbackProvider = resolveProvider(aiConfig.fallbackProvider);
       return await operation(fallbackProvider);
     }
@@ -103,3 +142,7 @@ export type {
   CandidateSummaryResult,
   RecommendationResult,
 } from "./types";
+
+// Re-export circuit breaker for admin dashboard
+export { getCircuitBreaker, getAllCircuitBreakers } from "./circuit-breaker";
+

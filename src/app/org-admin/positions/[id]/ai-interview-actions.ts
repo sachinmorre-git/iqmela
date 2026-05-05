@@ -408,6 +408,17 @@ export async function reviewAiSessionAction(
       return { success: false, error: "Not found or unauthorized" };
     }
 
+    // Fetch current session to snapshot previous AI values (Gap 3)
+    const session = await prisma.aiInterviewSession.findUnique({
+      where: { id: sessionId },
+      select: {
+        recommendation: true,
+        recruiterRecommendation: true,
+        overallScore: true,
+        resumeId: true,
+      },
+    });
+
     await prisma.aiInterviewSession.update({
       where: { id: sessionId },
       data: {
@@ -417,6 +428,31 @@ export async function reviewAiSessionAction(
         reviewedByUserId: perms.userId,
       },
     });
+
+    // ── Gap 2: Audit trail for AI interview override ────────────────────
+    if (data.recruiterRecommendation && session) {
+      await prisma.auditLog.create({
+        data: {
+          organizationId: perms.orgId,
+          userId: perms.userId,
+          action: "AI_SESSION_REVIEWED",
+          resourceType: "AI_SESSION",
+          resourceId: sessionId,
+          metadata: {
+            positionId,
+            resumeId: session.resumeId,
+            previousAiRecommendation: session.recommendation,
+            previousRecruiterOverride: session.recruiterRecommendation,
+            newRecruiterRecommendation: data.recruiterRecommendation,
+            aiOverallScore: session.overallScore,
+            hasNotes: !!data.recruiterNotes,
+            reviewedAt: new Date().toISOString(),
+          },
+        },
+      }).catch((err) => {
+        console.error("AUDIT: Failed to log AI session review:", err);
+      });
+    }
 
     revalidatePath(`/org-admin/positions/${positionId}`);
     revalidatePath(`/org-admin/resumes`);

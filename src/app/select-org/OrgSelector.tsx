@@ -46,11 +46,11 @@ export function OrgSelector({ memberships }: { memberships: OrgMembership[] }) {
           "
         >
           {/* Org avatar */}
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-500/20 to-purple-500/20 border border-rose-500/20 flex items-center justify-center shrink-0 overflow-hidden">
             {m.orgImageUrl ? (
               <img src={m.orgImageUrl} alt={m.orgName} className="w-full h-full object-cover rounded-xl" />
             ) : (
-              <Building2 className="w-5 h-5 text-indigo-400" />
+              <Building2 className="w-5 h-5 text-rose-400" />
             )}
           </div>
 
@@ -64,7 +64,7 @@ export function OrgSelector({ memberships }: { memberships: OrgMembership[] }) {
 
           {/* Arrow / Spinner */}
           {activatingId === m.orgId ? (
-            <Loader2 className="w-4 h-4 text-indigo-400 animate-spin shrink-0" />
+            <Loader2 className="w-4 h-4 text-rose-400 animate-spin shrink-0" />
           ) : (
             <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors shrink-0" />
           )}

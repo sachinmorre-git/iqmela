@@ -28,10 +28,10 @@ export function FeedbackForm({ interviewId, resumeId, positionId, stageIndex, ca
       {/* Inline scorecard — no backdrop overlay since this isn't a modal */}
       <div className="w-full max-w-2xl bg-white dark:bg-zinc-950 rounded-3xl shadow-2xl border border-gray-100 dark:border-zinc-800 overflow-hidden">
         {/* Header strip */}
-        <div className="bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 px-8 py-8">
-          <p className="text-violet-200 text-xs font-bold uppercase tracking-widest mb-1">Post-Interview Evaluation</p>
+        <div className="bg-gradient-to-r from-pink-600 via-rose-600 to-blue-600 px-8 py-8">
+          <p className="text-pink-200 text-xs font-bold uppercase tracking-widest mb-1">Post-Interview Evaluation</p>
           <h1 className="text-2xl font-black text-white">Lock in your scorecard</h1>
-          <p className="text-indigo-200 text-sm mt-1">Your evaluation is securely stored and shared only with the hiring team.</p>
+          <p className="text-rose-200 text-sm mt-1">Your evaluation is securely stored and shared only with the hiring team.</p>
         </div>
 
         {/* Mount the scorecard form in "inline" mode — no modal backdrop */}

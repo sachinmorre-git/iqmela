@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -13,10 +14,10 @@ export function AnalyzeJdButton({ positionId, hasJdAnalysis = false }: { positio
       // Force re-analyze if triggered manually
       const res = await analyzeJdAction(positionId, true)
       if (!res.success) {
-        alert(res.error)
+        toast.error(res.error || "Operation failed")
       }
     } catch (e) {
-      alert("Failed to analyze JD")
+      toast.error("Failed to analyze JD")
     } finally {
       setIsPending(false)
     }

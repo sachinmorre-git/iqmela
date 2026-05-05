@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { PII_CONSENT_TEXT } from "@/lib/bgv/pii-consent";
+import { formatDate } from "@/lib/locale-utils"
 
 interface UploadMetadata {
   candidateName: string;
@@ -119,7 +120,7 @@ export default function BgvUploadPage() {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 text-violet-500 animate-spin mx-auto" />
+          <Loader2 className="w-8 h-8 text-pink-500 animate-spin mx-auto" />
           <p className="text-sm text-gray-500 mt-3">Loading upload page...</p>
         </div>
       </div>
@@ -154,7 +155,7 @@ export default function BgvUploadPage() {
           <p className="text-sm text-gray-500 mt-2">This upload link has expired.</p>
           {metadata.expiresAt && (
             <p className="text-xs text-gray-400 mt-2">
-              Expired: {new Date(metadata.expiresAt).toLocaleDateString()}
+              Expired: {formatDate(new Date(metadata.expiresAt))}
             </p>
           )}
           <p className="text-xs text-gray-400 mt-4">Please request a new upload link from the recruiter.</p>
@@ -213,9 +214,9 @@ export default function BgvUploadPage() {
         {/* Header Card */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-gray-100 dark:border-zinc-800 overflow-hidden">
           {/* Logo + Title */}
-          <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5 text-white">
+          <div className="bg-gradient-to-r from-pink-600 to-rose-600 px-6 py-5 text-white">
             <h1 className="text-lg font-bold">Background Verification Report Upload</h1>
-            <p className="text-violet-100 text-sm mt-1">Secure document upload portal</p>
+            <p className="text-pink-100 text-sm mt-1">Secure document upload portal</p>
           </div>
 
           {/* Context Info */}
@@ -256,7 +257,7 @@ export default function BgvUploadPage() {
                 className={`mt-2 border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer ${
                   file
                     ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-900/10"
-                    : "border-gray-300 dark:border-zinc-600 hover:border-violet-400 dark:hover:border-violet-600 bg-white dark:bg-zinc-800/50"
+                    : "border-gray-300 dark:border-zinc-600 hover:border-pink-400 dark:hover:border-pink-600 bg-white dark:bg-zinc-800/50"
                 }`}
               >
                 {file ? (
@@ -346,7 +347,7 @@ export default function BgvUploadPage() {
                 </div>
                 <div className="mt-3 h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full transition-all duration-1000"
+                    className="h-full bg-gradient-to-r from-blue-500 to-pink-500 rounded-full transition-all duration-1000"
                     style={{ width: "65%", animation: "pulse 1.5s ease-in-out infinite" }}
                   />
                 </div>
@@ -357,7 +358,7 @@ export default function BgvUploadPage() {
             <button
               onClick={handleUpload}
               disabled={!file || !consent || uploading}
-              className="w-full py-3.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-violet-500/20 flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-pink-500/20 flex items-center justify-center gap-2"
             >
               {uploading ? (
                 <>
@@ -374,9 +375,7 @@ export default function BgvUploadPage() {
           {metadata.expiresAt && (
             <div className="px-6 py-3 bg-gray-50 dark:bg-zinc-800/50 border-t border-gray-100 dark:border-zinc-800 text-center">
               <p className="text-[10px] text-gray-400">
-                🔒 This link expires {new Date(metadata.expiresAt).toLocaleDateString("en-US", {
-                  weekday: "long", month: "long", day: "numeric", year: "numeric",
-                })}
+                🔒 This link expires {formatDate(new Date(metadata.expiresAt))}
               </p>
             </div>
           )}

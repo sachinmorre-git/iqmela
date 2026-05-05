@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { SlotCards } from "./SlotCards";
+import { formatDateTime } from "@/lib/locale-utils"
 
 export const metadata = {
   title: "Pick Your Interview Time — IQMela",
@@ -30,10 +31,7 @@ export default async function PickSlotPage({ params }: Props) {
   if (poll.status === "CONFIRMED" && poll.confirmedSlot) {
     const slot = poll.confirmedSlot as { date: string; startTime: string; endTime: string };
     const confirmedDate = new Date(`${slot.date}T${slot.startTime}:00`);
-    const formattedDate = confirmedDate.toLocaleString("en-US", {
-      weekday: "long", month: "long", day: "numeric",
-      hour: "numeric", minute: "2-digit", hour12: true,
-    });
+    const formattedDate = formatDateTime(confirmedDate);
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-emerald-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-emerald-950 flex items-center justify-center p-6">
@@ -78,10 +76,10 @@ export default async function PickSlotPage({ params }: Props) {
   // Not ready yet (still polling)
   if (poll.status === "POLLING" || !poll.commonSlotsJson) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-violet-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-violet-950 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-pink-950 flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center space-y-6">
-          <div className="w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center mx-auto animate-pulse">
-            <svg className="w-8 h-8 text-violet-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <div className="w-16 h-16 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center mx-auto animate-pulse">
+            <svg className="w-8 h-8 text-pink-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
             </svg>
           </div>
@@ -98,12 +96,12 @@ export default async function PickSlotPage({ params }: Props) {
   const commonSlots = poll.commonSlotsJson as { date: string; startTime: string; endTime: string }[];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-teal-50/30 dark:from-zinc-950 dark:via-zinc-900 dark:to-teal-950/20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-rose-50/30 dark:from-zinc-950 dark:via-zinc-900 dark:to-rose-950/20">
       {/* Header */}
       <div className="border-b border-gray-100 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm">
               IQ
             </div>
             <div>
@@ -121,7 +119,7 @@ export default async function PickSlotPage({ params }: Props) {
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-5 shadow-sm">
           <p className="text-sm text-gray-600 dark:text-zinc-400">
             Hi <strong className="text-gray-900 dark:text-white">{candidateName}</strong>! We found{" "}
-            <strong className="text-teal-600 dark:text-teal-400">{commonSlots.length} time slot{commonSlots.length > 1 ? "s" : ""}</strong>{" "}
+            <strong className="text-rose-600 dark:text-rose-400">{commonSlots.length} time slot{commonSlots.length > 1 ? "s" : ""}</strong>{" "}
             that work for your interview panel. Pick the one that works best for you.
           </p>
           <p className="text-xs text-gray-400 mt-2">⏱ {poll.durationMinutes} min interview</p>

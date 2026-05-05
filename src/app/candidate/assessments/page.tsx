@@ -19,7 +19,7 @@ export default function CandidateAssessments() {
       <Card className="shadow-sm border-gray-100 dark:border-zinc-800">
         <CardContent className="p-8 md:p-16">
            <EmptyState 
-             icon={<FileCode2 className="w-8 h-8 text-indigo-400" />}
+             icon={<FileCode2 className="w-8 h-8 text-rose-400" />}
              title="No Assessments Yet"
              description="You haven't been assigned any coding assessments yet. When an interviewer sends one, it will appear right here alongside your due dates."
              actionLabel="Browse Practice Tests"

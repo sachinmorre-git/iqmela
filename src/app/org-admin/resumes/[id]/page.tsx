@@ -9,6 +9,13 @@ import { RawAiOutputDebug } from "./RawAiOutputDebug"
 import { CandidateFitCard } from "../../positions/[id]/CandidateFitCard"
 import { AiReviewPanel } from "../../positions/[id]/AiReviewPanel"
 import { getCallerPermissions } from "@/lib/rbac"
+import { canSeePII } from "@/lib/pii-redact"
+import { UnifiedProfileClient } from "./UnifiedProfileClient"
+import { ScoreDial } from "@/components/ui/ScoreDial"
+import { CandidateJourneyTracker, JourneyStage, JourneyStageState } from "@/components/ui/CandidateJourneyTracker"
+import { CandidateDecisionBar } from "@/components/ui/CandidateDecisionBar"
+import { CandidateDecisionHistoryModal } from "./CandidateDecisionHistoryModal"
+import { DeepAiDrawer } from "./DeepAiDrawer"
 
 export async function generateMetadata({
   params,
@@ -29,7 +36,7 @@ export async function generateMetadata({
 function StatusBadge({ status }: { status: string }) {
   const styles =
     status === "EXTRACTED" || status === "RANKED"
-      ? "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400"
+      ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400"
       : status === "EXTRACTING" || status === "RANKING"
       ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
       : status === "QUEUED_FOR_AI"
@@ -70,40 +77,63 @@ export default async function ResumeDetailPage({
   if (!perms) redirect("/select-role")
   if (!perms.canViewPositions) redirect("/org-admin/dashboard")
 
+  const showPII = canSeePII(perms.roles);
+
   const { id } = await params
 
   const resume = await prisma.resume.findUnique({
-    where: { id },
-    include: { position: true },
+    where: { id, isDeleted: false },
+    include: {
+      position: {
+        include: {
+          interviewPlan: { include: { stages: { orderBy: { stageIndex: "asc" } } } },
+        },
+      },
+      interviews: {
+        orderBy: { stageIndex: "asc" },
+        include: {
+          panelists:        { include: { interviewer: { select: { id: true, name: true, email: true } } } },
+          panelistFeedbacks: { include: { interviewer: { select: { id: true, name: true, email: true } } } },
+          feedback:   true,
+          aiAnalysis: true,
+          behaviorReport: true,
+        },
+      },
+      aiInterviewSessions: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        include: { 
+          candidate: { select: { name: true, email: true } },
+          turns: { orderBy: { turnIndex: "asc" }, select: {
+            turnIndex: true, category: true, question: true,
+            candidateAnswer: true, scoreRaw: true, scoreFeedback: true,
+            answerDurationMs: true, suspiciousFlags: true, transcriptWarnings: true,
+          }}
+        },
+      },
+      panelistFeedbacks: {
+        include: { interviewer: { select: { id: true, name: true, email: true } } },
+        orderBy: { submittedAt: "asc" },
+      },
+      hiringDecisions: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { decidedBy: { select: { name: true, email: true } } },
+      },
+      bgvChecks: {
+        orderBy: { createdAt: "desc" },
+      },
+      jobOffers: {
+        orderBy: { createdAt: "desc" },
+      },
+    },
   })
 
-  if (!resume || resume.position.organizationId !== perms.orgId) notFound()
-  if (perms.scopedDeptIds && resume.position.departmentId && !perms.scopedDeptIds.includes(resume.position.departmentId)) notFound()
+  if (!resume || resume.position?.organizationId !== perms.orgId) notFound()
+  if (perms.scopedDeptIds && resume.position?.departmentId && !perms.scopedDeptIds.includes(resume.position.departmentId)) notFound()
 
-  // Fetch AI interview session for this resume (if any)
-  const aiSession = await prisma.aiInterviewSession.findFirst({
-    where: { resumeId: resume.id },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      status: true,
-      overallScore: true,
-      recommendation: true,
-      finalScoreJson: true,
-      completedAt: true,
-      cameraConsentGiven: true,
-      // Step 227: recruiter review fields
-      recruiterNotes: true,
-      recruiterRecommendation: true,
-      reviewedAt: true,
-      reviewedByUserId: true,
-      turns: { orderBy: { turnIndex: "asc" }, select: {
-        turnIndex: true, category: true, question: true,
-        candidateAnswer: true, scoreRaw: true, scoreFeedback: true,
-        answerDurationMs: true, suspiciousFlags: true, transcriptWarnings: true,
-      }},
-    }
-  });
+  // Extract aiSession for legacy components
+  const aiSession = resume.aiInterviewSessions?.[0] || null;
 
   const skills        = Array.isArray(resume.skillsJson)          ? (resume.skillsJson as string[]) : []
   const companies     = Array.isArray(resume.companiesJson)        ? (resume.companiesJson as Array<{ company: string; role: string; duration?: string | null }>) : []
@@ -111,214 +141,191 @@ export default async function ResumeDetailPage({
   const warnings      = Array.isArray(resume.validationWarningsJson) ? (resume.validationWarningsJson as string[]) : []
   const hasAiData     = !!(resume.candidateName || resume.candidateEmail || skills.length)
 
+  // ── Compute Pipeline Stages ──────────────────────────────────────────────────
+  const journeyStages: JourneyStage[] = [];
+
+  const planStages = resume.position?.interviewPlan?.stages || [];
+  
+  planStages.forEach((planStage: any) => {
+    // 1. AI Screening Stage
+    if (planStage.roundType === "AI_SCREEN") {
+      const aiScreenState: JourneyStageState = aiSession ? (aiSession.status === "COMPLETED" ? "COMPLETED" : "PENDING") : "PENDING";
+      journeyStages.push({
+        id: `stage-${planStage.id}`,
+        title: planStage.roundLabel || "AI Screening",
+        icon: "🤖",
+        state: aiScreenState,
+        score: aiSession?.overallScore || undefined,
+        label: aiSession?.recommendation?.replace(/_/g, " ") || undefined,
+        reportLink: aiSession ? `/org-admin/ai-interview/${aiSession.id}/scorecard` : undefined,
+      });
+      return;
+    }
+
+    // Note: BGV_CHECK is now handled universally outside this loop
+
+    // 3. Regular Interview Stage
+    const actualInterview = resume.interviews?.find((i: any) => i.stageIndex === planStage.stageIndex);
+    let state: JourneyStageState = "PENDING";
+    let score;
+    let label;
+
+    if (actualInterview) {
+      const feedbacks = actualInterview.panelistFeedbacks || [];
+      if (actualInterview.status === "COMPLETED" || feedbacks.length > 0) {
+        state = "COMPLETED";
+        if (feedbacks.length > 0) {
+          score = Math.round(feedbacks.reduce((s: number, f: any) => s + f.overallScore, 0) / feedbacks.length);
+        }
+      } else {
+        state = "ACTIVE";
+      }
+    }
+
+    journeyStages.push({
+      id: `stage-${planStage.id}`,
+      title: planStage.roundLabel || `Round ${planStage.stageIndex + 1}`,
+      icon: "👥",
+      state,
+      score,
+      label,
+    });
+  });
+
+  // 3. Universal Background Check (BGV)
+  const bgv = resume.bgvChecks?.[0];
+  let bgvState: JourneyStageState = "PENDING";
+  if (bgv) {
+    if (bgv.status === "CLEAR" || bgv.status === "COMPLETED") bgvState = "COMPLETED";
+    else if (bgv.status === "FAILED" || bgv.status === "ADVERSE_CONFIRMED" || bgv.status === "CONSIDER") bgvState = "FAILED";
+    else bgvState = "ACTIVE";
+  }
+  journeyStages.push({
+    id: "bgv",
+    title: "Background Check",
+    icon: "🔍",
+    state: bgvState,
+    label: bgv?.status,
+    reportLink: bgv?.reportUrl || undefined,
+  });
+
+  // 4. Job Offer (Always append to end)
+  const offer = resume.jobOffers?.[0];
+  let offerState: JourneyStageState = "PENDING";
+  if (offer) {
+    if (offer.status === "ACCEPTED") offerState = "COMPLETED";
+    else if (offer.status === "DECLINED" || offer.status === "REVOKED") offerState = "FAILED";
+    else offerState = "ACTIVE";
+  }
+  journeyStages.push({
+    id: "offer",
+    title: "Job Offer",
+    icon: "📜",
+    state: offerState,
+    label: offer?.status,
+  });
+
   return (
     <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-zinc-800 pb-6 mt-2">
+      <div className="flex flex-col gap-3">
+        {/* Back Link */}
         <div>
           <Link
             href={`/org-admin/positions/${resume.positionId}`}
-            className="text-sm text-teal-600 dark:text-teal-400 hover:underline mb-2 inline-block"
+            className="text-sm font-medium text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:underline flex items-center gap-1.5 transition-colors"
           >
             ← Back to Position ({resume.position.title})
           </Link>
-          <div className="flex items-center gap-3 flex-wrap mt-1">
-            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-              {resume.originalFileName}
-            </h1>
-            <StatusBadge status={resume.parsingStatus} />
-          </div>
-          <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
-            Uploaded {resume.uploadedAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-            {" · "}
-            {resume.fileSize < 1024 * 1024
-              ? `${(resume.fileSize / 1024).toFixed(1)} KB`
-              : `${(resume.fileSize / (1024 * 1024)).toFixed(1)} MB`}
-            {resume.mimeType && <span className="ml-2 uppercase text-xs font-mono opacity-50">{resume.mimeType.split("/")[1]}</span>}
-          </p>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <RunAiExtractionButton
-            resumeId={resume.id}
-            disabled={!resume.extractedText || resume.parsingStatus === "EXTRACTING"}
-          />
-          <Button variant="outline" className="shrink-0 rounded-xl hover:-translate-y-0.5 transition-transform">
-            <svg className="mr-2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-            Download
-          </Button>
+        <div className="bg-gradient-to-r from-rose-600 via-pink-600 to-indigo-600 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-8 shadow-xl relative overflow-hidden">
+          {/* Decorative subtle background glow */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+
+          {/* Left Content */}
+          <div className="relative z-10 flex flex-col items-start">
+          
+          <div className="flex items-center gap-4 mb-2">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight uppercase drop-shadow-md">
+              {resume.candidateName || resume.originalFileName.split('.')[0].replace(/_/g, " ")}
+            </h1>
+            <DeepAiDrawer resume={resume} userRoles={perms.roles ?? []} />
+          </div>
+          
+          <div className="text-white/90 text-sm md:text-base font-medium space-y-1 drop-shadow-sm">
+             <p>{resume.position.title} <span className="opacity-50 mx-1.5">·</span> Stage {resume.pipelineStageIdx + 1} of {planStages.length}</p>
+             {showPII && <p>{resume.candidateEmail || "No email available"}</p>}
+          </div>
+
+          {/* Mini Pipeline Progress */}
+          <div className="flex items-start gap-1.5 sm:gap-2 mt-6 w-full max-w-2xl">
+            {journeyStages.map((stage, idx) => (
+              <div key={stage.id || idx} className="flex-1 flex flex-col gap-1.5">
+                <div 
+                  className={`h-1.5 shrink-0 rounded-full w-full ${
+                    stage.state === 'COMPLETED' ? 'bg-white/90 shadow-[0_0_8px_rgba(255,255,255,0.4)]' :
+                    stage.state === 'ACTIVE' ? 'bg-white/60 animate-pulse' :
+                    'bg-white/20'
+                  }`}
+                />
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/90 leading-tight drop-shadow-sm line-clamp-2">
+                  {stage.title}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Content (The 3 retained elements) */}
+        <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6">
+          {resume.matchScore != null && (
+            <div className="shrink-0 flex items-center justify-center">
+              <ScoreDial 
+                score={resume.matchScore} 
+                size={80} 
+                label="AI Match" 
+                labelClassName="text-xs font-extrabold uppercase tracking-widest text-white/90 drop-shadow-sm text-center"
+              />
+            </div>
+          )}
+          <div className="flex flex-col gap-3 w-full sm:w-auto">
+            <RunAiExtractionButton
+              resumeId={resume.id}
+              disabled={!resume.extractedText || resume.parsingStatus === "EXTRACTING"}
+            />
+            <CandidateDecisionHistoryModal decisions={resume.hiringDecisions || []} />
+            <Button size="sm" variant="outline" className="w-full justify-center bg-white/10 hover:bg-white/20 border-white/20 text-white hover:text-white rounded-lg transition-all shadow-sm whitespace-nowrap">
+              <svg className="mr-2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+              Download
+            </Button>
+          </div>
         </div>
       </div>
-
-      {/* ── Advanced AI Fit Card ─────────────────────────────────────── */}
-      {(resume.matchScore !== null || resume.aiInterviewFocusJson || resume.aiRedFlagsJson) && (
-        <Card className="border-indigo-100 dark:border-indigo-900/60 shadow-sm overflow-hidden -mt-2">
-          <CardHeader className="bg-gradient-to-r from-indigo-50/50 to-teal-50/50 dark:from-indigo-900/10 dark:to-teal-900/10 border-b border-indigo-100 dark:border-indigo-900/20 pb-4">
-             <CardTitle className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-               Deep AI Analysis Profile
-             </CardTitle>
-          </CardHeader>
-          <CandidateFitCard resume={resume} />
-        </Card>
+      </div>
+      <CandidateJourneyTracker stages={journeyStages} />
+      
+      {/* ── Decision Bar — pipeline roles only ── */}
+      {perms.canManagePositions && (
+        <CandidateDecisionBar
+          resume={resume}
+          status={resume.pipelineStatus}
+          totalStages={planStages.length}
+          canAdvance={!["REJECTED", "HIRED", "WITHDRAWN"].includes(resume.pipelineStatus) && resume.pipelineStatus !== "OFFER_PENDING"}
+          canHold={!["REJECTED", "HIRED", "WITHDRAWN"].includes(resume.pipelineStatus)}
+          canReject={(perms.roles ?? []).some((r) => ["ORG_ADMIN", "DEPT_ADMIN", "HIRING_MANAGER"].includes(r))}
+          canOffer={(perms.roles ?? []).some((r) => ["ORG_ADMIN", "DEPT_ADMIN", "HIRING_MANAGER"].includes(r))}
+          canHire={(perms.roles ?? []).some((r) => ["ORG_ADMIN", "DEPT_ADMIN"].includes(r))}
+        />
       )}
 
-      {/* ── AI Interview Results ─────────────────────────────────────────── */}
-      {aiSession && (
-        <Card className="border-violet-100 dark:border-violet-900/40 shadow-sm overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-violet-50/60 to-indigo-50/40 dark:from-violet-900/10 dark:to-indigo-900/10 border-b border-violet-100 dark:border-violet-900/30 pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-violet-500"><circle cx="12" cy="8" r="5"/><path d="M3 21a9 9 0 0 1 18 0"/></svg>
-                AI Interview Results
-              </CardTitle>
-              <div className="flex items-center gap-3">
-                {aiSession.status === "COMPLETED" ? (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/30">
-                    Completed {aiSession.completedAt ? new Date(aiSession.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
-                  </span>
-                ) : (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-100 dark:border-amber-800/30">
-                    In Progress
-                  </span>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 space-y-5">
-            {aiSession.status === "COMPLETED" && aiSession.overallScore !== null ? (
-              <>
-                {/* Score + Recommendation */}
-                <div className="flex items-center gap-6 p-4 bg-violet-50/50 dark:bg-violet-950/20 rounded-2xl border border-violet-100 dark:border-violet-900/20 flex-wrap">
-                  <div className="flex items-center gap-6">
-                    {/* Resume Match Score */}
-                    <div className="text-center shrink-0 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-violet-100 dark:border-zinc-800 shadow-sm">
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Resume Match</p>
-                      <p className="text-3xl font-black text-teal-600 dark:text-teal-400">{resume.matchScore != null ? resume.matchScore : "—"}</p>
-                    </div>
-
-                    <div className="text-xl font-bold text-violet-200">vs</div>
-
-                    {/* AI Interview Score */}
-                    <div className="text-center shrink-0 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-violet-100 dark:border-zinc-800 shadow-sm">
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">AI Interview</p>
-                      <p className="text-3xl font-black text-violet-700 dark:text-violet-300">{aiSession.overallScore}</p>
-                    </div>
-                  </div>
-                  <div className="w-px h-12 bg-violet-100 dark:bg-violet-900/30 shrink-0 hidden sm:block" />
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">AI Recommendation</p>
-                    <p className={`text-lg font-black ${
-                      aiSession.recommendation === "STRONG_HIRE" ? "text-emerald-600 dark:text-emerald-400" :
-                      aiSession.recommendation === "HIRE" ? "text-blue-600 dark:text-blue-400" :
-                      aiSession.recommendation === "MAYBE" ? "text-amber-600 dark:text-amber-400" :
-                      "text-red-600 dark:text-red-400"
-                    }`}>
-                      {aiSession.recommendation?.replace("_", " ")}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Per-question breakdown */}
-                {aiSession.turns.length > 0 && (
-                  <div className="space-y-3">
-                    <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Question Breakdown</p>
-                    {aiSession.turns.map((turn) => (
-                      <div key={turn.turnIndex} className="p-4 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-xl space-y-2">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500">{turn.category}</span>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{turn.question}</p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1 shrink-0">
-                            {turn.scoreRaw !== null && (
-                              <span className={`text-lg font-black ${
-                                (turn.scoreRaw ?? 0) >= 8 ? "text-emerald-500" :
-                                (turn.scoreRaw ?? 0) >= 6 ? "text-blue-500" :
-                                (turn.scoreRaw ?? 0) >= 4 ? "text-amber-500" : "text-red-500"
-                              }`}>
-                                {turn.scoreRaw}<span className="text-xs font-medium text-gray-400">/10</span>
-                              </span>
-                            )}
-                            {/* Step 217: timing */}
-                            {turn.answerDurationMs != null && (
-                              <span className="text-[10px] text-gray-400 dark:text-zinc-500">
-                                ⏱️ {Math.round(turn.answerDurationMs / 1000)}s
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {turn.candidateAnswer && (
-                          <p className="text-xs text-gray-500 dark:text-zinc-400 italic leading-relaxed border-l-2 border-gray-200 dark:border-zinc-700 pl-3">
-                            &ldquo;{turn.candidateAnswer.slice(0, 200)}{turn.candidateAnswer.length > 200 ? "…" : ""}&rdquo;
-                          </p>
-                        )}
-                        {turn.scoreFeedback && (
-                          <p className="text-xs text-gray-700 dark:text-zinc-300 leading-relaxed">{turn.scoreFeedback}</p>
-                        )}
-                        {/* Step 218/219: flags and warnings */}
-                        {(Array.isArray(turn.suspiciousFlags) && (turn.suspiciousFlags as string[]).length > 0) && (
-                          <div className="flex flex-wrap gap-1 pt-1">
-                            {(turn.suspiciousFlags as string[]).map(f => (
-                              <span key={f} className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
-                                ⚠️ {f.replace(/_/g, " ")}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {(Array.isArray(turn.transcriptWarnings) && (turn.transcriptWarnings as string[]).length > 0) && (
-                          <div className="flex flex-wrap gap-1">
-                            {(turn.transcriptWarnings as string[]).map(w => (
-                              <span key={w} className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30">
-                                {w.replace(/_/g, " ")}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-gray-500 dark:text-zinc-400 italic">
-                The candidate has started an AI interview session but has not completed it yet.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 227 — Recruiter Review Panel */}
-      {aiSession && aiSession.status === "COMPLETED" && (
-        <Card className="border-indigo-100 dark:border-indigo-900/40 shadow-sm overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-indigo-50/60 to-violet-50/40 dark:from-indigo-900/10 dark:to-violet-900/10 border-b border-indigo-100 dark:border-indigo-900/30 pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Recruiter Review
-              </CardTitle>
-              {aiSession.reviewedAt && (
-                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/30">
-                  Reviewed {new Date(aiSession.reviewedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                </span>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <AiReviewPanel
-              sessionId={aiSession.id}
-              positionId={resume.positionId}
-              aiRecommendation={aiSession.recommendation}
-              initialNotes={aiSession.recruiterNotes}
-              initialRecommendation={aiSession.recruiterRecommendation}
-              reviewedAt={aiSession.reviewedAt}
-            />
-          </CardContent>
-        </Card>
-      )}
-
+      <UnifiedProfileClient
+        resume={resume}
+        aiSession={aiSession}
+        userRoles={perms.roles ?? []}
+        rawResumeNode={
+          <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
@@ -337,26 +344,32 @@ export default async function ResumeDetailPage({
                   ? <p className="text-sm font-semibold text-gray-900 dark:text-white">{resume.candidateName}</p>
                   : <p className="text-sm italic text-gray-400 dark:text-zinc-500">—</p>}
               </InfoRow>
-              <InfoRow label="Email">
-                {resume.candidateEmail
-                  ? <a href={`mailto:${resume.candidateEmail}`} className="text-sm font-medium text-teal-600 dark:text-teal-400 hover:underline break-all">{resume.candidateEmail}</a>
-                  : <p className="text-sm italic text-gray-400 dark:text-zinc-500">—</p>}
-              </InfoRow>
-              <InfoRow label="Phone">
-                {resume.phoneNumber
-                  ? <p className="text-sm font-medium text-gray-900 dark:text-white">{resume.phoneNumber}</p>
-                  : <p className="text-sm italic text-gray-400 dark:text-zinc-500">—</p>}
-              </InfoRow>
+              {showPII && (
+                <InfoRow label="Email">
+                  {resume.candidateEmail
+                    ? <a href={`mailto:${resume.candidateEmail}`} className="text-sm font-medium text-rose-600 dark:text-rose-400 hover:underline break-all">{resume.candidateEmail}</a>
+                    : <p className="text-sm italic text-gray-400 dark:text-zinc-500">—</p>}
+                </InfoRow>
+              )}
+              {showPII && (
+                <InfoRow label="Phone">
+                  {resume.phoneNumber
+                    ? <p className="text-sm font-medium text-gray-900 dark:text-white">{resume.phoneNumber}</p>
+                    : <p className="text-sm italic text-gray-400 dark:text-zinc-500">—</p>}
+                </InfoRow>
+              )}
               <InfoRow label="Location">
                 {resume.location
                   ? <p className="text-sm font-medium text-gray-900 dark:text-white">{resume.location}</p>
                   : <p className="text-sm italic text-gray-400 dark:text-zinc-500">—</p>}
               </InfoRow>
-              <InfoRow label="LinkedIn">
-                {resume.linkedinUrl
-                  ? <a href={resume.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-teal-600 dark:text-teal-400 hover:underline break-all">{resume.linkedinUrl}</a>
-                  : <p className="text-sm italic text-gray-400 dark:text-zinc-500">—</p>}
-              </InfoRow>
+              {showPII && (
+                <InfoRow label="LinkedIn">
+                  {resume.linkedinUrl
+                    ? <a href={resume.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-rose-600 dark:text-rose-400 hover:underline break-all">{resume.linkedinUrl}</a>
+                    : <p className="text-sm italic text-gray-400 dark:text-zinc-500">—</p>}
+                </InfoRow>
+              )}
             </CardContent>
           </Card>
 
@@ -379,7 +392,7 @@ export default async function ResumeDetailPage({
                   <div className="flex flex-col gap-3 mt-1">
                     {companies.map((c, i) => (
                       <div key={i} className="flex gap-2.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-teal-400 mt-1.5 shrink-0" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 shrink-0" />
                         <div>
                           <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">{c.company}</p>
                           <p className="text-xs text-gray-500 dark:text-zinc-400">{c.role}{c.duration ? ` · ${c.duration}` : ""}</p>
@@ -402,11 +415,11 @@ export default async function ResumeDetailPage({
             </CardHeader>
             <CardContent className="px-5 pb-5">
               <div className="flex flex-col items-center justify-center py-4 text-center">
-                <span className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-indigo-500 mb-2">
+                <span className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-rose-500 mb-2">
                   {resume.matchScore != null ? `${resume.matchScore} / 100` : "— / 100"}
                 </span>
                 {resume.matchLabel
-                  ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">{resume.matchLabel}</span>
+                  ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">{resume.matchLabel}</span>
                   : <p className="text-xs text-gray-400 dark:text-zinc-500 max-w-[160px] leading-relaxed">Ranking against "{resume.position.title}" will appear after AI ranking is run.</p>
                 }
               </div>
@@ -431,7 +444,7 @@ export default async function ResumeDetailPage({
                   {skills.map((skill) => (
                     <span
                       key={skill}
-                      className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 border border-violet-100 dark:border-violet-800/40"
+                      className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300 border border-pink-100 dark:border-pink-800/40"
                     >
                       {skill}
                     </span>
@@ -455,8 +468,8 @@ export default async function ResumeDetailPage({
                 <div className="flex flex-col gap-4">
                   {education.map((e, i) => (
                     <div key={i} className="flex gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center shrink-0 mt-0.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                      <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-rose-500"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{e.degree}</p>
@@ -519,7 +532,7 @@ export default async function ResumeDetailPage({
                   </InfoRow>
                   <InfoRow label="Provider">
                     {resume.extractionProvider
-                      ? <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 border border-violet-100 dark:border-violet-800/40 capitalize">{resume.extractionProvider}</span>
+                      ? <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300 border border-pink-100 dark:border-pink-800/40 capitalize">{resume.extractionProvider}</span>
                       : <p className="text-sm italic text-gray-400">—</p>}
                   </InfoRow>
                   <InfoRow label="Confidence">
@@ -550,6 +563,9 @@ export default async function ResumeDetailPage({
         </div>
       </div>
 
+          </>
+        }
+      />
     </div>
   )
 }

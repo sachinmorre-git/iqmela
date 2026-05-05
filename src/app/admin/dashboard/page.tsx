@@ -3,6 +3,7 @@ import { clerkClient } from "@clerk/nextjs/server"
 import { formatTierName } from "@/lib/plan-limits"
 import Link from "next/link"
 import { Building2, Users, FileText, Briefcase, Zap, TrendingUp } from "lucide-react"
+import { formatDate } from "@/lib/locale-utils"
 
 export const metadata = {
   title: "Global Overview | IQMela Admin"
@@ -97,10 +98,10 @@ export default async function AdminDashboardPage() {
   const orgNameMap = new Map(allOrgs.map(o => [o.id, o.name]))
 
   const TIER_COLORS: Record<string, string> = {
-    VENDOR_FREE: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
+    VENDOR_FREE: "text-rose-400 bg-rose-500/10 border-rose-500/20",
     FREE:        "text-zinc-400 bg-zinc-500/10 border-zinc-500/20",
-    PLUS:        "text-teal-400 bg-teal-500/10 border-teal-500/20",
-    ULTRA:       "text-violet-400 bg-violet-500/10 border-violet-500/20",
+    PLUS:        "text-rose-400 bg-rose-500/10 border-rose-500/20",
+    ULTRA:       "text-pink-400 bg-pink-500/10 border-pink-500/20",
     ENTERPRISE:  "text-amber-400 bg-amber-500/10 border-amber-500/20",
     UNLINKED:    "text-zinc-500 bg-zinc-800 border-zinc-700",
   }
@@ -141,19 +142,19 @@ export default async function AdminDashboardPage() {
 
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 backdrop-blur-sm">
           <div className="flex items-center gap-2 mb-2">
-            <FileText className="w-4 h-4 text-teal-400" />
+            <FileText className="w-4 h-4 text-rose-400" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Resumes</span>
           </div>
           <div className="text-3xl font-black text-white">{totalResumes}</div>
         </div>
 
-        <div className="bg-indigo-900/20 border border-indigo-500/20 rounded-xl p-4 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/10 blur-2xl rounded-full pointer-events-none" />
+        <div className="bg-rose-900/20 border border-rose-500/20 rounded-xl p-4 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-rose-500/10 blur-2xl rounded-full pointer-events-none" />
           <div className="flex items-center gap-2 mb-2 relative z-10">
-            <Zap className="w-4 h-4 text-indigo-400" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">AI Sessions</span>
+            <Zap className="w-4 h-4 text-rose-400" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400">AI Sessions</span>
           </div>
-          <div className="text-3xl font-black text-indigo-100 relative z-10">{totalAiSessions}</div>
+          <div className="text-3xl font-black text-rose-100 relative z-10">{totalAiSessions}</div>
         </div>
 
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 backdrop-blur-sm">
@@ -209,9 +210,9 @@ export default async function AdminDashboardPage() {
                   const tier = org.planTier || "UNLINKED"
                   const tierStyle = TIER_COLORS[tier] || TIER_COLORS.UNLINKED
                   return (
-                    <tr key={org.id} className="hover:bg-zinc-800/30 transition-colors group cursor-pointer">
+                    <tr key={org.id} className="hover:bg-zinc-800/30 transition-colors group cursor-pointer relative">
                       <td className="px-6 py-4">
-                        <Link href={`/admin/orgs/${org.id}`} className="flex items-center gap-3">
+                        <Link href={`/admin/orgs/${org.id}`} className="flex items-center gap-3 after:absolute after:inset-0">
                           {org.imageUrl ? (
                             <img src={org.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover border border-zinc-700" />
                           ) : (
@@ -245,13 +246,13 @@ export default async function AdminDashboardPage() {
                         <span className={`font-bold ${org.positions > 0 ? "text-emerald-400" : "text-zinc-600"}`}>{org.positions}</span>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <span className={`font-bold ${org.resumes > 0 ? "text-teal-400" : "text-zinc-600"}`}>{org.resumes}</span>
+                        <span className={`font-bold ${org.resumes > 0 ? "text-rose-400" : "text-zinc-600"}`}>{org.resumes}</span>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <span className={`font-bold ${org.aiSessions > 0 ? "text-indigo-400" : "text-zinc-600"}`}>{org.aiSessions}</span>
+                        <span className={`font-bold ${org.aiSessions > 0 ? "text-rose-400" : "text-zinc-600"}`}>{org.aiSessions}</span>
                       </td>
                       <td className="px-4 py-4 text-right text-xs text-zinc-500">
-                        {new Date(org.createdAt).toLocaleDateString()}
+                        {formatDate(new Date(org.createdAt))}
                       </td>
                     </tr>
                   )
@@ -297,9 +298,9 @@ export default async function AdminDashboardPage() {
                       "bg-red-900/30 text-red-400"
                     }`}>{p.status}</span>
                   </td>
-                  <td className="px-4 py-3.5 text-center font-bold text-teal-400">{p._count.resumes}</td>
-                  <td className="px-4 py-3.5 text-center font-bold text-indigo-400">{p._count.aiInterviewSessions}</td>
-                  <td className="px-4 py-3.5 text-right text-xs text-zinc-500">{new Date(p.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-3.5 text-center font-bold text-rose-400">{p._count.resumes}</td>
+                  <td className="px-4 py-3.5 text-center font-bold text-rose-400">{p._count.aiInterviewSessions}</td>
+                  <td className="px-4 py-3.5 text-right text-xs text-zinc-500">{formatDate(new Date(p.createdAt))}</td>
                 </tr>
               ))}
             </tbody>

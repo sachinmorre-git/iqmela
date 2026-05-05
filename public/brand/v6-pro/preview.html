@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IQMela — Pro Circuit Logo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Montserrat', sans-serif; background: #F0F0F2; padding: 40px; }
+    h1 { font-size: 26px; font-weight: 800; color: #18181B; margin-bottom: 4px; letter-spacing: -0.5px; }
+    .sub { color: #71717A; font-size: 13px; margin-bottom: 40px; font-weight: 500; }
+    .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #A1A1AA; margin-bottom: 16px; margin-top: 8px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 48px; }
+    .card { background: white; border-radius: 16px; border: 1px solid #E4E4E7; overflow: hidden; transition: box-shadow 0.3s; }
+    .card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+    .card-inner { padding: 36px 24px 24px; display: flex; align-items: center; justify-content: center; min-height: 320px; }
+    .card-inner.dark { background: #0A0A0C; }
+    .card-footer { padding: 14px 20px; border-top: 1px solid #F4F4F5; display: flex; justify-content: space-between; align-items: center; }
+    .card-footer.dark-footer { border-color: #1E1E22; background: #131316; }
+    .card-title { font-size: 12px; font-weight: 700; color: #3F3F46; text-transform: uppercase; letter-spacing: 1.2px; }
+    .card-footer.dark-footer .card-title { color: #71717A; }
+    .card-desc { font-size: 10px; color: #A1A1AA; margin-top: 1px; font-weight: 500; }
+    .card-footer.dark-footer .card-desc { color: #52525B; }
+    .swatches { display: flex; gap: 5px; align-items: center; }
+    .sw { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.08); }
+    .btn-copy { background: #F4F4F5; border: 1px solid #E4E4E7; padding: 5px 12px; border-radius: 6px; font-size: 10px; font-weight: 600; color: #52525B; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+    .btn-copy:hover { background: #E4E4E7; }
+    .btn-copy.ok { background: #10B981; color: #fff; border-color: #10B981; }
+    .btn-dl { background: transparent; border: 1px solid #E4E4E7; padding: 5px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; color: #71717A; cursor: pointer; font-family: inherit; }
+    .btn-dl:hover { border-color: #A1A1AA; color: #3F3F46; }
+  </style>
+</head>
+<body>
+  <h1>IQMela — Circuit Node Logo</h1>
+  <p class="sub">Dense hex-grid lattice with thin circuit connections · 4 website-theme palettes</p>
+
+  <div class="section-label">Light Background</div>
+  <div class="grid" id="lg"></div>
+
+  <div class="section-label">Dark Background (#0A0A0C)</div>
+  <div class="grid" id="dg"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// Seeded PRNG
+// ═══════════════════════════════════════════════════════
+function m32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+
+// ═══════════════════════════════════════════════════════
+// Color palettes
+// ═══════════════════════════════════════════════════════
+const P=[
+  {name:"Reference Style",colors:["#1D4ED8","#0D9488","#D97706"],desc:"Deep Blue → Teal → Amber"},
+  {name:"Website Gradient",colors:["#6366F1","#8B5CF6","#EC4899"],desc:"Indigo → Violet → Pink"},
+  {name:"Intelligence + Success",colors:["#4F46E5","#10B981","#7C3AED"],desc:"Indigo → Emerald → Violet"},
+  {name:"Mono Premium",colors:["#6366F1","#4338CA","#818CF8"],desc:"Indigo → Deep Indigo → Lavender"}
+];
+
+// ═══════════════════════════════════════════════════════
+// Geometry helpers
+// ═══════════════════════════════════════════════════════
+function distSeg(px,py,x1,y1,x2,y2){
+  const dx=x2-x1,dy=y2-y1,l2=dx*dx+dy*dy;
+  if(l2===0)return Math.hypot(px-x1,py-y1);
+  let t=((px-x1)*dx+(py-y1)*dy)/l2;
+  t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(x1+t*dx),py-(y1+t*dy));
+}
+
+// ═══════════════════════════════════════════════════════
+// Shape definitions — precise letter geometry
+// ═══════════════════════════════════════════════════════
+const LH=240; // letter height
+const I_X=38, I_W=36;
+const Q_CX=160, Q_CY=LH/2, Q_OR=95, Q_IR=52;
+const M_X0=295, M_X1=490, M_VY=178;
+
+function inI(x,y){return x>=I_X-I_W/2&&x<=I_X+I_W/2&&y>=4&&y<=LH-4;}
+
+function inQ(x,y){
+  const dx=x-Q_CX,dy=y-Q_CY,d=Math.hypot(dx,dy);
+  if(d<=Q_OR&&d>=Q_IR)return true;
+  // Tail
+  return distSeg(x,y,Q_CX+55,Q_CY+52,Q_CX+115,Q_CY+120)<=14;
+}
+
+function inM(x,y){
+  const mCx=(M_X0+M_X1)/2;
+  const sw=16; // half-stroke-width
+  if(distSeg(x,y,M_X0,LH-4,M_X0,4)<=sw) return true; // left leg
+  if(distSeg(x,y,M_X0,4,mCx,M_VY)<=sw-1) return true;    // left diag
+  if(distSeg(x,y,mCx,M_VY,M_X1,4)<=sw-1) return true;     // right diag
+  if(distSeg(x,y,M_X1,LH-4,M_X1,4)<=sw) return true; // right leg
+  return false;
+}
+
+// ─── depth (distance from edge, for size variation) ───
+function depthI(x,y){return Math.min(x-(I_X-I_W/2),(I_X+I_W/2)-x,y-4,LH-4-y);}
+function depthQ(x,y){
+  const d=Math.hypot(x-Q_CX,y-Q_CY);
+  if(d>=Q_IR&&d<=Q_OR)return Math.min(d-Q_IR,Q_OR-d);
+  return distSeg(x,y,Q_CX+55,Q_CY+52,Q_CX+115,Q_CY+120);
+}
+function depthM(x,y){
+  const mCx=(M_X0+M_X1)/2,sw=16;
+  const d1=distSeg(x,y,M_X0,LH-4,M_X0,4);
+  const d2=distSeg(x,y,M_X0,4,mCx,M_VY);
+  const d3=distSeg(x,y,mCx,M_VY,M_X1,4);
+  const d4=distSeg(x,y,M_X1,LH-4,M_X1,4);
+  return sw-Math.min(d1,d2,d3,d4);
+}
+
+// ═══════════════════════════════════════════════════════
+// Logo generator
+// ═══════════════════════════════════════════════════════
+function gen(seed,colors){
+  const R=m32(seed);
+  const dots=[],GS=10; // grid spacing 10px for density
+
+  // Hex grid scan
+  for(let row=0;row*GS<=LH+8;row++){
+    for(let col=0;col*GS<=M_X1+30;col++){
+      let x=col*GS+(row%2?GS/2:0)+2;
+      let y=row*GS;
+
+      let letter=-1,dp=0;
+      if(inI(x,y)){letter=0;dp=depthI(x,y);}
+      else if(inQ(x,y)){letter=1;dp=depthQ(x,y);}
+      else if(inM(x,y)){letter=2;dp=depthM(x,y);}
+
+      if(letter>=0){
+        // Slight position noise for organic feel
+        const nx=x+(R()-0.5)*1.8;
+        const ny=y+(R()-0.5)*1.8;
+        
+        // Size: edge dots bigger, interior medium
+        let r;
+        if(dp<=4) r=3.8+R()*2.2; // edge → 3.8-6
+        else if(dp<=8) r=3+R()*1.8;  // mid → 3-4.8
+        else r=2.5+R()*1.5;   // interior → 2.5-4
+        
+        // Special "hero" nodes (randomly ~5% of dots)
+        if(R()<0.04) r=Math.max(r,5.5+R()*2);
+
+        dots.push({x:nx,y:ny,r,letter,color:colors[letter],op:0.7+R()*0.3});
+      }
+    }
+  }
+
+  // Accent/satellite dots floating near edges
+  for(let i=0;i<25;i++){
+    const x=R()*540; const y=R()*260;
+    let letter=-1;
+    // Check if NEAR but not inside a letter
+    if(!inI(x,y)&&!inQ(x,y)&&!inM(x,y)){
+      if(inI(x+(R()-0.5)*18,y+(R()-0.5)*18)) letter=0;
+      else if(inQ(x+(R()-0.5)*18,y+(R()-0.5)*18)) letter=1;
+      else if(inM(x+(R()-0.5)*18,y+(R()-0.5)*18)) letter=2;
+    }
+    if(letter>=0){
+      dots.push({x,y,r:1.5+R()*2,letter,color:colors[letter],op:0.2+R()*0.3});
+    }
+  }
+
+  // ─── Connections: thin lines between nearby dots ───
+  const edges=[];
+  const maxD=GS*1.55;
+  for(let i=0;i<dots.length;i++){
+    for(let j=i+1;j<dots.length;j++){
+      const d=Math.hypot(dots[i].x-dots[j].x,dots[i].y-dots[j].y);
+      if(d<=maxD&&dots[i].letter===dots[j].letter){
+        // Skip ~12% randomly for lattice variety
+        if(R()>0.12) edges.push([i,j]);
+      }
+    }
+  }
+
+  return{dots,edges};
+}
+
+// ═══════════════════════════════════════════════════════
+// SVG builder
+// ═══════════════════════════════════════════════════════
+function svg(data,colors,dark){
+  const W=580,H=370;
+  const bg=dark?'#0A0A0C':'none';
+  const txtCol=dark?'#FAFAFA':'#1A1A2E';
+  const subCol=dark?'#71717A':'#6B7280';
+  const offX=35,offY=40;
+
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" fill="none">`;
+  if(dark) s+=`<rect width="${W}" height="${H}" fill="${bg}"/>`;
+
+  s+=`<g transform="translate(${offX},${offY})">`;
+
+  // Edges
+  data.edges.forEach(([i,j])=>{
+    const a=data.dots[i],b=data.dots[j];
+    // Blend color between the two dots
+    s+=`<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" stroke="${a.color}" stroke-width="1" stroke-opacity="0.45" stroke-linecap="round"/>`;
+  });
+
+  // Dots (sorted by size — small first for depth)
+  const sorted=[...data.dots].sort((a,b)=>a.r-b.r);
+  sorted.forEach(d=>{
+    s+=`<circle cx="${d.x.toFixed(1)}" cy="${d.y.toFixed(1)}" r="${d.r.toFixed(1)}" fill="${d.color}" fill-opacity="${d.op.toFixed(2)}"/>`;
+  });
+
+  s+=`</g>`;
+
+  // ─── Wordmark ───
+  s+=`<text x="${W/2}" y="${H-42}" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="700" font-size="38" letter-spacing="0.2em" fill="${txtCol}">`;
+  s+=`<tspan fill="${colors[0]}">I</tspan>`;
+  s+=`<tspan fill="${colors[0]}">Q</tspan>`;
+  s+=`<tspan dx="6"> </tspan>`;
+  s+=`<tspan fill="${colors[2]}">M</tspan>`;
+  s+=`<tspan fill="${txtCol}">ELA</tspan>`;
+  s+=`</text>`;
+
+  // ─── Tagline ───
+  s+=`<text x="${W/2}" y="${H-18}" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="500" font-size="8.5" letter-spacing="0.35em" fill="${subCol}">INTELLIGENCE · INNOVATION · AMPLIFIED</text>`;
+
+  s+=`</svg>`;
+  return s;
+}
+
+// ═══════════════════════════════════════════════════════
+// Render gallery
+// ═══════════════════════════════════════════════════════
+P.forEach((p,i)=>{
+  const data=gen(777+i*500,p.colors);
+  const lSvg=svg(data,p.colors,false);
+  const dSvg=svg(data,p.colors,true);
+  window['_l'+i]=lSvg; window['_d'+i]=dSvg;
+
+  function mkCard(parent,svgStr,isDark){
+    const c=document.createElement('div');c.className='card';
+    c.innerHTML=`
+      <div class="card-inner${isDark?' dark':''}">${svgStr}</div>
+      <div class="card-footer${isDark?' dark-footer':''}">
+        <div>
+          <div class="card-title">${p.name}</div>
+          <div class="card-desc">${p.desc}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="swatches">
+            <div class="sw" style="background:${p.colors[0]}"></div>
+            <div class="sw" style="background:${p.colors[1]}"></div>
+            <div class="sw" style="background:${p.colors[2]}"></div>
+          </div>
+          <button class="btn-copy" onclick="cpy(this,'${isDark?'_d':'_l'}${i}')">Copy SVG</button>
+          <button class="btn-dl" onclick="dl('IQMela-${p.name.replace(/\\s+/g,'-')}-${isDark?'dark':'light'}.svg','${isDark?'_d':'_l'}${i}')">↓ SVG</button>
+        </div>
+      </div>`;
+    document.getElementById(parent).appendChild(c);
+  }
+  mkCard('lg',lSvg,false);
+  mkCard('dg',dSvg,true);
+});
+
+function cpy(btn,k){
+  navigator.clipboard.writeText(window[k]).then(()=>{
+    btn.textContent='Copied!';btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent='Copy SVG';btn.classList.remove('ok')},1500);
+  });
+}
+function dl(name,k){
+  const b=new Blob([window[k]],{type:'image/svg+xml'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download=name;a.click();URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>

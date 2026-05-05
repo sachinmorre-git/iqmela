@@ -77,6 +77,30 @@ export async function POST(req: Request) {
     if ((antiCheat?.tabSwitches ?? 0) >= 3) suspiciousFlags.push("EXCESSIVE_TAB_SWITCHES");
     if ((antiCheat?.pastes ?? 0) >= 1)      suspiciousFlags.push("PASTE_DETECTED");
 
+    // ── AI Abuse Detection ──────────────────────────────────────────────────
+    // Analyze answer for signs of AI-assisted cheating
+    const { analyzeAnswer } = await import("@/lib/ai-interview/abuse-detector");
+    const abuseAnalysis = analyzeAnswer({
+      inputMethod: (antiCheat?.pastes ?? 0) > 0 ? "pasted" : "voice",
+      answerDurationMs: durationMs,
+      wordCount: answer.trim().split(/\s+/).length,
+      tabSwitchesDuringQuestion: antiCheat?.tabSwitches ?? 0,
+      pasteEventsDuringQuestion: antiCheat?.pastes ?? 0,
+      appearedInstantly: durationMs !== undefined && durationMs < 2000 && answer.trim().split(/\s+/).length > 20,
+      answerText: answer.trim(),
+    });
+
+    // Add abuse flags to suspicious flags if score is high enough
+    if (abuseAnalysis.score > 20) {
+      suspiciousFlags.push(`ABUSE_SCORE_${abuseAnalysis.score}`);
+      for (const flag of abuseAnalysis.flags) {
+        suspiciousFlags.push(flag.type);
+      }
+    }
+    if (abuseAnalysis.level === "definite_ai") {
+      suspiciousFlags.push("AI_GENERATED_ANSWER");
+    }
+
     // Update the turn answer
     await prisma.aiInterviewTurn.updateMany({
       where: { sessionId, turnIndex },

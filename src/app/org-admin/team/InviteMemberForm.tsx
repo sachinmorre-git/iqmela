@@ -37,7 +37,7 @@ const ROLES = [
 
 const PILL_COLORS: Record<string, { active: string; inactive: string }> = {
   indigo: {
-    active: "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700",
+    active: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700",
     inactive: "bg-transparent text-gray-500 dark:text-zinc-500 border-gray-200 dark:border-zinc-700 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300",
   },
   purple: {
@@ -45,7 +45,7 @@ const PILL_COLORS: Record<string, { active: string; inactive: string }> = {
     inactive: "bg-transparent text-gray-500 dark:text-zinc-500 border-gray-200 dark:border-zinc-700 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300",
   },
   teal: {
-    active: "bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border-teal-300 dark:border-teal-700",
+    active: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700",
     inactive: "bg-transparent text-gray-500 dark:text-zinc-500 border-gray-200 dark:border-zinc-700 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300",
   },
   amber: {
@@ -206,8 +206,8 @@ export function InviteMemberForm({
       {/* Header */}
       <div className="px-6 py-5 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
-            <UserPlus className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />
+          <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center">
+            <UserPlus className="w-4.5 h-4.5 text-rose-600 dark:text-rose-400" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">Invite Team Members</h3>
@@ -238,7 +238,7 @@ export function InviteMemberForm({
                     row.status === "sent"
                       ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600"
                       : isValidEmail(row.email)
-                      ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400"
+                      ? "bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400"
                       : "bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600"
                   }`}
                 >
@@ -346,7 +346,7 @@ export function InviteMemberForm({
         <button
           type="button"
           onClick={addRow}
-          className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add another member

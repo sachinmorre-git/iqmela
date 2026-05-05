@@ -78,7 +78,7 @@ export function InterviewFeedbackForm({ interviewId, candidateName, positionTitl
                 max="100" 
                 value={rating}
                 onChange={(e) => setRating(parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-zinc-700 accent-teal-600"
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-zinc-700 accent-rose-600"
               />
               <div className="flex justify-between text-xs font-semibold text-gray-400">
                 <span>0 (Poor)</span>
@@ -126,7 +126,7 @@ export function InterviewFeedbackForm({ interviewId, candidateName, positionTitl
                 rows={2} 
                 required
                 placeholder="A couple of sentences summarizing your overall impression..."
-                className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400 dark:text-white transition-shadow shadow-sm"
+                className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 placeholder-gray-400 dark:text-white transition-shadow shadow-sm"
               />
             </div>
 
@@ -141,7 +141,7 @@ export function InterviewFeedbackForm({ interviewId, candidateName, positionTitl
                 name="notes" 
                 rows={4} 
                 placeholder="Details regarding technical competency, communication skills, cultural fit..."
-                className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400 dark:text-white transition-shadow shadow-sm"
+                className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 placeholder-gray-400 dark:text-white transition-shadow shadow-sm"
               />
             </div>
 
@@ -159,7 +159,7 @@ export function InterviewFeedbackForm({ interviewId, candidateName, positionTitl
             <button
               type="submit"
               disabled={isPending}
-              className="flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-teal-600 rounded-xl hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 transition-colors shadow-sm"
+              className="flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:opacity-50 transition-colors shadow-sm"
             >
               {isPending ? (
                 <>

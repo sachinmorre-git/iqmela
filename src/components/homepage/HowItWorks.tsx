@@ -9,18 +9,18 @@ const STEPS = [
     num:   "01",
     title: "Invite & Schedule",
     desc:  "Add candidates to a position, configure the interview pipeline, and send magic-link invitations. Candidates see a countdown — not a confusing portal.",
-    color: "from-indigo-600/20 to-indigo-600/5",
-    border: "border-indigo-500/30",
-    accent: "text-indigo-400",
+    color: "from-rose-600/20 to-rose-600/5",
+    border: "border-rose-500/30",
+    accent: "text-rose-400",
   },
   {
     icon:  Video,
     num:   "02",
     title: "Conduct AI-Guided Interviews",
     desc:  "Live interviews with real-time behavioral signal capture — attention tracking, speech analysis, sentiment — all without interrupting the conversation.",
-    color: "from-violet-600/20 to-violet-600/5",
-    border: "border-violet-500/30",
-    accent: "text-violet-400",
+    color: "from-pink-600/20 to-pink-600/5",
+    border: "border-pink-500/30",
+    accent: "text-pink-400",
   },
   {
     icon:  BarChart3,
@@ -77,7 +77,7 @@ function Step({ step, index }: { step: typeof STEPS[0]; index: number }) {
 
 export function HowItWorks() {
   return (
-    <section className="py-24 px-4 bg-zinc-950/60" id="how-it-works">
+    <section className="py-24 px-4 bg-white dark:bg-zinc-950/60" id="how-it-works">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
           <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">How IQMela works</h2>

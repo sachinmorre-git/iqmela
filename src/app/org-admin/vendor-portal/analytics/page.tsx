@@ -91,7 +91,7 @@ export default async function VendorAnalyticsPage() {
       {/* Back */}
       <Link
         href="/org-admin/vendor-portal"
-        className="text-sm font-medium text-gray-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400 flex items-center transition-colors w-fit"
+        className="text-sm font-medium text-gray-500 hover:text-rose-600 dark:text-zinc-400 dark:hover:text-rose-400 flex items-center transition-colors w-fit"
       >
         <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Vendor Portal
       </Link>
@@ -99,7 +99,7 @@ export default async function VendorAnalyticsPage() {
       {/* Header */}
       <div>
         <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/20">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-pink-500/20">
             <BarChart3 className="w-5 h-5" />
           </div>
           Vendor Analytics
@@ -112,12 +112,12 @@ export default async function VendorAnalyticsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5">
-          <Users className="w-5 h-5 text-indigo-500 mb-2" />
+          <Users className="w-5 h-5 text-rose-500 mb-2" />
           <p className="text-3xl font-black text-gray-900 dark:text-white">{totalSubmitted}</p>
           <p className="text-xs font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-wider mt-1">Total Submitted</p>
         </div>
         <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5">
-          <TrendingUp className="w-5 h-5 text-violet-500 mb-2" />
+          <TrendingUp className="w-5 h-5 text-pink-500 mb-2" />
           <p className="text-3xl font-black text-gray-900 dark:text-white">
             {funnelData.filter((f) => ["ROUND_1", "ROUND_2", "ROUND_3", "ROUND_4", "ROUND_5"].includes(f.stage)).reduce((sum, f) => sum + f.count, 0)}
           </p>
@@ -150,7 +150,7 @@ export default async function VendorAnalyticsPage() {
                 </div>
                 <div className="flex-1 h-8 bg-gray-50 dark:bg-zinc-900 rounded-xl overflow-hidden relative">
                   <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-xl transition-all duration-700 flex items-center px-3"
+                    className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl transition-all duration-700 flex items-center px-3"
                     style={{ width: `${widthPct}%` }}
                   >
                     {f.count > 0 && (
@@ -204,7 +204,7 @@ export default async function VendorAnalyticsPage() {
                       <p className="text-xs text-gray-500 dark:text-zinc-500 truncate">{clientName}</p>
                     )}
                   </div>
-                  <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <span className="text-sm font-bold text-rose-600 dark:text-rose-400 shrink-0">
                     {cb._count.id} résumé{cb._count.id !== 1 ? "s" : ""}
                   </span>
                 </Link>

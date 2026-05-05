@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IQMela — Circuit Grid Logos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Montserrat', sans-serif; background: #F5F5F5; padding: 40px; }
+    h1 { font-size: 28px; font-weight: 700; color: #18181B; margin-bottom: 4px; }
+    .sub { color: #71717A; font-size: 14px; margin-bottom: 40px; font-weight: 500; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 56px; }
+    .card { background: white; border-radius: 20px; border: 1px solid #E4E4E7; overflow: hidden; }
+    .card-inner { padding: 40px 0; display: flex; align-items: center; justify-content: center; background: #FAFAFA; }
+    .card-inner.dark { background: #09090B; }
+    .card-inner svg { width: 100%; max-height: 380px; }
+    .card-footer { padding: 16px 24px; border-top: 1px solid #F4F4F5; display: flex; justify-content: space-between; align-items: center; background: white;}
+    .card-footer.dark-footer { border-color: #27272A; background: #18181B; }
+    .card-title { font-size: 13px; font-weight: 700; color: #3F3F46; text-transform: uppercase; letter-spacing: 1px; }
+    .card-footer.dark-footer .card-title { color: #71717A; }
+    .btn-copy { background: #F4F4F5; border: none; padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 600; color: #52525B; cursor: pointer; transition: all 0.2s; }
+    .btn-copy:hover { background: #E4E4E7; }
+    .btn-copy.copied { background: #10B981; color: white; }
+    .section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #A1A1AA; margin-bottom: 16px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>IQMela — Circuit Grid Logo</h1>
+  <p class="sub">Structured geometric node-and-edge layout matching the reference image style.</p>
+
+  <div class="section-label">On Light Background</div>
+  <div class="grid" id="light-grid"></div>
+
+  <div class="section-label">On Dark Background</div>
+  <div class="grid" id="dark-grid"></div>
+
+  <script>
+    function mulberry32(a) {
+      return function() {
+        let t = a += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    const palettes = [
+      { name: "Indigo / Teal / Amber", colors: ["#2563EB", "#14B8A6", "#F59E0B"], desc: "Closest to reference" },
+      { name: "Indigo / Violet / Pink", colors: ["#6366F1", "#8B5CF6", "#F472B6"], desc: "Matches Web Gradient" },
+      { name: "Deep Blue / Emerald", colors: ["#1D4ED8", "#10B981", "#EAB308"], desc: "Vibrant high contrast" },
+      { name: "Mono Purple", colors: ["#818CF8", "#6366F1", "#A78BFA"], desc: "SaaS Premium" }
+    ];
+
+    const gridMap = [
+      "111   222222    333      333",
+      "111  222  222   3333    3333",
+      "111  222  222   33333  33333",
+      "111  222  222   333 3333 333",
+      "111  222  222   333  33  333",
+      "111  222  222   333      333",
+      "111   222222    333      333",
+      "         22                 ",
+      "          22                "
+    ];
+
+    function getColor(c, randVal, colors) {
+      let ratio = c / 31 + (randVal * 0.2 - 0.1);
+      if (ratio < 0.3) return colors[0];
+      if (ratio < 0.6) return colors[1];
+      return colors[2];
+    }
+
+    function generateCircuit(seed, colors) {
+      const rand = mulberry32(seed);
+      let nodes = [];
+      const spacing = 18;
+      
+      // Build nodes
+      for (let r = 0; r < gridMap.length; r++) {
+         for (let c = 0; c < gridMap[r].length; c++) {
+            if (gridMap[r][c] !== ' ') {
+               nodes.push({
+                  id: r + '-' + c, r, c,
+                  x: c * spacing, y: r * spacing,
+                  rad: 2.5 + rand() * 4, // distinct sizes like the reference
+                  col: getColor(c, rand(), colors)
+               });
+            }
+         }
+      }
+
+      // Build edges
+      let edges = [];
+      for (let i = 0; i < nodes.length; i++) {
+         let n1 = nodes[i];
+         let neighbors = nodes.filter(n2 => {
+            let dr = n2.r - n1.r, dc = n2.c - n1.c;
+            if (dr === 0 && dc === 1) return true;
+            if (dr === 1 && dc === 0) return true;
+            if (dr === 1 && dc === 1) return true;  // diagonal \
+            if (dr === 1 && dc === -1) return true; // diagonal /
+            return false;
+         });
+         
+         neighbors.forEach(n2 => {
+            // Drop ~25% of edges for the lattice look
+            if (rand() > 0.25) edges.push({ n1, n2 });
+         });
+      }
+      return { nodes, edges };
+    }
+
+    function buildSVG(data, darkBg) {
+      let svgWidth = 600, svgHeight = 400;
+      let bgFill = darkBg ? '#09090B' : '#ffffff';
+      let titleFill = darkBg ? '#ffffff' : '#18181B';
+      let subFill = darkBg ? '#A1A1AA' : '#52525B';
+      
+      // Center the grid
+      let gridW = 31 * 18; // ~558
+      let gridH = 8 * 18;  // ~144
+      let offsetX = (svgWidth - gridW) / 2;
+      let offsetY = 70;
+
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgWidth} ${svgHeight}" fill="none">`;
+      if (darkBg) svg += `<rect width="${svgWidth}" height="${svgHeight}" fill="${bgFill}"/>`;
+      
+      svg += `<g transform="translate(${offsetX}, ${offsetY})">`;
+      
+      // Draw edges first (so they are under nodes)
+      data.edges.forEach(e => {
+         svg += `<line x1="${e.n1.x}" y1="${e.n1.y}" x2="${e.n2.x}" y2="${e.n2.y}" stroke="${e.n1.col}" stroke-width="2.5" stroke-opacity="0.85" stroke-linecap="round"/>`;
+      });
+      // Draw nodes
+      data.nodes.forEach(n => {
+         svg += `<circle cx="${n.x}" cy="${n.y}" r="${n.rad}" fill="${n.col}"/>`;
+      });
+      svg += `</g>`;
+
+      // Wordmark
+      svg += `<text x="${svgWidth/2}" y="310" text-anchor="middle" font-family="'Montserrat', sans-serif" font-weight="600" font-size="44" letter-spacing="0.15em" fill="${titleFill}">IQ MELA</text>`;
+      // Subtitle
+      svg += `<text x="${svgWidth/2}" y="340" text-anchor="middle" font-family="'Montserrat', sans-serif" font-weight="500" font-size="11" letter-spacing="0.3em" fill="${subFill}">INTELLIGENCE • INNOVATION • AMPLIFIED</text>`;
+      
+      svg += `</svg>`;
+      return svg;
+    }
+
+    function renderAll() {
+      const lg = document.getElementById('light-grid'), dg = document.getElementById('dark-grid');
+      palettes.forEach((p, i) => {
+        let data = generateCircuit(123 + i * 20, p.colors); // identical structures, different colors if desired
+        let lightSVG = buildSVG(data, false), darkSVG = buildSVG(data, true);
+        
+        let writeCard = (container, svg, isDark) => {
+           let card = document.createElement('div'); card.className = 'card';
+           card.innerHTML = `<div class="card-inner ${isDark ? 'dark':''}">${svg}</div>
+             <div class="card-footer ${isDark ? 'dark-footer':''}">
+               <div><div class="card-title">${p.name}</div></div>
+               <button class="btn-copy" onclick="copySVG(this, '${i}', ${isDark})">Copy SVG</button>
+             </div>`;
+           container.appendChild(card);
+        };
+        writeCard(lg, lightSVG, false);
+        writeCard(dg, darkSVG, true);
+        window['svg_l_'+i] = lightSVG; window['svg_d_'+i] = darkSVG;
+      });
+    }
+    
+    window.copySVG = function(btn, i, isDark) {
+       let svg = isDark ? window['svg_d_'+i] : window['svg_l_'+i];
+       navigator.clipboard.writeText(svg).then(() => {
+          btn.textContent = 'Copied!'; btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = 'Copy SVG'; btn.classList.remove('copied'); }, 1500);
+       });
+    };
+    renderAll();
+  </script>
+</body>
+</html>

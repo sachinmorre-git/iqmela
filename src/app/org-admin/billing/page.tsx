@@ -2,6 +2,7 @@ import { getCallerPermissions } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { formatDate, formatNumber } from "@/lib/locale-utils"
 
 export const metadata = {
   title: "Billing & Subscriptions | Org Admin",
@@ -13,10 +14,12 @@ export default async function BillingDashboard() {
   if (!perms.canManageBilling) redirect("/org-admin/dashboard")
 
   // MOCK DATA for now until Stripe is fully integrated
+  // TODO: Replace with real Stripe billing data
+  const isDemo = true // Flag to show demo badge
   const tier = "PRO"
   const tokensUsed = 125000
   const maxTokens = 500000
-  const billingCycleEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toLocaleDateString()
+  const billingCycleEnd = formatDate(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0))
 
   const usagePercent = Math.min((tokensUsed / maxTokens) * 100, 100)
 
@@ -24,9 +27,16 @@ export default async function BillingDashboard() {
     <div className="flex-1 space-y-8 max-w-5xl mx-auto w-full p-4 md:p-8">
       <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 pb-6">
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            Billing & Usage
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+              Billing & Usage
+            </h2>
+            {isDemo && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 animate-pulse">
+                ⚡ Demo Data
+              </span>
+            )}
+          </div>
           <p className="text-gray-500 dark:text-gray-400 mt-1.5 text-base">
             Manage your subscription tier, billing portal, and monitor AI token usage.
           </p>
@@ -44,7 +54,7 @@ export default async function BillingDashboard() {
           <CardHeader>
             <CardTitle className="text-xl font-bold dark:text-white flex justify-between">
               Current Plan
-              <span className="bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
+              <span className="bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
                 {tier}
               </span>
             </CardTitle>
@@ -57,7 +67,7 @@ export default async function BillingDashboard() {
             <p className="text-sm text-gray-600 dark:text-zinc-500">
               Includes 500k AI inference tokens, unlimited active positions, and 5 team member seats.
             </p>
-            <Button className="w-full mt-4 bg-teal-600 hover:bg-teal-700 text-white font-semibold">
+            <Button className="w-full mt-4 bg-rose-600 hover:bg-rose-700 text-white font-semibold">
               Upgrade Plan
             </Button>
           </CardContent>
@@ -74,12 +84,12 @@ export default async function BillingDashboard() {
           <CardContent className="space-y-6">
             <div>
               <div className="flex justify-between text-sm font-medium mb-2 dark:text-zinc-200">
-                <span>{tokensUsed.toLocaleString()} tokens</span>
-                <span className="text-zinc-500">{maxTokens.toLocaleString()} max</span>
+                <span>{formatNumber(tokensUsed)} tokens</span>
+                <span className="text-zinc-500">{formatNumber(maxTokens)} max</span>
               </div>
               <div className="w-full h-3 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div 
-                  className={`h-full rounded-full ${usagePercent > 85 ? 'bg-rose-500' : 'bg-teal-500'}`}
+                  className={`h-full rounded-full ${usagePercent > 85 ? 'bg-rose-500' : 'bg-rose-500'}`}
                   style={{ width: `${usagePercent}%` }}
                 />
               </div>

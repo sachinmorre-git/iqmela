@@ -62,8 +62,8 @@ export function AiReviewPanel({
               onClick={() => setOverride(rec.value)}
               className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
                 override === rec.value
-                  ? "bg-violet-600 text-white border-violet-600"
-                  : "bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-zinc-300 hover:border-violet-400"
+                  ? "bg-pink-600 text-white border-pink-600"
+                  : "bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-zinc-300 hover:border-pink-400"
               }`}
             >
               {rec.label}
@@ -87,7 +87,7 @@ export function AiReviewPanel({
           onChange={(e) => setNotes(e.target.value)}
           rows={4}
           placeholder="Add private notes about this candidate's interview performance…"
-          className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+          className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
         />
       </div>
 
@@ -101,7 +101,7 @@ export function AiReviewPanel({
         <button
           onClick={handleSave}
           disabled={isPending}
-          className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all"
         >
           {isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />

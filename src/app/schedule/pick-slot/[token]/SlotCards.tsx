@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Loader2, Calendar, Clock } from "lucide-react";
 import { confirmSlotAction } from "@/app/org-admin/positions/[id]/poll-actions";
+import { formatDate, formatTime, formatDateTime } from "@/lib/locale-utils"
 
 interface Slot {
   date: string;
@@ -31,10 +32,7 @@ export function SlotCards({ slots, durationMinutes, candidateToken }: SlotCardsP
       if (res.success) {
         const date = new Date(`${slot.date}T${slot.startTime}:00`);
         setConfirmedDate(
-          date.toLocaleString("en-US", {
-            weekday: "long", month: "long", day: "numeric",
-            hour: "numeric", minute: "2-digit", hour12: true,
-          })
+          formatDateTime(date)
         );
         setConfirmed(true);
       } else {
@@ -74,19 +72,19 @@ export function SlotCards({ slots, durationMinutes, candidateToken }: SlotCardsP
 
       {slots.map((slot, i) => {
         const date = new Date(`${slot.date}T${slot.startTime}:00`);
-        const dayLabel = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-        const timeLabel = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+        const dayLabel = formatDate(date);
+        const timeLabel = formatTime(date, { showTimezone: false });
         const isSelecting = selectedSlot === slot;
 
         return (
           <div
             key={i}
-            className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-5 shadow-sm hover:shadow-md hover:border-teal-300 dark:hover:border-teal-700 transition-all"
+            className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-5 shadow-sm hover:shadow-md hover:border-rose-300 dark:hover:border-rose-700 transition-all"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-rose-600 dark:text-rose-400" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-gray-900 dark:text-white">{dayLabel}</p>
@@ -101,7 +99,7 @@ export function SlotCards({ slots, durationMinutes, candidateToken }: SlotCardsP
                 type="button"
                 onClick={() => handleConfirm(slot)}
                 disabled={isPending}
-                className="px-4 py-2 rounded-xl text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                className="px-4 py-2 rounded-xl text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
               >
                 {isSelecting && isPending ? (
                   <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Confirming…</>
@@ -118,7 +116,7 @@ export function SlotCards({ slots, durationMinutes, candidateToken }: SlotCardsP
       <div className="text-center pt-4">
         <p className="text-xs text-gray-400 dark:text-zinc-500">
           Can&apos;t make any of these times?{" "}
-          <button type="button" className="text-teal-600 dark:text-teal-400 font-semibold hover:underline">
+          <button type="button" className="text-rose-600 dark:text-rose-400 font-semibold hover:underline">
             Request more options
           </button>
         </p>

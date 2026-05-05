@@ -41,10 +41,14 @@ export async function generateInterviewerQuestions(interviewId: string) {
   if (!isAuthorized) throw new Error("Forbidden: Not assigned to panel.");
 
   // Resolve Explicit Resume mapped to Candidate Email
+  const resolvedEmail = interview.candidate?.email || interview.candidateEmail;
+  if (!resolvedEmail) {
+    throw new Error("Candidate email is not available for this interview.");
+  }
   const resume = await prisma.resume.findFirst({
     where: {
       positionId: interview.positionId,
-      candidateEmail: interview.candidate.email
+      candidateEmail: resolvedEmail
     }
   });
 
@@ -57,11 +61,13 @@ export async function generateInterviewerQuestions(interviewId: string) {
   }
 
   // Construct Extracted Data Schema from DB JSON dumps
+  // Note: PII fields (email, phone, LinkedIn) are intentionally excluded
+  // to prevent exposure to interviewers during the live session.
   const extracted = {
     candidateName: resume.candidateName,
-    candidateEmail: resume.candidateEmail,
-    phoneNumber: resume.phoneNumber,
-    linkedinUrl: resume.linkedinUrl,
+    candidateEmail: null as string | null,  // redacted — not needed for question generation
+    phoneNumber: null as string | null,     // redacted
+    linkedinUrl: null as string | null,     // redacted
     location: resume.location,
     summary: (resume.aiSummaryJson as Record<string,any>)?.overallProfile || null,
     skills: resume.skillsJson as string[] || [],

@@ -2,11 +2,27 @@
   "crons": [
     {
       "path": "/api/cron/poll-nudge",
-      "schedule": "0 8 * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/intake-purge",
       "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/process-closed-positions",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/purge-resumes",
+      "schedule": "0 2 * * 1"
+    },
+    {
+      "path": "/api/cron/bgv-expiry",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/security-scan",
+      "schedule": "0 4 * * *"
     }
   ]
 }

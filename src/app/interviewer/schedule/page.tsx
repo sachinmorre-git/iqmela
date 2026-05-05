@@ -24,7 +24,7 @@ export default async function ScheduleInterviewPage() {
     <div className="flex-1 w-full max-w-3xl mx-auto py-12 px-4 sm:px-6">
       
       <div className="mb-8">
-        <Link href="/interviewer/dashboard" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline mb-4 inline-block">&larr; Back to Dashboard</Link>
+        <Link href="/interviewer/dashboard" className="text-sm text-rose-600 dark:text-rose-400 hover:underline mb-4 inline-block">&larr; Back to Dashboard</Link>
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Schedule New Interview</h1>
         <p className="text-gray-500 dark:text-gray-400 mt-2">Fill out the details below to initiate a technical session with a candidate.</p>
       </div>
@@ -41,7 +41,7 @@ export default async function ScheduleInterviewPage() {
               name="title" 
               type="text" 
               placeholder="e.g. Senior Frontend Engineer - Technical Screen"
-              className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-white"
+              className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 dark:text-white"
             />
           </div>
 
@@ -54,7 +54,7 @@ export default async function ScheduleInterviewPage() {
                 id="date"
                 name="date" 
                 type="date" 
-                className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-white"
+                className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 dark:text-white"
                 min={new Date().toISOString().split("T")[0]}
               />
             </div>
@@ -67,7 +67,7 @@ export default async function ScheduleInterviewPage() {
                 id="time"
                 name="time" 
                 type="time" 
-                className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-white"
+                className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 dark:text-white"
               />
             </div>
 
@@ -77,7 +77,7 @@ export default async function ScheduleInterviewPage() {
               <select 
                 id="duration"
                 name="duration" 
-                className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-white"
+                className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 dark:text-white"
                 defaultValue="60"
               >
                 <option value="30" className="dark:bg-zinc-800">30 minutes</option>
@@ -97,7 +97,7 @@ export default async function ScheduleInterviewPage() {
               id="candidateId"
               name="candidateId" 
               defaultValue=""
-              className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-white"
+              className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 dark:text-white"
             >
               <option value="" disabled className="dark:bg-zinc-800">-- Choose a registered candidate --</option>
               {candidates.length === 0 && (
@@ -119,7 +119,7 @@ export default async function ScheduleInterviewPage() {
               name="notes" 
               rows={4}
               placeholder="E.g. Focus on algorithms arrays and dynamic programming. Ask about their previous role at X company."
-              className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-white"
+              className="w-full rounded-lg border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 dark:text-white"
             ></textarea>
           </div>
 

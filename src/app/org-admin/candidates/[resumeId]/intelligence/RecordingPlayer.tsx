@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { formatDate } from "@/lib/locale-utils"
 import { Play, Clock, HardDrive, Calendar, ShieldCheck, Loader2, VideoOff } from "lucide-react";
 
 interface RecordingData {
@@ -51,7 +52,7 @@ export function RecordingPlayer({ interviewId, roundLabel }: { interviewId: stri
   };
 
   const expiresDate = recording?.recordingExpiresAt
-    ? new Date(recording.recordingExpiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    ? formatDate(new Date(recording.recordingExpiresAt))
     : null;
 
   const daysLeft = recording?.recordingExpiresAt
@@ -63,8 +64,8 @@ export function RecordingPlayer({ interviewId, roundLabel }: { interviewId: stri
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50 dark:border-zinc-800/60">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center border border-violet-100 dark:border-violet-800/30">
-            <Play className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+          <div className="w-8 h-8 rounded-xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center border border-pink-100 dark:border-pink-800/30">
+            <Play className="w-4 h-4 text-pink-600 dark:text-pink-400" />
           </div>
           <div>
             <p className="text-sm font-bold text-gray-900 dark:text-white">Interview Recording</p>
@@ -74,7 +75,7 @@ export function RecordingPlayer({ interviewId, roundLabel }: { interviewId: stri
         {status === "idle" && (
           <button
             onClick={loadRecording}
-            className="px-3 py-1.5 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 text-xs font-bold border border-violet-200 dark:border-violet-800/40 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-pink-50 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300 text-xs font-bold border border-pink-200 dark:border-pink-800/40 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors"
           >
             Load Recording
           </button>
@@ -86,8 +87,8 @@ export function RecordingPlayer({ interviewId, roundLabel }: { interviewId: stri
         {/* IDLE */}
         {status === "idle" && (
           <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/30 flex items-center justify-center">
-              <Play className="w-7 h-7 text-violet-400" />
+            <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800/30 flex items-center justify-center">
+              <Play className="w-7 h-7 text-pink-400" />
             </div>
             <p className="text-sm font-semibold text-gray-500 dark:text-zinc-400">Click "Load Recording" to securely stream this session</p>
             <p className="text-xs text-gray-400 dark:text-zinc-500">Access is role-gated. URL expires after 1 hour.</p>
@@ -97,7 +98,7 @@ export function RecordingPlayer({ interviewId, roundLabel }: { interviewId: stri
         {/* LOADING */}
         {status === "loading" && (
           <div className="flex flex-col items-center justify-center py-10 gap-3">
-            <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
             <p className="text-xs font-semibold text-gray-400 dark:text-zinc-500 animate-pulse">Generating secure stream URL…</p>
           </div>
         )}
@@ -119,7 +120,7 @@ export function RecordingPlayer({ interviewId, roundLabel }: { interviewId: stri
         {status === "error" && (
           <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
             <p className="text-sm font-semibold text-red-500">{error}</p>
-            <button onClick={loadRecording} className="text-xs text-violet-600 hover:underline">Try Again</button>
+            <button onClick={loadRecording} className="text-xs text-pink-600 hover:underline">Try Again</button>
           </div>
         )}
 
@@ -183,7 +184,7 @@ export function RecordingPlayer({ interviewId, roundLabel }: { interviewId: stri
             {/* URL expiry notice */}
             <p className="text-[10px] text-gray-400 dark:text-zinc-500 text-center">
               This stream URL is valid for 1 hour. Refresh if playback fails.{" "}
-              <button onClick={loadRecording} className="text-violet-500 hover:underline font-medium">Refresh URL</button>
+              <button onClick={loadRecording} className="text-pink-500 hover:underline font-medium">Refresh URL</button>
             </p>
           </div>
         )}

@@ -3,6 +3,14 @@
 import { prisma } from "@/lib/prisma";
 import { getCallerPermissions } from "@/lib/rbac";
 import { OfferTemplate, JobOffer } from "@prisma/client";
+import { emailService } from "@/lib/email";
+import { dispatchNotification } from "@/lib/notify";
+
+function getBaseUrl() {
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
 
 // RBAC Roles that can manage offers
 const OFFER_ROLES = ["ADMIN", "RECRUITER", "HIRING_MANAGER"];
@@ -168,11 +176,33 @@ export async function createJobOfferAction(input: {
     if (offer.approvals && offer.approvals.length > 0) {
       const firstApprover = offer.approvals.find(a => a.stepOrder === 1);
       if (firstApprover) {
-          console.log(`\n\n=========================================\n`);
-          console.log(`[EMAIL DISPATCH MOCK]: Sent email to ${firstApprover.email}`);
-          console.log(`Subject: Important: Approval Required for Offer`);
-          console.log(`Link: http://localhost:3000/offer-approval/${firstApprover.approvalToken}`);
-          console.log(`\n=========================================\n\n`);
+        const approvalLink = `${getBaseUrl()}/offer-approval/${firstApprover.approvalToken}`;
+        await emailService.sendGenericEmail({
+          to: firstApprover.email,
+          subject: "Action Required: Offer Approval Needed",
+          heading: "Offer Approval Request",
+          body: `Hi ${firstApprover.name},\n\nYou have been designated as an approver for a job offer. Please review the offer details and provide your decision.`,
+          ctaLabel: "Review & Approve",
+          ctaUrl: approvalLink,
+        });
+      }
+    }
+
+    // Fire in-app notification to first approver
+    if (offer.approvals?.[0]) {
+      const firstApprover = offer.approvals[0];
+      // Find userId for the approver email (if they're in the system)
+      const approverUser = await prisma.user.findFirst({ where: { email: firstApprover.email } });
+      if (approverUser) {
+        dispatchNotification({
+          organizationId: perms.orgId,
+          userId: approverUser.id,
+          type: "OFFER_APPROVED",
+          title: "Offer Approval Required",
+          body: `You have been asked to approve an offer. Please review and provide your decision.`,
+          link: `/offer-approval/${firstApprover.approvalToken}`,
+          sendPush: true,
+        }).catch(() => {});
       }
     }
 
@@ -262,11 +292,15 @@ export async function submitApprovalStepAction(token: string, action: "APPROVE" 
       const nextPending = allApprovals.find(a => a.stepOrder > currentApproval.stepOrder && a.status === "PENDING" && a.id !== currentApproval.id);
 
       if (nextPending) {
-         console.log(`\n\n=========================================\n`);
-         console.log(`[EMAIL DISPATCH MOCK]: Sent email to ${nextPending.email}`);
-         console.log(`Subject: Sequential Approval Required for Offer`);
-         console.log(`Link: http://localhost:3000/offer-approval/${nextPending.approvalToken}`);
-         console.log(`\n=========================================\n\n`);
+         const nextLink = `${getBaseUrl()}/offer-approval/${nextPending.approvalToken}`;
+         await emailService.sendGenericEmail({
+           to: nextPending.email,
+           subject: "Action Required: Sequential Offer Approval",
+           heading: "Offer Approval Request",
+           body: `Hi ${nextPending.name},\n\nA previous approver has approved this offer. It is now your turn to review and provide your decision.`,
+           ctaLabel: "Review & Approve",
+           ctaUrl: nextLink,
+         });
          return { status: "NEXT_PENDING", nextEmail: nextPending.email };
       }
 
@@ -281,11 +315,18 @@ export async function submitApprovalStepAction(token: string, action: "APPROVE" 
           include: { resume: true }
       });
 
-      console.log(`\n\n=========================================\n`);
-      console.log(`[EMAIL DISPATCH MOCK]: Sent email to CANDIDATE ${frozenOffer?.resume?.candidateEmail || 'candidate@example.com'}`);
-      console.log(`Subject: Your IQMela Offical Offer is Ready!`);
-      console.log(`Link: http://localhost:3000/offer/${frozenOffer?.candidateToken}`);
-      console.log(`\n=========================================\n\n`);
+      const candidateEmail = frozenOffer?.resume?.candidateEmail || frozenOffer?.resume?.overrideEmail;
+      const candidateOfferLink = `${getBaseUrl()}/offer/${frozenOffer?.candidateToken}`;
+      if (candidateEmail) {
+        await emailService.sendGenericEmail({
+          to: candidateEmail,
+          subject: "Your Official Offer Letter is Ready!",
+          heading: "Congratulations! 🎉",
+          body: `Hi ${frozenOffer?.resume?.candidateName || "there"},\n\nWe are thrilled to extend an official offer for you. Please review the complete offer details by clicking the button below.`,
+          ctaLabel: "View Your Offer",
+          ctaUrl: candidateOfferLink,
+        });
+      }
 
       await tx.offerAuditLog.create({
         data: {
@@ -298,7 +339,293 @@ export async function submitApprovalStepAction(token: string, action: "APPROVE" 
       return { status: "FROZEN" };
     });
 
+    // Notify the offer creator that the offer is fully approved
+    const fullOffer = await prisma.jobOffer.findUnique({
+      where: { id: res.status === "FROZEN" ? (await prisma.offerApproval.findUnique({ where: { approvalToken: token } }))?.offerId || "" : "" },
+      select: { organizationId: true, resumeId: true, resume: { select: { candidateName: true } } },
+    });
+
     return { success: true, result: res };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Fetch an existing offer for a resume+position (recruiter tracker view)
+ */
+export async function getOfferByResumeAction(resumeId: string, positionId: string) {
+  try {
+    const perms = await getCallerPermissions();
+    if (!perms) return { success: false, error: "Unauthorized" };
+
+    const offer = await prisma.jobOffer.findFirst({
+      where: {
+        resumeId,
+        positionId,
+        organizationId: perms.orgId,
+      },
+      include: {
+        approvals: {
+          orderBy: { stepOrder: "asc" },
+        },
+        auditLogs: {
+          orderBy: { createdAt: "asc" },
+        },
+        position: {
+          select: { title: true },
+        },
+        resume: {
+          select: { candidateName: true, candidateEmail: true },
+        },
+      },
+    });
+
+    if (!offer) return { success: false, error: "No offer found" };
+    return { success: true, offer: JSON.parse(JSON.stringify(offer)) };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Resend approval reminder to a pending stakeholder
+ */
+export async function resendApprovalAction(approvalId: string) {
+  try {
+    const perms = await getCallerPermissions();
+    if (!perms) return { success: false, error: "Unauthorized" };
+
+    const approval = await prisma.offerApproval.findUnique({
+      where: { id: approvalId },
+      include: {
+        offer: true,
+      },
+    });
+
+    if (!approval) return { success: false, error: "Approval not found" };
+    if (approval.offer.organizationId !== perms.orgId) return { success: false, error: "Unauthorized" };
+    if (approval.status !== "PENDING") return { success: false, error: "This approval is no longer pending" };
+
+    // Log the reminder email
+    const reminderLink = `${getBaseUrl()}/offer-approval/${approval.approvalToken}`;
+    await emailService.sendGenericEmail({
+      to: approval.email,
+      subject: "Reminder: Offer Approval Still Pending",
+      heading: "Friendly Reminder",
+      body: `Hi ${approval.name},\n\nThis is a reminder that an offer approval is awaiting your review. Please take a moment to review and provide your decision.`,
+      ctaLabel: "Review & Approve",
+      ctaUrl: reminderLink,
+    });
+
+    // Create audit log
+    await prisma.offerAuditLog.create({
+      data: {
+        offerId: approval.offerId,
+        action: "REMINDER_SENT",
+        actorId: perms.userId,
+        details: {
+          approverName: approval.name,
+          approverEmail: approval.email,
+        },
+      },
+    });
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Revise an existing offer: update comp/dates, void old approvals, re-route
+ */
+export async function reviseOfferAction(input: {
+  offerId: string;
+  baseSalary: number;
+  currency: string;
+  signOnBonus?: number;
+  equityAmount?: string;
+  startDate: string;
+  expirationDate: string;
+  approvers: { name: string; email: string; designation: string }[];
+}) {
+  try {
+    const perms = await getCallerPermissions();
+    if (!perms) return { success: false, error: "Unauthorized" };
+
+    const offer = await prisma.jobOffer.findFirst({
+      where: { id: input.offerId, organizationId: perms.orgId },
+    });
+
+    if (!offer) return { success: false, error: "Offer not found" };
+    if (offer.status === "FROZEN" || offer.status === "ACCEPTED") {
+      return { success: false, error: "Cannot revise: offer is already frozen or accepted" };
+    }
+
+    const updatedOffer = await prisma.$transaction(async (tx) => {
+      // 1. Delete old approvals
+      await tx.offerApproval.deleteMany({ where: { offerId: input.offerId } });
+
+      // 2. Update the offer with new data
+      const updated = await tx.jobOffer.update({
+        where: { id: input.offerId },
+        data: {
+          baseSalary: input.baseSalary,
+          currency: input.currency,
+          signOnBonus: input.signOnBonus,
+          equityAmount: input.equityAmount,
+          startDate: new Date(input.startDate),
+          expirationDate: new Date(input.expirationDate),
+          status: "PENDING_APPROVAL",
+          approvals: {
+            create: input.approvers.map((a, idx) => ({
+              stepOrder: idx + 1,
+              name: a.name,
+              email: a.email,
+              designation: a.designation,
+              status: "PENDING",
+            })),
+          },
+        },
+        include: { approvals: true },
+      });
+
+      // 3. Audit log
+      await tx.offerAuditLog.create({
+        data: {
+          offerId: input.offerId,
+          action: "OFFER_REVISED",
+          actorId: perms.userId,
+          details: {
+            newBaseSalary: input.baseSalary,
+            newApproverCount: input.approvers.length,
+          },
+        },
+      });
+
+      return updated;
+    });
+
+    // Send to first approver
+    if (updatedOffer.approvals?.length > 0) {
+      const first = updatedOffer.approvals.find(a => a.stepOrder === 1);
+      if (first) {
+        const revisedLink = `${getBaseUrl()}/offer-approval/${first.approvalToken}`;
+        await emailService.sendGenericEmail({
+          to: first.email,
+          subject: "Revised Offer: Approval Required",
+          heading: "Offer Has Been Revised",
+          body: `Hi ${first.name},\n\nAn offer has been revised with updated compensation details. Please review the updated offer and provide your approval.`,
+          ctaLabel: "Review Revised Offer",
+          ctaUrl: revisedLink,
+        });
+      }
+    }
+
+    return { success: true, offer: JSON.parse(JSON.stringify(updatedOffer)) };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Manually mark an approval step as approved (recruiter override)
+ */
+export async function manualApproveAction(approvalId: string, notes?: string) {
+  try {
+    const perms = await getCallerPermissions();
+    if (!perms) return { success: false, error: "Unauthorized" };
+
+    const result = await prisma.$transaction(async (tx) => {
+      const approval = await tx.offerApproval.findUnique({
+        where: { id: approvalId },
+        include: { offer: { include: { approvals: true, resume: true } } },
+      });
+
+      if (!approval) throw new Error("Approval not found");
+      if (approval.offer.organizationId !== perms.orgId) throw new Error("Unauthorized");
+      if (approval.status !== "PENDING") throw new Error("This step is already processed");
+
+      // 1. Mark as approved
+      await tx.offerApproval.update({
+        where: { id: approvalId },
+        data: {
+          status: "APPROVED",
+          reviewNotes: notes || "Manually approved by recruiter",
+        },
+      });
+
+      // 2. Audit log
+      await tx.offerAuditLog.create({
+        data: {
+          offerId: approval.offerId,
+          action: "MANUALLY_APPROVED",
+          actorId: perms.userId,
+          details: {
+            approverName: approval.name,
+            approverEmail: approval.email,
+            notes: notes || "Manually approved by recruiter",
+          },
+        },
+      });
+
+      // 3. Check if there are more pending steps
+      const allApprovals = approval.offer.approvals;
+      const nextPending = allApprovals.find(
+        a => a.stepOrder > approval.stepOrder && a.status === "PENDING" && a.id !== approval.id
+      );
+
+      if (nextPending) {
+        const manualNextLink = `${getBaseUrl()}/offer-approval/${nextPending.approvalToken}`;
+        await emailService.sendGenericEmail({
+          to: nextPending.email,
+          subject: "Action Required: Offer Approval Needed",
+          heading: "Offer Approval Request",
+          body: `Hi ${nextPending.name},\n\nA previous approver has approved this offer. It is now your turn to review and provide your decision.`,
+          ctaLabel: "Review & Approve",
+          ctaUrl: manualNextLink,
+        });
+        return { status: "NEXT_PENDING" as const };
+      }
+
+      // All approved — freeze the offer
+      await tx.jobOffer.update({
+        where: { id: approval.offerId },
+        data: { status: "FROZEN" },
+      });
+
+      await tx.offerAuditLog.create({
+        data: {
+          offerId: approval.offerId,
+          action: "OFFER_FROZEN_AND_APPROVED",
+          details: { message: "All stakeholder approvals collected." },
+        },
+      });
+
+      const candidateEmail = approval.offer.resume?.candidateEmail || "candidate@example.com";
+      const candidateToken = (await tx.jobOffer.findUnique({ where: { id: approval.offerId } }))?.candidateToken;
+
+      const manualCandidateLink = `${getBaseUrl()}/offer/${candidateToken}`;
+      if (candidateEmail) {
+        await emailService.sendGenericEmail({
+          to: candidateEmail,
+          subject: "Your Official Offer Letter is Ready!",
+          heading: "Congratulations! 🎉",
+          body: `We are thrilled to extend an official offer to you. Please review the complete offer details by clicking the button below.`,
+          ctaLabel: "View Your Offer",
+          ctaUrl: manualCandidateLink,
+        });
+      }
+
+      return { status: "FROZEN" as const };
+    });
+
+    return { success: true, result };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: message };

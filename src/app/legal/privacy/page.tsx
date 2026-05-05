@@ -32,11 +32,12 @@ export default function PrivacyPage() {
       </div>
 
       {/* Plain-language Summary */}
-      <div className="mb-10 p-5 border border-indigo-500/20 rounded-2xl bg-indigo-950/20">
-        <p className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-3">Summary (plain language)</p>
+      <div className="mb-10 p-5 border border-rose-500/20 rounded-2xl bg-rose-950/20">
+        <p className="text-xs font-bold uppercase tracking-widest text-rose-400 mb-3">Summary (plain language)</p>
         <ul className="text-sm text-zinc-300 space-y-2 list-none pl-0 m-0">
           <li>📹 <strong>We record interviews</strong> only with your explicit consent. Recordings are deleted after 90 days.</li>
-          <li>🧠 <strong>AI analyses your session</strong> — gaze, posture, speaking pace. This is disclosed before every interview.</li>
+          <li>🤖 <strong>AI Avatars & Analysis</strong> — We use AI (including conversational avatars) to conduct interviews and analyse your session (gaze, posture, speaking pace). This is disclosed before every session.</li>
+          <li>⚖️ <strong>Automated processing transparency</strong> — We provide AI-generated insights, but final hiring decisions are always made by humans.</li>
           <li>🔒 <strong>Your data is never sold</strong> to third parties or used for advertising.</li>
           <li>🗑️ <strong>You can request deletion</strong> of your data at any time by emailing {LEGAL_VERSIONS.PRIVACY_EMAIL}.</li>
           <li>🇮🇳 <strong>DPDP Act 2023 compliant</strong> — governed by India&apos;s Digital Personal Data Protection Act 2023 and the IT Act 2000. You have rights to access, correct, and erase your data.</li>
@@ -57,7 +58,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           Data protection contact:{" "}
-          <a href={`mailto:${PRIVACY_EMAIL}`} className="text-indigo-400 hover:underline">
+          <a href={`mailto:${PRIVACY_EMAIL}`} className="text-rose-400 hover:underline">
             {PRIVACY_EMAIL}
           </a>
         </p>
@@ -70,12 +71,12 @@ export default function PrivacyPage() {
         <ul>
           <li><strong>Identity data:</strong> Name, email address (from resume or interview invitation)</li>
           <li><strong>Resume data:</strong> Work history, education, skills, contact information, and any other content in uploaded CV files</li>
-          <li><strong>Video and audio:</strong> Live interview recordings (only with explicit consent before each session)</li>
-          <li><strong>Transcription data:</strong> Diarised text transcripts of interview sessions</li>
-          <li><strong>Behavioural signals:</strong> Eye gaze zone, head posture, speaking pace, silence gaps — computed locally in your browser using MediaPipe computer vision, never as raw video</li>
+          <li><strong>Video and audio:</strong> Live interview recordings, including asynchronous sessions with AI avatars (only with explicit consent)</li>
+          <li><strong>Transcription data:</strong> Diarised text transcripts of interview sessions, processed by AI models</li>
+          <li><strong>Behavioural signals:</strong> Eye gaze zone, head posture, speaking pace, silence gaps — computed locally or via our AI sub-processors</li>
           <li><strong>Engagement scores:</strong> Confidence and engagement estimates derived from facial expression blendshapes (approximate probabilistic metrics, not psychological assessments)</li>
-          <li><strong>Browser signals:</strong> Tab visibility changes, fullscreen status, keyboard event patterns — used for interview integrity monitoring</li>
-          <li><strong>Consent records:</strong> Timestamp, version of consent given, and IP address at time of consent</li>
+          <li><strong>Browser signals:</strong> Tab visibility changes, fullscreen status, keyboard event patterns — used for interview integrity and proctoring</li>
+          <li><strong>Consent records:</strong> Timestamp, version of consent given (including specific consent for AI processing), and IP address</li>
         </ul>
 
         <h3 className="text-white font-bold mt-6 mb-3">Interviewers & Organisation Users</h3>
@@ -89,7 +90,7 @@ export default function PrivacyPage() {
         <h3 className="text-white font-bold mt-6 mb-3">All Users</h3>
         <ul>
           <li><strong>Technical data:</strong> IP address, browser type, operating system, session identifiers</li>
-          <li><strong>Cookie data:</strong> Essential session cookies only (see our <a href="/legal/cookies" className="text-indigo-400 hover:underline">Cookie Policy</a>)</li>
+          <li><strong>Cookie data:</strong> Essential session cookies only (see our <a href="/legal/cookies" className="text-rose-400 hover:underline">Cookie Policy</a>)</li>
         </ul>
       </LegalSection>
 
@@ -154,7 +155,9 @@ export default function PrivacyPage() {
               ["Neon Technologies", "PostgreSQL database", "USA (contractual safeguards)"],
               ["Cloudflare R2", "Interview recording storage", "USA (contractual safeguards)"],
               ["AssemblyAI", "Speech-to-text transcription", "USA (contractual safeguards)"],
-              ["Google (Gemini)", "AI language model inference", "USA (contractual safeguards)"],
+              ["Google (Gemini)", "AI language model inference (scoring, questions)", "USA (contractual safeguards)"],
+              ["DeepSeek / OpenAI", "Fallback AI language model inference", "USA/Global (contractual safeguards)"],
+              ["Tavus", "Conversational AI video avatars", "USA (contractual safeguards)"],
               ["Resend", "Transactional email delivery", "USA (contractual safeguards)"],
             ].map(([provider, service, location]) => (
               <tr key={provider}>
@@ -191,7 +194,7 @@ export default function PrivacyPage() {
         </ul>
         <p>
           To exercise any of these rights, email{" "}
-          <a href={`mailto:${LEGAL_VERSIONS.PRIVACY_EMAIL}`} className="text-indigo-400 hover:underline">
+          <a href={`mailto:${LEGAL_VERSIONS.PRIVACY_EMAIL}`} className="text-rose-400 hover:underline">
             {LEGAL_VERSIONS.PRIVACY_EMAIL}
           </a>
           . We will respond within 30 days. We may need to verify your identity before processing requests.
@@ -238,8 +241,8 @@ export default function PrivacyPage() {
           For privacy questions, data subject requests, or complaints:
         </p>
         <ul>
-          <li>Email: <a href={`mailto:${LEGAL_VERSIONS.PRIVACY_EMAIL}`} className="text-indigo-400 hover:underline">{LEGAL_VERSIONS.PRIVACY_EMAIL}</a></li>
-          <li>Legal: <a href={`mailto:${LEGAL_VERSIONS.LEGAL_EMAIL}`} className="text-indigo-400 hover:underline">{LEGAL_VERSIONS.LEGAL_EMAIL}</a></li>
+          <li>Email: <a href={`mailto:${LEGAL_VERSIONS.PRIVACY_EMAIL}`} className="text-rose-400 hover:underline">{LEGAL_VERSIONS.PRIVACY_EMAIL}</a></li>
+          <li>Legal: <a href={`mailto:${LEGAL_VERSIONS.LEGAL_EMAIL}`} className="text-rose-400 hover:underline">{LEGAL_VERSIONS.LEGAL_EMAIL}</a></li>
         </ul>
       </LegalSection>
     </article>

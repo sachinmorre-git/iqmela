@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IQMela — Structural Mesh Logo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Montserrat',sans-serif;background:#F0F0F2;padding:40px}
+    h1{font-size:26px;font-weight:800;color:#18181B;letter-spacing:-0.5px}
+    .sub{color:#71717A;font-size:13px;margin-bottom:40px;font-weight:500}
+    .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#A1A1AA;margin-bottom:16px;margin-top:8px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:48px}
+    .card{background:#fff;border-radius:16px;border:1px solid #E4E4E7;overflow:hidden;transition:box-shadow .3s}
+    .card:hover{box-shadow:0 8px 30px rgba(0,0,0,.08)}
+    .ci{padding:32px 20px 20px;display:flex;align-items:center;justify-content:center;min-height:340px}
+    .ci.dk{background:#0A0A0C}
+    .cf{padding:14px 20px;border-top:1px solid #F4F4F5;display:flex;justify-content:space-between;align-items:center}
+    .cf.dkf{border-color:#1E1E22;background:#131316}
+    .ct{font-size:12px;font-weight:700;color:#3F3F46;text-transform:uppercase;letter-spacing:1.2px}
+    .dkf .ct{color:#71717A}
+    .cd{font-size:10px;color:#A1A1AA;margin-top:1px;font-weight:500}
+    .dkf .cd{color:#52525B}
+    .sw{width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(0,0,0,.08);display:inline-block}
+    .btn{border:1px solid #E4E4E7;padding:5px 12px;border-radius:6px;font-size:10px;font-weight:600;color:#52525B;cursor:pointer;font-family:inherit;background:#F4F4F5;transition:all .15s}
+    .btn:hover{background:#E4E4E7}
+    .btn.ok{background:#10B981;color:#fff;border-color:#10B981}
+  </style>
+</head>
+<body>
+<h1>IQMela — Structural Mesh Logo</h1>
+<p class="sub">Bar-mesh geometry with angle-aligned connections · smooth color gradients</p>
+
+<div class="label">Light Background</div>
+<div class="grid" id="lg"></div>
+<div class="label">Dark Background</div>
+<div class="grid" id="dg"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// COLOR UTILITIES
+// ══════════════════════════════════════════════
+function hexToRGB(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+function rgbToHex(r,g,b){return'#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('')}
+function lerp(a,b,t){const A=hexToRGB(a),B=hexToRGB(b);return rgbToHex(A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t)}
+
+// Color by x-position (smooth left-to-right gradient like the reference)
+function colByX(x,cs){
+  const t=Math.max(0,Math.min(1,(x-15)/490));
+  if(t<0.18)return cs[0];
+  if(t<0.28)return lerp(cs[0],cs[1],(t-0.18)/0.1);
+  if(t<0.52)return cs[1];
+  if(t<0.62)return lerp(cs[1],cs[2],(t-0.52)/0.1);
+  return cs[2];
+}
+
+// ══════════════════════════════════════════════
+// BAR MESH — generates a directional strip of nodes + edges
+// ══════════════════════════════════════════════
+function meshBar(x1,y1,x2,y2,halfW,nA,nC){
+  const N=[],E=[];
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy);
+  if(len<.01)return{N,E};
+  const ux=dx/len,uy=dy/len,nx=-uy,ny=ux;
+  for(let a=0;a<nA;a++){
+    const t=a/(nA-1);
+    const ax=x1+dx*t,ay=y1+dy*t;
+    for(let c=0;c<nC;c++){
+      const s=nC===1?0:(c/(nC-1))*2-1; // -1..1
+      const idx=N.length;
+      N.push({x:ax+nx*s*halfW,y:ay+ny*s*halfW,edge:c===0||c===nC-1});
+      if(c>0)E.push([idx-1,idx]);
+      if(a>0){
+        E.push([idx-nC,idx]);
+        if(c>0)E.push([idx-nC-1,idx]);
+        if(c<nC-1)E.push([idx-nC+1,idx]);
+      }
+    }
+  }
+  return{N,E};
+}
+
+// ══════════════════════════════════════════════
+// RING MESH — for Q letter
+// ══════════════════════════════════════════════
+function meshRing(cx,cy,radius,halfW,nAr,nC){
+  const N=[],E=[];
+  for(let a=0;a<nAr;a++){
+    const ang=(a/nAr)*Math.PI*2-Math.PI/2;
+    const cs=Math.cos(ang),sn=Math.sin(ang);
+    for(let c=0;c<nC;c++){
+      const s=nC===1?0:(c/(nC-1))*2-1;
+      const r=radius+s*halfW;
+      const idx=N.length;
+      N.push({x:cx+r*cs,y:cy+r*sn,edge:c===0||c===nC-1});
+      if(c>0)E.push([idx-1,idx]);
+      if(a>0){
+        E.push([idx-nC,idx]);
+        if(c>0)E.push([idx-nC-1,idx]);
+        if(c<nC-1)E.push([idx-nC+1,idx]);
+      }
+    }
+  }
+  // close ring
+  for(let c=0;c<nC;c++){
+    E.push([(nAr-1)*nC+c,c]);
+    if(c>0){E.push([(nAr-1)*nC+c,c-1]);E.push([(nAr-1)*nC+c-1,c]);}
+  }
+  return{N,E};
+}
+
+// ══════════════════════════════════════════════
+// COMBINE meshes + auto-connect near junctions
+// ══════════════════════════════════════════════
+function combine(){
+  let AN=[],AE=[];
+  for(let i=0;i<arguments.length;i++){
+    const m=arguments[i],off=AN.length;
+    m.N.forEach(n=>AN.push({...n}));
+    m.E.forEach(([a,b])=>AE.push([a+off,b+off]));
+  }
+  // junction stitching: connect nodes < 12px from different meshes
+  const edgeSet=new Set(AE.map(([a,b])=>a<b?a+','+b:b+','+a));
+  for(let i=0;i<AN.length;i++){
+    for(let j=i+1;j<AN.length;j++){
+      const d=Math.hypot(AN[i].x-AN[j].x,AN[i].y-AN[j].y);
+      if(d<13&&d>1){
+        const k=i<j?i+','+j:j+','+i;
+        if(!edgeSet.has(k)){edgeSet.add(k);AE.push([i,j]);}
+      }
+    }
+  }
+  return{N:AN,E:AE};
+}
+
+// ══════════════════════════════════════════════
+// BUILD IQM LETTERFORMS
+// ══════════════════════════════════════════════
+function buildLogo(){
+  // ── I Letter ──
+  const iBar=meshBar(42,234,42,6,17,20,4);
+
+  // ── Q Letter ──
+  const qRing=meshRing(178,122,70,20,28,4);
+  const qTail=meshBar(220,178,275,240,9,7,2);
+  const qAll=combine(qRing,qTail);
+
+  // ── M Letter ──
+  const mLL=meshBar(310,234,310,6,14,20,3);
+  const mLD=meshBar(314,10,398,180,13,15,3);
+  const mRD=meshBar(398,180,482,10,13,15,3);
+  const mRL=meshBar(486,6,486,234,14,20,3);
+  const mAll=combine(mLL,mLD,mRD,mRL);
+
+  return combine(iBar,qAll,mAll);
+}
+
+// ══════════════════════════════════════════════
+// RENDER SVG
+// ══════════════════════════════════════════════
+function renderSVG(mesh,colors,dark){
+  const W=580,H=380,OX=38,OY=42;
+  const bg=dark?'#0A0A0C':'none';
+  const txtC=dark?'#FAFAFA':'#1A1A2E';
+  const subC=dark?'#71717A':'#6B7280';
+
+  // Assign colors based on x-position
+  mesh.N.forEach(n=>{n.color=colByX(n.x,colors)});
+
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" fill="none">`;
+  if(dark)s+=`<rect width="${W}" height="${H}" fill="${bg}"/>`;
+  s+=`<g transform="translate(${OX},${OY})">`;
+
+  // Edges
+  mesh.E.forEach(([i,j])=>{
+    const a=mesh.N[i],b=mesh.N[j];
+    s+=`<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" stroke="${a.color}" stroke-width="1.3" stroke-opacity="0.5" stroke-linecap="round"/>`;
+  });
+
+  // Nodes
+  mesh.N.forEach(n=>{
+    const r=n.edge?5.2:3.5;
+    s+=`<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${r}" fill="${n.color}" fill-opacity="0.92"/>`;
+  });
+
+  s+=`</g>`;
+
+  // Wordmark
+  s+=`<text x="${W/2}" y="${H-38}" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="700" font-size="36" letter-spacing="0.18em" fill="${txtC}">`;
+  s+=`<tspan fill="${colors[0]}">I</tspan><tspan fill="${colors[0]}">Q</tspan>`;
+  s+=`<tspan dx="8"> </tspan>`;
+  s+=`<tspan fill="${colors[2]}">M</tspan><tspan>ELA</tspan>`;
+  s+=`</text>`;
+  s+=`<text x="${W/2}" y="${H-14}" text-anchor="middle" font-family="'Montserrat',sans-serif" font-weight="500" font-size="8" letter-spacing="0.35em" fill="${subC}">INTELLIGENCE · INNOVATION · AMPLIFIED</text>`;
+  s+=`</svg>`;
+  return s;
+}
+
+// ══════════════════════════════════════════════
+// PALETTES & GALLERY
+// ══════════════════════════════════════════════
+const PAL=[
+  {name:"Reference Style",colors:["#1D4ED8","#0D9488","#D97706"],desc:"Navy → Teal → Amber (matches reference)"},
+  {name:"Website Gradient",colors:["#6366F1","#8B5CF6","#EC4899"],desc:"Indigo → Violet → Pink"},
+  {name:"Success Intelligence",colors:["#4F46E5","#10B981","#7C3AED"],desc:"Indigo → Emerald → Violet"},
+  {name:"Mono Premium",colors:["#4338CA","#6366F1","#818CF8"],desc:"Deep Indigo → Indigo → Lavender"}
+];
+
+const mesh=buildLogo(); // generate once, recolor per palette
+
+PAL.forEach((p,i)=>{
+  const lSvg=renderSVG(mesh,p.colors,false);
+  const dSvg=renderSVG(mesh,p.colors,true);
+  window['_l'+i]=lSvg;window['_d'+i]=dSvg;
+
+  function mkCard(pid,svgStr,dk){
+    const c=document.createElement('div');c.className='card';
+    c.innerHTML=`<div class="ci${dk?' dk':''}">${svgStr}</div>
+      <div class="cf${dk?' dkf':''}">
+        <div><div class="ct">${p.name}</div><div class="cd">${p.desc}</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="display:flex;gap:4px"><span class="sw" style="background:${p.colors[0]}"></span><span class="sw" style="background:${p.colors[1]}"></span><span class="sw" style="background:${p.colors[2]}"></span></div>
+          <button class="btn" onclick="cpy(this,'${dk?'_d':'_l'}${i}')">Copy SVG</button>
+          <button class="btn" onclick="dl('IQMela-${p.name.replace(/\s/g,'-')}-${dk?'dark':'light'}.svg','${dk?'_d':'_l'}${i}')">↓ File</button>
+        </div>
+      </div>`;
+    document.getElementById(pid).appendChild(c);
+  }
+  mkCard('lg',lSvg,false);
+  mkCard('dg',dSvg,true);
+});
+
+function cpy(b,k){navigator.clipboard.writeText(window[k]).then(()=>{b.textContent='Copied!';b.classList.add('ok');setTimeout(()=>{b.textContent='Copy SVG';b.classList.remove('ok')},1500)})}
+function dl(n,k){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([window[k]],{type:'image/svg+xml'}));a.download=n;a.click()}
+</script>
+</body>
+</html>

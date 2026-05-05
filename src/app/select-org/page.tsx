@@ -67,13 +67,13 @@ export default async function SelectOrgPage() {
       <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center p-4">
         {/* Background ambient glow */}
         <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px]" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-rose-500/5 rounded-full blur-[120px]" />
         </div>
 
         <div className="relative w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
-              <Building2 className="w-6 h-6 text-indigo-400" />
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500/20 to-purple-500/20 border border-rose-500/20 flex items-center justify-center mx-auto mb-4">
+              <Building2 className="w-6 h-6 text-rose-400" />
             </div>
             <h1 className="text-2xl font-bold text-white">Select Workspace</h1>
             <p className="text-zinc-500 mt-1 text-sm">Choose an organization to continue.</p>

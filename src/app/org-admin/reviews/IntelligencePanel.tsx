@@ -18,10 +18,10 @@ export function IntelligencePanel({ interviewId, analysis, violationsCount }: { 
 
   if (!analysis) {
     return (
-      <div className="mt-4 p-4 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/10 flex items-center justify-between">
+      <div className="mt-4 p-4 rounded-xl border border-dashed border-rose-200 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/10 flex items-center justify-between">
          <div className="flex items-center gap-3">
-           <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex flex-col items-center justify-center shrink-0">
-             <BrainCircuit className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+           <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/50 flex flex-col items-center justify-center shrink-0">
+             <BrainCircuit className="w-5 h-5 text-rose-600 dark:text-rose-400" />
            </div>
            <div>
              <h4 className="font-semibold text-sm text-gray-900 dark:text-zinc-200">Run Cognitive Fraud & Soft-Skills AI</h4>
@@ -34,7 +34,7 @@ export function IntelligencePanel({ interviewId, analysis, violationsCount }: { 
          <button 
            onClick={handleGenerate} 
            disabled={isProcessing}
-           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-md transition disabled:opacity-50"
+           className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-bold shadow-md transition disabled:opacity-50"
          >
            {isProcessing ? "Processing NLP..." : "Generate AI Report"}
          </button>
@@ -51,7 +51,7 @@ export function IntelligencePanel({ interviewId, analysis, violationsCount }: { 
       {/* Heavy Fraud Header */}
       <div className="bg-gradient-to-r from-gray-50 to-white dark:from-zinc-900 dark:to-zinc-900/50 p-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
-           <BrainCircuit className="w-5 h-5 text-indigo-500" />
+           <BrainCircuit className="w-5 h-5 text-rose-500" />
            <h4 className="font-bold text-sm tracking-tight">AI Intelligence & Proctor Report</h4>
         </div>
         

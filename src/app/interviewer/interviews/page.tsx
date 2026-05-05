@@ -43,7 +43,7 @@ export default async function InterviewerDashboard() {
         {/* UPCOMING */}
         <div className="flex flex-col gap-4">
            <h2 className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-             <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+             <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
              Upcoming
            </h2>
            {upcoming.length === 0 ? (

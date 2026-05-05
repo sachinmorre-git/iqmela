@@ -105,7 +105,7 @@ export function CameraConsentShell({
         <div className="flex gap-3 justify-center">
           <button
             onClick={startCamera}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold rounded-xl transition-all"
           >
             <Camera className="w-4 h-4" />
             Allow Camera
@@ -129,7 +129,7 @@ export function CameraConsentShell({
   if (state === "starting") {
     return (
       <div className="rounded-2xl border border-zinc-700 bg-zinc-900/60 p-6 text-center space-y-4 max-w-sm mx-auto">
-        <div className="w-8 h-8 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin mx-auto" />
+        <div className="w-8 h-8 border-4 border-rose-400 border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-zinc-400 text-sm">Starting camera…</p>
       </div>
     );

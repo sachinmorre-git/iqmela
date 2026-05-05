@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { saveFile } from "@/lib/storage";
 import { runTier1Filter, KnockoutQuestion } from "@/lib/intake-tier1";
-import { batchTier2Score, autoShortlistTopN } from "@/lib/intake-scoring";
+import { batchTier2Score } from "@/lib/intake-scoring";
 import { calculatePurgeDate } from "@/lib/compliance-constants";
 import { parseJsonArray } from "@/lib/intake-utils";
+import { isIntakeOpen } from "@/lib/intake-window";
 
 const ACCEPTED_MIME = new Set([
   "application/pdf",
@@ -63,27 +64,64 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Parse form data ────────────────────────────────────────────────────
-    let formData: FormData;
-    try {
-      formData = await request.formData();
-    } catch {
+    // ── Parse request body (FormData or JSON for Quick Apply) ───────────
+    const contentType = request.headers.get("content-type") || "";
+    const isJsonRequest = contentType.includes("application/json");
+    
+    let positionId: string;
+    let name: string;
+    let email: string;
+    let consent: string;
+    let resumeFile: File | null = null;
+    let isQuickApply = false;
+    let profileId: string | null = null;
+    let workAuthorizedRaw: string | null = null;
+    let sponsorshipNeededRaw: string | null = null;
+
+    if (isJsonRequest) {
+      // Quick Apply — JSON body
+      const json = await request.json();
+      positionId = (json.positionId || "").trim();
+      name = (json.name || "").trim();
+      email = (json.email || "").trim().toLowerCase();
+      consent = json.consent || "";
+      isQuickApply = json.quickApply === true;
+      profileId = json.profileId || null;
+      workAuthorizedRaw = json.workAuthorized != null ? String(json.workAuthorized) : null;
+      sponsorshipNeededRaw = json.sponsorshipNeeded != null ? String(json.sponsorshipNeeded) : null;
+    } else {
+      // Standard FormData apply
+      let formData: FormData;
+      try {
+        formData = await request.formData();
+      } catch {
+        return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
+      }
+      positionId = (formData.get("positionId") as string)?.trim() || "";
+      name = (formData.get("name") as string)?.trim() || "";
+      email = (formData.get("email") as string)?.trim().toLowerCase() || "";
+      consent = (formData.get("consent") as string) || "";
+      resumeFile = formData.get("resume") as File | null;
+      workAuthorizedRaw = formData.get("workAuthorized") as string | null;
+      sponsorshipNeededRaw = formData.get("sponsorshipNeeded") as string | null;
+    }
+
+    // Parse work auth booleans
+    const workAuthorized = workAuthorizedRaw === "true" ? true : workAuthorizedRaw === "false" ? false : null;
+    const sponsorshipNeeded = sponsorshipNeededRaw === "true" ? true : sponsorshipNeededRaw === "false" ? false : null;
+
+    // ── Validate ───────────────────────────────────────────────────────────
+    if (!positionId || !name || !email) {
       return NextResponse.json(
-        { error: "Invalid form data" },
+        { error: "Required: positionId, name, email" },
         { status: 400 }
       );
     }
 
-    const positionId = (formData.get("positionId") as string)?.trim();
-    const name = (formData.get("name") as string)?.trim();
-    const email = (formData.get("email") as string)?.trim().toLowerCase();
-    const consent = formData.get("consent") as string;
-    const resumeFile = formData.get("resume") as File | null;
-
-    // ── Validate ───────────────────────────────────────────────────────────
-    if (!positionId || !name || !email || !resumeFile) {
+    // For standard apply, resume file is required unless Quick Apply
+    if (!isQuickApply && !resumeFile) {
       return NextResponse.json(
-        { error: "All fields are required: positionId, name, email, resume" },
+        { error: "Resume is required" },
         { status: 400 }
       );
     }
@@ -109,18 +147,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!ACCEPTED_MIME.has(resumeFile.type)) {
-      return NextResponse.json(
-        { error: "Only PDF and DOCX files are accepted" },
-        { status: 400 }
-      );
-    }
+    if (resumeFile) {
+      if (!ACCEPTED_MIME.has(resumeFile.type)) {
+        return NextResponse.json(
+          { error: "Only PDF and DOCX files are accepted" },
+          { status: 400 }
+        );
+      }
 
-    if (resumeFile.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: "File must be under 10 MB" },
-        { status: 400 }
-      );
+      if (resumeFile.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: "File must be under 10 MB" },
+          { status: 400 }
+        );
+      }
     }
 
     // ── Find position ──────────────────────────────────────────────────────
@@ -141,6 +181,10 @@ export async function POST(request: NextRequest) {
         knockoutQuestionsJson: true,
         intakeTopN: true,
         intakeAutoPromote: true,
+        tier1PassThreshold: true,
+        isPublished: true,
+        createdAt: true,
+        intakeWindowDays: true,
       },
     });
 
@@ -148,6 +192,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "This position is no longer accepting applications" },
         { status: 404 }
+      );
+    }
+
+    // ── Intake window check ─────────────────────────────────────────────────
+    if (!isIntakeOpen(position)) {
+      return NextResponse.json(
+        { error: "The application window for this position has closed" },
+        { status: 410 }
       );
     }
 
@@ -168,41 +220,66 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Save resume file ───────────────────────────────────────────────────
-    const buffer = Buffer.from(await resumeFile.arrayBuffer());
-    const { storagePath } = await saveFile(buffer, positionId, resumeFile.name);
-
-    // ── Extract text from resume (best-effort) ─────────────────────────────
+    // ── Resume handling ─────────────────────────────────────────────────────────
+    let storagePath: string | null = null;
     let resumeText: string | null = null;
-    try {
-      if (resumeFile.type === "application/pdf") {
-        const pdfParse = (await import("pdf-parse")).default;
-        const result = await pdfParse(buffer);
-        resumeText = result.text;
-      } else {
-        const mammoth = await import("mammoth");
-        const result = await mammoth.extractRawText({ buffer });
-        resumeText = result.value;
+    let resumeFileName: string | null = null;
+    let resumeMimeType: string | null = null;
+    let resumeFileSizeBytes: number | null = null;
+
+    if (resumeFile) {
+      // Standard apply — save uploaded resume
+      const buffer = Buffer.from(await resumeFile.arrayBuffer());
+      const saveResult = await saveFile(buffer, positionId, resumeFile.name);
+      storagePath = saveResult.storagePath;
+      resumeFileName = resumeFile.name;
+      resumeMimeType = resumeFile.type;
+      resumeFileSizeBytes = resumeFile.size;
+
+      // Extract text (best-effort)
+      try {
+        if (resumeFile.type === "application/pdf") {
+          const pdfParse = (await import("pdf-parse")).default;
+          const result = await pdfParse(buffer);
+          resumeText = result.text;
+        } else {
+          const mammoth = await import("mammoth");
+          const result = await mammoth.extractRawText({ buffer });
+          resumeText = result.value;
+        }
+      } catch (err) {
+        console.warn("[PublicApply] Text extraction failed (non-blocking):", err);
       }
-    } catch (err) {
-      console.warn("[PublicApply] Text extraction failed (non-blocking):", err);
+    } else if (isQuickApply && profileId) {
+      // Quick Apply — reuse resume from CandidateProfile
+      const profile = await prisma.candidateProfile.findUnique({
+        where: { id: profileId },
+        select: { resumeUrl: true },
+      });
+      if (profile?.resumeUrl) {
+        storagePath = profile.resumeUrl;
+        resumeFileName = "profile_resume";
+      }
     }
 
-    // ── Create IntakeCandidate ─────────────────────────────────────────────
+    // ── Create IntakeCandidate ─────────────────────────────────────────────────
     const now = new Date();
     const intakeCandidate = await prisma.intakeCandidate.create({
       data: {
         positionId: position.id,
         organizationId: position.organizationId,
-        source: "IQMELA_DIRECT",
+        source: isQuickApply ? "IQMELA_QUICK_APPLY" : "IQMELA_DIRECT",
         candidateName: name,
         candidateEmail: email,
         resumeText,
-        resumeFileName: resumeFile.name,
+        resumeFileName,
         resumeFileUrl: storagePath,
-        resumeMimeType: resumeFile.type,
-        resumeFileSizeBytes: resumeFile.size,
-        consentSource: "direct_consent",
+        resumeMimeType,
+        resumeFileSizeBytes,
+        workAuthorized,
+        sponsorshipNeeded,
+        linkedProfileId: profileId,
+        consentSource: isQuickApply ? "talent_network_consent" : "direct_consent",
         dataProcessingBasis: "consent",
         purgeScheduledAt: calculatePurgeDate(now),
         tier1Status: "RECEIVED",
@@ -230,6 +307,7 @@ export async function POST(request: NextRequest) {
       knockoutConfig: parseJsonArray(
         position.knockoutQuestionsJson
       ) as unknown as KnockoutQuestion[],
+      passThreshold: position.tier1PassThreshold,
     });
 
     await prisma.intakeCandidate.update({
@@ -245,6 +323,8 @@ export async function POST(request: NextRequest) {
     });
 
     // ── Queue Tier 2 (async) ───────────────────────────────────────────────
+    // NOTE: Shortlisting is NOT done per-application to prevent race conditions.
+    // It runs ONCE when the intake window closes (via cron/process-closed-positions).
     if (tier1Result.pass && resumeText) {
       runTier2Async(
         position.id,
@@ -254,7 +334,6 @@ export async function POST(request: NextRequest) {
         position.title,
         requiredSkills,
         preferredSkills,
-        position.intakeTopN
       ).catch((err) =>
         console.error("[PublicApply] Tier 2 background error:", err)
       );
@@ -278,20 +357,63 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // ── Send confirmation email (fire-and-forget) ──────────────────────────
     const { emailService } = await import("@/lib/email");
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.iqmela.com";
     emailService
       .sendGenericEmail({
         to: email,
         subject: `Application received — ${position.title}`,
         heading: "We received your application",
-        body: `Hi ${name},\n\nThank you for applying for the <strong>${position.title}</strong> position through IQMela.\n\nOur team will review your profile and reach out if there's a match. Average response time is 48 hours.\n\nIn the meantime, you can join the <strong>IQMela Talent Network</strong> to get automatically matched to future roles tailored to your skills.`,
-        ctaLabel: "Join the Talent Network",
-        ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://www.iqmela.com"}/careers/join?intake=${intakeCandidate.id}`,
+        body: `Hi ${name},\n\nThank you for applying for the <strong>${position.title}</strong> position through IQMela.\n\nOur team will review your profile and reach out if there's a match. Average response time is 48 hours.\n\n<strong>Track your application:</strong> <a href="${appUrl}/careers/status?token=${intakeCandidate.id}">View Application Status</a>\n\nIn the meantime, you can join the <strong>IQMela Talent Network</strong> to get automatically matched to future roles tailored to your skills.`,
+        ctaLabel: "Track Application Status",
+        ctaUrl: `${appUrl}/careers/status?token=${intakeCandidate.id}`,
       })
       .catch((err: unknown) =>
         console.warn("[PublicApply] Confirmation email failed (non-blocking):", err)
       );
+
+    // ── Increment distribution application count (fire-and-forget) ────────
+    prisma.jobDistribution
+      .updateMany({
+        where: { positionId: position.id, status: "LIVE" },
+        data: { applicationCount: { increment: 1 } },
+      })
+      .catch((err: unknown) =>
+        console.warn("[PublicApply] Distribution metric increment failed (non-blocking):", err)
+      );
+
+    // ── Notify recruiters/HMs about new application (fire-and-forget) ────
+    if (position.organizationId) {
+      const orgId = position.organizationId;
+      (async () => {
+        try {
+          const { createBulkNotifications } = await import("@/lib/notification-service");
+          const recruiters = await prisma.user.findMany({
+            where: {
+              organizationId: orgId,
+              roles: { hasSome: ["ORG_ADMIN", "DEPT_ADMIN", "HIRING_MANAGER", "RECRUITER"] },
+              isDeleted: false,
+            },
+            select: { id: true },
+          });
+
+          if (recruiters.length > 0) {
+            await createBulkNotifications(
+              recruiters.map((u) => ({
+                organizationId: orgId,
+                userId: u.id,
+                type: "INTAKE_APPLICATION_RECEIVED" as const,
+                title: "New Application Received",
+                body: `${name} applied for ${position.title} via ${isQuickApply ? "Quick Apply" : "Careers Page"}.${tier1Result.pass ? ` AI Score: ${tier1Result.score}` : " (Filtered by Tier 1)"}`,
+                link: `/org-admin/positions/${position.id}`,
+              })),
+            );
+          }
+        } catch (notifyErr) {
+          console.warn("[PublicApply] Recruiter notification failed (non-blocking):", notifyErr);
+        }
+      })();
+    }
 
     return NextResponse.json({
       success: true,
@@ -317,7 +439,6 @@ async function runTier2Async(
   positionTitle: string,
   requiredSkills: string[],
   preferredSkills: string[],
-  topN: number
 ) {
   await batchTier2Score(
     positionId,
@@ -327,6 +448,7 @@ async function runTier2Async(
     requiredSkills,
     preferredSkills
   );
-  await autoShortlistTopN(positionId, topN);
+  // Shortlisting is deferred to intake window close (cron)
+  // to prevent race conditions from concurrent applications.
 }
 

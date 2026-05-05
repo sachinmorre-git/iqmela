@@ -319,3 +319,169 @@ Analyze this BGV report and produce the JSON summary:`,
   };
 }
 bgvReportSummaryPrompt.version = "bgv-summary-v1" as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Round Key Insights Prompt
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface RoundInsightsContext {
+  roundLabel: string;
+  candidateName: string;
+  compositeScore: number | null;
+  panelistSummaries: Array<{
+    name: string;
+    score: number;
+    recommendation: string;
+    summary: string;
+    strengths: string | null;
+    concerns: string | null;
+    technicalScore: number;
+    communicationScore: number;
+    problemSolvingScore: number;
+    cultureFitScore: number;
+  }>;
+  aiSession?: {
+    score: number | null;
+    recommendation: string | null;
+    summary: string | null;
+  };
+  behaviorData?: {
+    integrityScore: number | null;
+    confidenceScore: number | null;
+    composureScore: number | null;
+    engagementScore: number | null;
+    flagCount: number;
+  };
+}
+
+/**
+ * Generates 3 key AI insights from round data:
+ * topStrength, biggestRisk, and nextRoundSuggestion.
+ *
+ * @version insights-v1
+ */
+export function roundInsightsPrompt(ctx: RoundInsightsContext): {
+  system: string;
+  user: string;
+  version: string;
+} {
+  const panelistBlock = ctx.panelistSummaries.length > 0
+    ? ctx.panelistSummaries.map(p =>
+        `- ${p.name}: ${p.score}/100 (Tech:${p.technicalScore} Com:${p.communicationScore} PS:${p.problemSolvingScore} CF:${p.cultureFitScore})\n  Rec: ${p.recommendation}\n  Summary: "${p.summary}"\n  Strengths: ${p.strengths || "N/A"}\n  Concerns: ${p.concerns || "N/A"}`
+      ).join("\n")
+    : "No panelist feedback available.";
+
+  const aiBlock = ctx.aiSession
+    ? `AI Interview: ${ctx.aiSession.score ?? "N/A"}/100, ${ctx.aiSession.recommendation ?? "N/A"}. "${ctx.aiSession.summary ?? ""}"`
+    : "No AI session data.";
+
+  const behaviorBlock = ctx.behaviorData
+    ? `Behavior: Integrity=${ctx.behaviorData.integrityScore ?? "N/A"}, Confidence=${ctx.behaviorData.confidenceScore ?? "N/A"}, Composure=${ctx.behaviorData.composureScore ?? "N/A"}, Engagement=${ctx.behaviorData.engagementScore ?? "N/A"}, Flags=${ctx.behaviorData.flagCount}`
+    : "No behavior data.";
+
+  return {
+    system: `You are an AI hiring intelligence analyst. Extract exactly 3 key insights from interview round data. Be specific, data-driven, and actionable.
+
+RULES:
+- "topStrength": The single most impressive aspect — cite specific evidence from panelist feedback
+- "biggestRisk": The single biggest concern or gap — if none exist, note the weakest dimension
+- "nextRoundSuggestion": What the next interviewer should specifically probe or validate
+- Each insight must be 1-2 sentences maximum
+- Use concrete language, never generic platitudes
+- Reference specific scores and panelist names when relevant
+
+Return ONLY valid JSON:
+{
+  "topStrength": "...",
+  "biggestRisk": "...",
+  "nextRoundSuggestion": "..."
+}`,
+
+    user: `ROUND: ${ctx.roundLabel}
+CANDIDATE: ${ctx.candidateName}
+COMPOSITE SCORE: ${ctx.compositeScore ?? "N/A"}/100
+
+PANELIST SCORECARDS:
+${panelistBlock}
+
+${aiBlock}
+
+${behaviorBlock}
+
+Generate the 3 key insights:`,
+
+    version: "insights-v1",
+  };
+}
+roundInsightsPrompt.version = "insights-v1" as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AI Hiring Confidence Prompt
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface HiringConfidenceContext {
+  candidateName: string;
+  compositeScore: number | null;
+  consensusLabel: string; // "Unanimous Positive" | "Split Opinion" | "Unanimous Negative"
+  panelistCount: number;
+  aiSessionScore: number | null;
+  aiSessionRecommendation: string | null;
+  behaviorIntegrity: number | null;
+  behaviorFlagCount: number;
+  dimensionAverages: {
+    technical: number;
+    communication: number;
+    problemSolving: number;
+    cultureFit: number;
+  } | null;
+}
+
+/**
+ * Calculates AI hiring confidence as a percentage with a 1-sentence justification.
+ * Considers: composite score, consensus alignment, behavior, dimension balance.
+ *
+ * @version confidence-v1
+ */
+export function hiringConfidencePrompt(ctx: HiringConfidenceContext): {
+  system: string;
+  user: string;
+  version: string;
+} {
+  return {
+    system: `You are an AI hiring confidence calculator. Given all available interview intelligence, output a confidence percentage (0-100) for making a positive hiring decision.
+
+CALCULATION FACTORS (weighted):
+- Composite score (30%): Higher = more confident
+- Panel consensus (25%): Unanimous positive = high confidence, split = medium, unanimous negative = low
+- Behavior integrity (15%): High integrity + zero flags = boost, flags = penalty
+- Dimension balance (15%): Balanced scores across all 4 dimensions = bonus, one very low = penalty
+- AI vs Human alignment (15%): If AI and panelists agree = boost, disagree = caution
+
+RULES:
+- Output exactly one integer 0-100 and one sentence justification
+- 80-100: Strong hire signal
+- 60-79: Moderate — good candidate with some reservations
+- 40-59: Uncertain — significant gaps or conflicting signals
+- 0-39: Weak — clear concerns outweigh strengths
+- Never say "100" unless literally everything is perfect
+- The justification must cite the primary factor driving the score
+
+Return ONLY valid JSON:
+{
+  "confidence": <integer 0-100>,
+  "justification": "<1 sentence>"
+}`,
+
+    user: `CANDIDATE: ${ctx.candidateName}
+COMPOSITE SCORE: ${ctx.compositeScore ?? "N/A"}/100
+CONSENSUS: ${ctx.consensusLabel} (${ctx.panelistCount} panelists)
+AI SESSION: Score=${ctx.aiSessionScore ?? "N/A"}/100, Rec=${ctx.aiSessionRecommendation ?? "N/A"}
+BEHAVIOR: Integrity=${ctx.behaviorIntegrity ?? "N/A"}/100, Flags=${ctx.behaviorFlagCount}
+DIMENSIONS: ${ctx.dimensionAverages ? `Tech=${ctx.dimensionAverages.technical}/10, Com=${ctx.dimensionAverages.communication}/10, PS=${ctx.dimensionAverages.problemSolving}/10, CF=${ctx.dimensionAverages.cultureFit}/10` : "N/A"}
+
+Calculate the hiring confidence:`,
+
+    version: "confidence-v1",
+  };
+}
+hiringConfidencePrompt.version = "confidence-v1" as const;

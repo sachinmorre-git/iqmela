@@ -5,6 +5,7 @@ import { getPlanLimits, formatTierName, formatLimit } from "@/lib/plan-limits"
 import { OrgManagementPanel } from "../OrgManagementPanel"
 import Link from "next/link"
 import { ArrowLeft, Building2, Users, Briefcase, FileText, Zap, Globe, Calendar } from "lucide-react"
+import { formatDate } from "@/lib/locale-utils"
 
 export const metadata = {
   title: "Organization Detail | IQMela Admin",
@@ -29,7 +30,7 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ orgI
         <div className="text-center py-20">
           <p className="text-2xl font-bold text-white mb-2">Organization Not Found</p>
           <p className="text-zinc-500">Clerk org ID: {orgId}</p>
-          <Link href="/admin/dashboard" className="text-indigo-400 hover:underline text-sm mt-4 inline-block">← Back to Dashboard</Link>
+          <Link href="/admin/dashboard" className="text-rose-400 hover:underline text-sm mt-4 inline-block">← Back to Dashboard</Link>
         </div>
       </div>
     )
@@ -101,7 +102,7 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ orgI
         {clerkOrg.imageUrl ? (
           <img src={clerkOrg.imageUrl} alt="" className="w-16 h-16 rounded-2xl object-cover border border-zinc-700 shadow-lg" />
         ) : (
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600/30 to-indigo-600/30 border border-purple-500/20 flex items-center justify-center text-purple-300 text-2xl font-black shadow-lg">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600/30 to-rose-600/30 border border-purple-500/20 flex items-center justify-center text-purple-300 text-2xl font-black shadow-lg">
             {clerkOrg.name.charAt(0)}
           </div>
         )}
@@ -121,7 +122,7 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ orgI
           </div>
           <div className="flex items-center gap-4 mt-2 text-sm text-zinc-500">
             <span className="flex items-center gap-1.5"><Globe className="w-3.5 h-3.5" />{prismaOrg?.domain || "No domain"}</span>
-            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{new Date(clerkOrg.createdAt).toLocaleDateString()}</span>
+            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{formatDate(new Date(clerkOrg.createdAt))}</span>
             <span className="font-mono text-[10px] text-zinc-600">{orgId}</span>
           </div>
         </div>
@@ -145,7 +146,7 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ orgI
         </div>
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Briefcase className="w-4 h-4 text-teal-400" />
+            <Briefcase className="w-4 h-4 text-rose-400" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Positions</span>
           </div>
           <div className="text-2xl font-black text-white">{positionCount}</div>
@@ -157,12 +158,12 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ orgI
           </div>
           <div className="text-2xl font-black text-white">{resumeCount}</div>
         </div>
-        <div className="bg-indigo-900/20 border border-indigo-500/20 rounded-xl p-4">
+        <div className="bg-rose-900/20 border border-rose-500/20 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Zap className="w-4 h-4 text-indigo-400" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">AI Sessions</span>
+            <Zap className="w-4 h-4 text-rose-400" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400">AI Sessions</span>
           </div>
-          <div className="text-2xl font-black text-indigo-100">{aiSessionCount}</div>
+          <div className="text-2xl font-black text-rose-100">{aiSessionCount}</div>
         </div>
       </div>
 
@@ -210,7 +211,7 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ orgI
                           {(dbUser.roles as string[]).join(", ")}
                         </span>
                       )}
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">
                         {m.role?.replace("org:", "")}
                       </span>
                     </div>
@@ -225,7 +226,7 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ orgI
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
           <div className="p-5 border-b border-zinc-800">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-teal-400" />
+              <Briefcase className="w-4 h-4 text-rose-400" />
               Recent Positions
             </h3>
             <p className="text-[11px] text-zinc-500 mt-0.5">{positionCount} total · showing latest 5</p>
@@ -238,10 +239,10 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ orgI
                 <div key={p.id} className="flex items-center justify-between px-5 py-3 hover:bg-zinc-800/20 transition-colors">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white truncate">{p.title}</p>
-                    <p className="text-[10px] text-zinc-500">{new Date(p.createdAt).toLocaleDateString()}</p>
+                    <p className="text-[10px] text-zinc-500">{formatDate(new Date(p.createdAt))}</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-xs text-teal-400 font-bold">{p._count.resumes} resumes</span>
+                    <span className="text-xs text-rose-400 font-bold">{p._count.resumes} resumes</span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                       p.status === "OPEN" ? "bg-emerald-900/40 text-emerald-400" :
                       p.status === "DRAFT" ? "bg-zinc-800 text-zinc-400" :

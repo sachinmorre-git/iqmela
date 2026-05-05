@@ -4,12 +4,22 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import {
+  pushJobToLinkedIn,
+  pushJobToIndeed,
+  pushJobViaNetwork,
+} from "@/lib/job-push";
 
 /**
- * Publishes a position to free distribution channels (Indeed XML + Google Jobs).
- * Creates JobDistribution records for tracking.
+ * Publishes a position to all available distribution channels:
+ * 1. Organic: Indeed XML + Google Jobs (always)
+ * 2. Direct Connect: LinkedIn/Indeed via client's OAuth tokens (if connected)
+ * 3. IQMela Network: via master accounts (if enabled)
  */
-export async function publishPositionAction(positionId: string) {
+export async function publishPositionAction(
+  positionId: string,
+  options?: { useNetwork?: boolean }
+) {
   const { orgId } = await auth();
   if (!orgId) throw new Error("Unauthorized");
 
@@ -24,19 +34,17 @@ export async function publishPositionAction(positionId: string) {
     data: { isPublished: true },
   });
 
-  // Create/upsert distribution records for free channels
-  const channels = ["INDEED", "GOOGLE_JOBS"];
-  for (const channel of channels) {
+  const allChannels: string[] = [];
+
+  // ── Tier 1: Organic (Always) ────────────────────────────────────────────
+  const organicChannels = ["INDEED", "GOOGLE_JOBS"];
+  for (const channel of organicChannels) {
     await prisma.jobDistribution.upsert({
-      where: {
-        positionId_boardName: {
-          positionId,
-          boardName: channel,
-        },
-      },
+      where: { positionId_boardName: { positionId, boardName: channel } },
       create: {
         positionId,
         boardName: channel,
+        distributionTier: "ORGANIC",
         status: "LIVE",
         publishedAt: new Date(),
       },
@@ -47,6 +55,91 @@ export async function publishPositionAction(positionId: string) {
         errorMessage: null,
       },
     });
+    allChannels.push(channel);
+  }
+
+  // ── Tier 2: Direct Connect (if org has connected accounts) ──────────────
+  const directIntegrations = await prisma.orgIntegration.findMany({
+    where: { organizationId: orgId, status: "ACTIVE" },
+  });
+
+  for (const integration of directIntegrations) {
+    const boardName = integration.platform; // "LINKEDIN" or "INDEED"
+    try {
+      let result;
+      if (integration.platform === "LINKEDIN") {
+        result = await pushJobToLinkedIn(
+          positionId,
+          integration.accessToken,
+          integration.externalOrgId || ""
+        );
+      } else {
+        result = await pushJobToIndeed(
+          positionId,
+          integration.accessToken,
+          integration.externalOrgId || ""
+        );
+      }
+
+      await prisma.jobDistribution.upsert({
+        where: { positionId_boardName: { positionId, boardName: `${boardName}_DIRECT` } },
+        create: {
+          positionId,
+          boardName: `${boardName}_DIRECT`,
+          boardJobId: result.externalJobId,
+          distributionTier: "DIRECT",
+          status: result.success ? "LIVE" : "FAILED",
+          publishedAt: result.success ? new Date() : null,
+          errorMessage: result.error || null,
+        },
+        update: {
+          boardJobId: result.externalJobId,
+          status: result.success ? "LIVE" : "FAILED",
+          publishedAt: result.success ? new Date() : undefined,
+          unpublishedAt: null,
+          errorMessage: result.error || null,
+        },
+      });
+
+      if (result.success) allChannels.push(`${boardName}_DIRECT`);
+    } catch (err) {
+      console.error(`[Distribution] Direct push to ${boardName} failed:`, err);
+    }
+  }
+
+  // ── Tier 3: IQMela Network (if requested) ──────────────────────────────
+  if (options?.useNetwork) {
+    for (const platform of ["LINKEDIN", "INDEED"] as const) {
+      try {
+        const result = await pushJobViaNetwork(positionId, platform);
+
+        await prisma.jobDistribution.upsert({
+          where: {
+            positionId_boardName: { positionId, boardName: `${platform}_NETWORK` },
+          },
+          create: {
+            positionId,
+            boardName: `${platform}_NETWORK`,
+            boardJobId: result.externalJobId,
+            distributionTier: "NETWORK",
+            status: result.success ? "LIVE" : "FAILED",
+            publishedAt: result.success ? new Date() : null,
+            errorMessage: result.error || null,
+          },
+          update: {
+            boardJobId: result.externalJobId,
+            status: result.success ? "LIVE" : "FAILED",
+            publishedAt: result.success ? new Date() : undefined,
+            unpublishedAt: null,
+            errorMessage: result.error || null,
+          },
+        });
+
+        if (result.success) allChannels.push(`${platform}_NETWORK`);
+      } catch (err) {
+        console.error(`[Distribution] Network push to ${platform} failed:`, err);
+      }
+    }
   }
 
   // Log the action
@@ -57,17 +150,18 @@ export async function publishPositionAction(positionId: string) {
       action: "POSITION_PUBLISHED",
       resourceType: "Position",
       resourceId: positionId,
-      metadata: { channels },
+      metadata: { channels: allChannels },
     },
   });
 
   console.log(
-    `[Distribution] 📡 Position "${position.title}" published to Indeed + Google Jobs`
+    `[Distribution] 📡 Position "${position.title}" published to: ${allChannels.join(", ")}`
   );
 
   revalidatePath(`/org-admin/positions/${positionId}`);
-  return { success: true, channels };
+  return { success: true, channels: allChannels };
 }
+
 
 /**
  * Unpublishes a position from all distribution channels.
@@ -103,7 +197,7 @@ export async function getIntakeStatsAction(positionId: string) {
   if (!orgId) throw new Error("Unauthorized");
 
   const where = { positionId, organizationId: orgId };
-  const [total, tier1Pass, tier1Fail, tier2Scored, shortlisted, promoted, archived] =
+  const [total, tier1Pass, tier1Fail, tier2Scored, shortlisted, promoted, archived, needsReview] =
     await Promise.all([
       prisma.intakeCandidate.count({ where }),
       prisma.intakeCandidate.count({
@@ -124,9 +218,12 @@ export async function getIntakeStatsAction(positionId: string) {
       prisma.intakeCandidate.count({
         where: { ...where, finalStatus: "ARCHIVED" },
       }),
+      prisma.intakeCandidate.count({
+        where: { ...where, finalStatus: "NEEDS_REVIEW" },
+      }),
     ]);
 
-  return { total, tier1Pass, tier1Fail, tier2Scored, shortlisted, promoted, archived };
+  return { total, tier1Pass, tier1Fail, tier2Scored, shortlisted, promoted, archived, needsReview };
 }
 
 /**
@@ -400,7 +497,11 @@ export async function getDistributionStatusAction(positionId: string) {
  */
 export async function updateIntakeConfigAction(
   positionId: string,
-  config: { intakeTopN?: number; intakeAutoPromote?: boolean }
+  config: {
+    intakeTopN?: number;
+    intakeAutoPromote?: boolean;
+    tier1PassThreshold?: number;
+  }
 ) {
   const { orgId } = await auth();
   if (!orgId) throw new Error("Unauthorized");
@@ -411,6 +512,9 @@ export async function updateIntakeConfigAction(
       ...(config.intakeTopN !== undefined ? { intakeTopN: config.intakeTopN } : {}),
       ...(config.intakeAutoPromote !== undefined
         ? { intakeAutoPromote: config.intakeAutoPromote }
+        : {}),
+      ...(config.tier1PassThreshold !== undefined
+        ? { tier1PassThreshold: Math.max(0, Math.min(100, config.tier1PassThreshold)) }
         : {}),
     },
   });

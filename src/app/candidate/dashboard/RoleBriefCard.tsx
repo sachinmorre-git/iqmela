@@ -1,4 +1,5 @@
 import { Calendar, Clock, Users, Briefcase } from "lucide-react";
+import { formatDate, formatTime } from "@/lib/locale-utils"
 
 interface Props {
   positionTitle:   string;
@@ -15,7 +16,7 @@ function initials(name: string) {
 }
 
 const AVATAR_COLORS = [
-  "bg-indigo-600", "bg-violet-600", "bg-teal-600",
+  "bg-rose-600", "bg-pink-600", "bg-rose-600",
   "bg-amber-600",  "bg-rose-600",   "bg-sky-600",
 ];
 
@@ -24,15 +25,15 @@ export function RoleBriefCard({
   durationMinutes, scheduledAt, completedRounds, totalRounds,
 }: Props) {
   const date = new Date(scheduledAt);
-  const dateStr = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  const dateStr = formatDate(date);
+  const timeStr = formatTime(date, { showTimezone: false });
 
   return (
     <div className="border border-zinc-800 rounded-2xl bg-zinc-900/40 p-6 space-y-5 flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-          <Briefcase className="w-4 h-4 text-indigo-400" />
+        <div className="w-8 h-8 rounded-xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center">
+          <Briefcase className="w-4 h-4 text-rose-400" />
         </div>
         <h2 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Role Brief</h2>
       </div>
@@ -40,7 +41,7 @@ export function RoleBriefCard({
       {/* Role + Round */}
       <div>
         <h3 className="text-xl font-black text-white leading-tight">{positionTitle}</h3>
-        <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-600/15 border border-indigo-500/25 text-indigo-400 text-xs font-bold">
+        <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600/15 border border-rose-500/25 text-rose-400 text-xs font-bold">
           {roundLabel}
         </div>
       </div>
@@ -83,8 +84,8 @@ export function RoleBriefCard({
               <div
                 key={i}
                 className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                  i < completedRounds  ? "bg-indigo-600" :
-                  i === completedRounds ? "bg-indigo-400" :
+                  i < completedRounds  ? "bg-rose-600" :
+                  i === completedRounds ? "bg-rose-400" :
                                          "bg-zinc-800"
                 }`}
               />

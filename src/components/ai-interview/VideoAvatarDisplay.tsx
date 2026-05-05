@@ -21,7 +21,7 @@ export function VideoAvatarDisplay({ phase, subProvider, streamUrl }: VideoAvata
       <div className="flex items-center gap-2">
         <div
           className={`w-2 h-2 rounded-full transition-all duration-500 ${
-            isAsking ? "bg-indigo-400 animate-pulse" : "bg-zinc-600"
+            isAsking ? "bg-rose-400 animate-pulse" : "bg-zinc-600"
           }`}
         />
         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
@@ -33,7 +33,7 @@ export function VideoAvatarDisplay({ phase, subProvider, streamUrl }: VideoAvata
       <div
         className={`relative w-[340px] sm:w-[500px] md:w-[700px] lg:w-[860px] aspect-video rounded-2xl bg-zinc-900 border-2 transition-all duration-700 overflow-hidden shadow-lg ${
           isAsking
-            ? "border-indigo-500 shadow-indigo-500/20"
+            ? "border-rose-500 shadow-rose-500/20"
             : "border-zinc-800 shadow-black/40"
         }`}
       >
@@ -43,7 +43,7 @@ export function VideoAvatarDisplay({ phase, subProvider, streamUrl }: VideoAvata
             <div className="relative w-16 h-16 rounded-full border border-zinc-800 flex items-center justify-center mb-4">
               <Loader2 className="w-8 h-8 text-zinc-600 animate-spin" />
               {isAsking && (
-                <div className="absolute inset-[-10px] rounded-full ring-2 ring-indigo-500/40 animate-ping pointer-events-none" />
+                <div className="absolute inset-[-10px] rounded-full ring-2 ring-rose-500/40 animate-ping pointer-events-none" />
               )}
             </div>
             <p className="text-xs text-zinc-500 font-medium tracking-wide">Connecting Avatar...</p>
@@ -70,7 +70,7 @@ export function VideoAvatarDisplay({ phase, subProvider, streamUrl }: VideoAvata
         <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-full">
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              isAsking ? "bg-indigo-400 animate-pulse" : "bg-zinc-500"
+              isAsking ? "bg-rose-400 animate-pulse" : "bg-zinc-500"
             }`}
           />
           <span className="text-[9px] font-bold text-white uppercase tracking-wider">

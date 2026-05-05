@@ -64,8 +64,8 @@ export function TechCheck() {
     <div className="border border-zinc-800 rounded-2xl bg-zinc-900/40 p-6">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-teal-600/20 border border-teal-500/30 flex items-center justify-center">
-            <ShieldCheck className="w-4 h-4 text-teal-400" />
+          <div className="w-8 h-8 rounded-xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center">
+            <ShieldCheck className="w-4 h-4 text-rose-400" />
           </div>
           <h2 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Tech Check</h2>
         </div>
@@ -116,7 +116,7 @@ export function TechCheck() {
       <button
         onClick={runChecks}
         disabled={running}
-        className="w-full py-3 rounded-xl bg-teal-600/20 hover:bg-teal-600/30 border border-teal-500/30 hover:border-teal-500/50 disabled:opacity-50 disabled:cursor-not-allowed text-teal-300 font-bold text-sm transition-all flex items-center justify-center gap-2"
+        className="w-full py-3 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 hover:border-rose-500/50 disabled:opacity-50 disabled:cursor-not-allowed text-rose-300 font-bold text-sm transition-all flex items-center justify-center gap-2"
       >
         {running
           ? <><Loader2 className="w-4 h-4 animate-spin" /> Running checks…</>

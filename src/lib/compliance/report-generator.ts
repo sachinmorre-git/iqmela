@@ -1,0 +1,669 @@
+import { prisma } from "@/lib/prisma";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IQMela Compliance Report Generation Engine
+// Generates structured audit reports from live platform data
+// ─────────────────────────────────────────────────────────────────────────────
+
+type ReportPayload = Record<string, any>;
+
+/**
+ * Master dispatcher — routes to the correct generator by report type
+ */
+export async function generateReportData(
+  type: string,
+  orgId: string | null,
+  periodStart: Date,
+  periodEnd: Date,
+): Promise<ReportPayload> {
+  switch (type) {
+    case "NYC_AEDT_BIAS_AUDIT":
+      return generateBiasAudit(orgId, periodStart, periodEnd);
+    case "EEOC_DIVERSITY_LOG":
+      return generateEeocReport(orgId, periodStart, periodEnd);
+    case "GDPR_DSAR_SUMMARY":
+      return generateDsarReport(orgId, periodStart, periodEnd);
+    case "AIVIA_CONSENT_LOG":
+      return generateAiviaConsentLog(orgId, periodStart, periodEnd);
+    case "DATA_MINIMIZATION_AUDIT":
+      return generateDataMinimizationAudit(orgId, periodStart, periodEnd);
+    case "PIPEDA_PRIVACY_REPORT":
+      return generatePipedaReport(orgId, periodStart, periodEnd);
+    case "AI_BIAS_MONITORING":
+      return generateAiBiasMonitoring(orgId, periodStart, periodEnd);
+    default:
+      throw new Error(`Unknown report type: ${type}`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 1. NYC AEDT BIAS AUDIT — Local Law 144
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function generateBiasAudit(orgId: string | null, start: Date, end: Date): Promise<ReportPayload> {
+  const where: any = { createdAt: { gte: start, lte: end } };
+  if (orgId) where.organizationId = orgId;
+
+  // Count total AI interview sessions in period
+  const totalSessions = await prisma.interviewSession.count({
+    where: { ...where, type: { in: ["AI_AVATAR", "AI_ORB"] } },
+  });
+
+  // Count candidates who passed vs. didn't (scored >= 70 = "selected")
+  const sessions = await prisma.interviewSession.findMany({
+    where: { ...where, type: { in: ["AI_AVATAR", "AI_ORB"] }, overallScore: { not: null } },
+    select: { overallScore: true, candidateId: true },
+  });
+
+  const totalScored = sessions.length;
+  const totalSelected = sessions.filter((s) => (s.overallScore ?? 0) >= 70).length;
+  const overallSelectionRate = totalScored > 0 ? (totalSelected / totalScored) : 0;
+
+  // Score distribution
+  const scoreBuckets = { "0-20": 0, "21-40": 0, "41-60": 0, "61-80": 0, "81-100": 0 };
+  for (const s of sessions) {
+    const score = s.overallScore ?? 0;
+    if (score <= 20) scoreBuckets["0-20"]++;
+    else if (score <= 40) scoreBuckets["21-40"]++;
+    else if (score <= 60) scoreBuckets["41-60"]++;
+    else if (score <= 80) scoreBuckets["61-80"]++;
+    else scoreBuckets["81-100"]++;
+  }
+
+  return {
+    reportTitle: "NYC Local Law 144 — Automated Employment Decision Tool (AEDT) Bias Audit",
+    regulation: "NYC Local Law 144 (Int. 1894-2020, effective Jan 1 2023)",
+    enforcingAgency: "NYC Department of Consumer and Worker Protection (DCWP)",
+    auditPeriod: { start: start.toISOString(), end: end.toISOString() },
+    generatedAt: new Date().toISOString(),
+    toolDescription: {
+      name: "IQMela AI Interview System",
+      version: "2.0",
+      description: "AI-powered video interview platform using multimodal analysis (speech, language, reasoning) to generate candidate competency scores. The system evaluates technical knowledge, communication skills, and problem-solving ability.",
+      scoringMethod: "Composite score (0-100) derived from AI evaluation of interview responses against position-specific rubrics.",
+      selectionThreshold: "Score ≥ 70 is recommended for advancement to next hiring stage.",
+    },
+    summary: {
+      totalCandidatesAssessed: totalScored,
+      totalAiSessions: totalSessions,
+      candidatesSelected: totalSelected,
+      candidatesNotSelected: totalScored - totalSelected,
+      overallSelectionRate: `${(overallSelectionRate * 100).toFixed(1)}%`,
+    },
+    scoreDistribution: scoreBuckets,
+    impactRatioAnalysis: {
+      note: "Demographic-specific impact ratios require voluntary self-identification data. If your organization collects EEO demographic data, IQMela can compute per-group selection rates and the 4/5ths rule impact ratio automatically.",
+      fourFifthsRuleThreshold: 0.80,
+      demographicDataAvailable: false,
+      recommendation: "To fully comply with Local Law 144, enable voluntary demographic self-identification in your position settings. IQMela will then auto-compute impact ratios by race/ethnicity and sex/gender.",
+    },
+    requiredActions: [
+      "Publish this audit summary on your company website",
+      "Notify candidates at least 10 business days before using the AEDT",
+      "Provide alternative selection process upon candidate request",
+      "Retain this audit for at least 4 years",
+    ],
+    auditorStatement: "This report was auto-generated by the IQMela Compliance Engine based on platform data. An independent third-party auditor should review and certify this report before public filing.",
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 2. EEOC DIVERSITY LOG — Title VII / EEO-1
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function generateEeocReport(orgId: string | null, start: Date, end: Date): Promise<ReportPayload> {
+  const where: any = { createdAt: { gte: start, lte: end } };
+  if (orgId) where.organizationId = orgId;
+
+  // Funnel data
+  const totalApplicants = await prisma.application.count({ where });
+  const screened = await prisma.application.count({ where: { ...where, status: { not: "SUBMITTED" } } });
+  const interviewed = await prisma.interviewSession.count({
+    where: { createdAt: { gte: start, lte: end }, ...(orgId ? { organizationId: orgId } : {}) },
+  });
+  const hired = await prisma.application.count({ where: { ...where, status: "HIRED" } });
+
+  // Positions filled
+  const positionsFilled = await prisma.position.count({
+    where: { ...(orgId ? { orgId } : {}), status: "CLOSED", closedAt: { gte: start, lte: end } },
+  });
+
+  return {
+    reportTitle: "EEOC EEO-1 Component 1 — Hiring Funnel & Demographic Report",
+    regulation: "Title VII of the Civil Rights Act, Executive Order 11246",
+    enforcingAgency: "U.S. Equal Employment Opportunity Commission (EEOC)",
+    reportingPeriod: { start: start.toISOString(), end: end.toISOString() },
+    generatedAt: new Date().toISOString(),
+    hiringFunnel: {
+      totalApplicants,
+      screenedPastInitial: screened,
+      interviewsConducted: interviewed,
+      offersAccepted: hired,
+      positionsFilled,
+      conversionRates: {
+        applicationToScreen: totalApplicants > 0 ? `${((screened / totalApplicants) * 100).toFixed(1)}%` : "N/A",
+        screenToInterview: screened > 0 ? `${((interviewed / screened) * 100).toFixed(1)}%` : "N/A",
+        interviewToHire: interviewed > 0 ? `${((hired / interviewed) * 100).toFixed(1)}%` : "N/A",
+        overallConversion: totalApplicants > 0 ? `${((hired / totalApplicants) * 100).toFixed(1)}%` : "N/A",
+      },
+    },
+    demographicBreakdown: {
+      note: "Demographic breakdowns (Race/Ethnicity × Sex × Job Category) require voluntary self-identification data collection. Enable EEO self-identification in your IQMela position settings to auto-populate this section.",
+      dataAvailable: false,
+    },
+    adverseImpactAnalysis: {
+      note: "Adverse impact analysis at each funnel stage will be computed when demographic data is available. The 4/5ths rule will be applied to each stage independently.",
+      computedStages: [],
+    },
+    recommendations: [
+      "Enable voluntary EEO self-identification for all positions",
+      "Review AI scoring rubrics quarterly for potential bias indicators",
+      "Maintain this report for a minimum of 2 years per EEOC retention requirements",
+    ],
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 3. GDPR / DPDP — DSAR & DELETION LOG
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function generateDsarReport(orgId: string | null, start: Date, end: Date): Promise<ReportPayload> {
+  // Count candidate data in the system
+  const totalCandidates = await prisma.candidate.count({
+    where: orgId ? { applications: { some: { organizationId: orgId } } } : {},
+  });
+
+  // Count applications with resumes (PII stored)
+  const candidatesWithResumes = await prisma.application.count({
+    where: {
+      ...(orgId ? { organizationId: orgId } : {}),
+      resumeUrl: { not: null },
+    },
+  });
+
+  // Count AI interview recordings
+  const aiSessions = await prisma.interviewSession.count({
+    where: {
+      ...(orgId ? { organizationId: orgId } : {}),
+      type: { in: ["AI_AVATAR", "AI_ORB"] },
+      createdAt: { gte: start, lte: end },
+    },
+  });
+
+  return {
+    reportTitle: "GDPR / DPDP Act — Data Subject Access Request & Deletion Log",
+    regulations: [
+      "EU GDPR Articles 15–17 (Right of Access, Rectification, Erasure)",
+      "UK GDPR / DPA 2018",
+      "India DPDP Act 2023 Sections 11–14",
+    ],
+    enforcingAgencies: ["ICO (UK)", "DPA (EU Member States)", "DPB (India)"],
+    reportingPeriod: { start: start.toISOString(), end: end.toISOString() },
+    generatedAt: new Date().toISOString(),
+    dataInventory: {
+      totalDataSubjects: totalCandidates,
+      resumesStored: candidatesWithResumes,
+      aiInterviewRecordings: aiSessions,
+      dataCategories: [
+        { category: "Identity Data", examples: "Name, Email, Phone", legalBasis: "Legitimate Interest (hiring)" },
+        { category: "Resume/CV", examples: "Education, Experience, Skills", legalBasis: "Consent (application submission)" },
+        { category: "AI Interview Recording", examples: "Video, Audio, Transcript", legalBasis: "Explicit Consent (pre-interview)" },
+        { category: "AI Assessment Scores", examples: "Competency scores, Rubric evaluations", legalBasis: "Legitimate Interest (hiring decision)" },
+        { category: "BGV Data", examples: "Employment verification, Education verification", legalBasis: "Legitimate Interest + Consent" },
+      ],
+    },
+    dsarLog: {
+      note: "Data Subject Access Requests are tracked when candidates use their rights under GDPR/DPDP. Connect your support ticketing system to auto-populate this section.",
+      totalRequests: 0,
+      fulfilled: 0,
+      pending: 0,
+      averageResponseDays: "N/A",
+      breakdown: [],
+    },
+    deletionLog: {
+      note: "Records of data erasure requests and automated purge executions.",
+      manualDeletionRequests: 0,
+      automatedPurges: 0,
+      purgeSchedule: "Resumes purged 180 days after position closure. AI recordings purged 90 days after session.",
+    },
+    rightToExplanation: {
+      note: "Under GDPR Art. 22 and DPDP Act, candidates can request an explanation of AI-based decisions.",
+      requestsReceived: 0,
+      explanationsProvided: 0,
+    },
+    crossBorderTransfers: {
+      note: "If candidate data is transferred between jurisdictions, document the legal basis here.",
+      transfers: [],
+    },
+    retentionPolicy: {
+      resumeRetention: "180 days after position closure",
+      interviewRecordingRetention: "90 days after session completion",
+      applicationDataRetention: "2 years after position closure",
+      auditLogRetention: "7 years (immutable)",
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 4. AIVIA + BIPA CONSENT AUDIT TRAIL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function generateAiviaConsentLog(orgId: string | null, start: Date, end: Date): Promise<ReportPayload> {
+  // Count AI interview sessions in the period
+  const aiSessions = await prisma.interviewSession.count({
+    where: {
+      ...(orgId ? { organizationId: orgId } : {}),
+      type: { in: ["AI_AVATAR", "AI_ORB"] },
+      createdAt: { gte: start, lte: end },
+    },
+  });
+
+  // Count completed sessions
+  const completedSessions = await prisma.interviewSession.count({
+    where: {
+      ...(orgId ? { organizationId: orgId } : {}),
+      type: { in: ["AI_AVATAR", "AI_ORB"] },
+      status: "COMPLETED",
+      createdAt: { gte: start, lte: end },
+    },
+  });
+
+  return {
+    reportTitle: "Illinois AIVIA & BIPA — AI Video Consent & Biometric Audit Trail",
+    regulations: [
+      "Illinois Artificial Intelligence Video Interview Act (820 ILCS 42, eff. Jan 1 2020)",
+      "Illinois Biometric Information Privacy Act (740 ILCS 14)",
+    ],
+    enforcingAgency: "Illinois Attorney General",
+    reportingPeriod: { start: start.toISOString(), end: end.toISOString() },
+    generatedAt: new Date().toISOString(),
+    aiviaCompliance: {
+      description: "Under AIVIA, employers using AI to analyze video interviews must: (1) notify the candidate before the interview, (2) explain how the AI works and what characteristics it evaluates, (3) obtain written consent, (4) not share the video without consent.",
+      totalAiInterviewsInPeriod: aiSessions,
+      completedInterviews: completedSessions,
+      consentMechanism: "Pre-interview consent gate displayed before AI session begins. Candidate must actively accept before proceeding.",
+      disclosureContent: {
+        aiNotification: "Candidates are informed that an AI system will analyze their interview responses.",
+        characteristicsEvaluated: "Technical knowledge, communication clarity, problem-solving approach, and domain expertise.",
+        aiExplanation: "The AI system uses natural language processing and speech analysis to evaluate responses against position-specific rubrics. No facial recognition, emotion detection, or biometric analysis is performed.",
+      },
+      consentRate: "100% (consent is mandatory to proceed with AI interview)",
+      candidatesDeclined: 0,
+      alternativeOffered: "Candidates who decline AI interview can request a traditional human-led interview via the support system.",
+    },
+    bipaCompliance: {
+      description: "BIPA prohibits collection of biometric identifiers (face geometry, voiceprint, retinal scan) without written informed consent and a published retention/destruction policy.",
+      biometricDataCollected: {
+        faceGeometry: false,
+        voiceprint: false,
+        retinalScan: false,
+        fingerprint: false,
+      },
+      biometricNote: "IQMela's AI interview system does NOT collect, store, or process biometric identifiers. Speech-to-text transcription is performed without voiceprint extraction. Video is stored as standard recordings without facial geometry analysis.",
+      retentionPolicy: "AI interview video recordings are automatically purged 90 days after session completion.",
+      publicRetentionPolicyUrl: "https://iqmela.com/legal/biometric-policy",
+    },
+    videoRetentionLog: {
+      totalVideosInPeriod: aiSessions,
+      videosStillStored: completedSessions,
+      videosDeleted: 0,
+      deletionSchedule: "90 days post-session",
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 5. DATA MINIMIZATION & RETENTION AUDIT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function generateDataMinimizationAudit(orgId: string | null, start: Date, end: Date): Promise<ReportPayload> {
+  // Count stale data
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const totalApplications = await prisma.application.count({
+    where: orgId ? { organizationId: orgId } : {},
+  });
+
+  const staleResumes = await prisma.application.count({
+    where: {
+      ...(orgId ? { organizationId: orgId } : {}),
+      resumeUrl: { not: null },
+      position: { status: "CLOSED", closedAt: { lte: sixMonthsAgo } },
+    },
+  });
+
+  const activeResumes = await prisma.application.count({
+    where: {
+      ...(orgId ? { organizationId: orgId } : {}),
+      resumeUrl: { not: null },
+      position: { status: { in: ["OPEN", "PAUSED"] } },
+    },
+  });
+
+  return {
+    reportTitle: "Data Minimization & Retention Compliance Audit",
+    regulations: [
+      "GDPR Article 5(1)(c) — Data Minimisation",
+      "CCPA/CPRA — Right to Deletion",
+      "WA My Health MY Data Act (2023)",
+      "India DPDP Act 2023 — Section 8 (Data Retention)",
+    ],
+    reportingPeriod: { start: start.toISOString(), end: end.toISOString() },
+    generatedAt: new Date().toISOString(),
+    dataInventorySummary: {
+      totalApplicationsOnRecord: totalApplications,
+      activeResumesInPipeline: activeResumes,
+      resumesPastRetentionPolicy: staleResumes,
+      retentionPolicyDays: 180,
+    },
+    retentionPolicies: [
+      { dataType: "Candidate Resume (PDF/DOCX)", retentionPeriod: "180 days after position closure", purgeMethod: "Automated cron (purge-resumes)", status: "Active" },
+      { dataType: "AI Interview Video", retentionPeriod: "90 days after session", purgeMethod: "Automated cron", status: "Active" },
+      { dataType: "AI Interview Transcript", retentionPeriod: "1 year after session", purgeMethod: "Manual review", status: "Pending Automation" },
+      { dataType: "Application Metadata", retentionPeriod: "2 years after position closure", purgeMethod: "Automated cron", status: "Active" },
+      { dataType: "Audit Logs", retentionPeriod: "7 years (immutable)", purgeMethod: "N/A — regulatory requirement", status: "Compliant" },
+    ],
+    complianceStatus: {
+      overallRating: staleResumes === 0 ? "COMPLIANT" : "ACTION_REQUIRED",
+      issues: staleResumes > 0 ? [
+        {
+          severity: "HIGH",
+          description: `${staleResumes} resume(s) found stored beyond the 180-day retention policy for closed positions.`,
+          remediation: "Execute the purge-resumes cron job or manually delete stale resumes from the candidate pipeline.",
+        },
+      ] : [],
+    },
+    purgeExecutionLog: {
+      note: "Automated purge execution records from the purge-resumes cron job.",
+      lastExecution: "Check vercel.json cron configuration",
+      totalPurged: 0,
+      nextScheduled: "Pending cron registration",
+    },
+    dataCategoriesCollected: [
+      { category: "Name & Contact", necessity: "Essential", justification: "Required for candidate communication" },
+      { category: "Resume/CV", necessity: "Essential", justification: "Required for skills assessment" },
+      { category: "AI Interview Video", necessity: "Essential", justification: "Required for AI-powered competency evaluation" },
+      { category: "AI Scores", necessity: "Essential", justification: "Core output of assessment process" },
+      { category: "IP Address", necessity: "Operational", justification: "Security and fraud prevention" },
+      { category: "Browser Metadata", necessity: "Operational", justification: "Technical support and compatibility" },
+    ],
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 6. PIPEDA / QUEBEC LAW 25 PRIVACY REPORT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function generatePipedaReport(orgId: string | null, start: Date, end: Date): Promise<ReportPayload> {
+  const totalCandidates = await prisma.candidate.count({
+    where: orgId ? { applications: { some: { organizationId: orgId } } } : {},
+  });
+
+  const aiSessions = await prisma.interviewSession.count({
+    where: {
+      ...(orgId ? { organizationId: orgId } : {}),
+      type: { in: ["AI_AVATAR", "AI_ORB"] },
+      createdAt: { gte: start, lte: end },
+    },
+  });
+
+  return {
+    reportTitle: "PIPEDA & Quebec Law 25 — Privacy Compliance Report",
+    regulations: [
+      "Canada Personal Information Protection and Electronic Documents Act (PIPEDA)",
+      "Quebec Act respecting the protection of personal information in the private sector (Law 25, fully in force Sept 2023)",
+      "Canada Bill C-27 / Artificial Intelligence and Data Act (AIDA) — pending",
+    ],
+    enforcingAgencies: [
+      "Office of the Privacy Commissioner of Canada (OPC)",
+      "Commission d'accès à l'information du Québec (CAI)",
+    ],
+    reportingPeriod: { start: start.toISOString(), end: end.toISOString() },
+    generatedAt: new Date().toISOString(),
+    privacyImpactAssessment: {
+      toolName: "IQMela AI Interview Platform",
+      purposeOfProcessing: "Automated competency assessment of job candidates using AI-powered video interview analysis",
+      dataProcessed: [
+        "Candidate personal information (name, email, phone)",
+        "Interview video and audio recordings",
+        "AI-generated transcripts and competency scores",
+        "Application metadata and hiring status",
+      ],
+      riskLevel: "HIGH — Automated decision-making in employment context",
+      mitigations: [
+        "Human oversight available for all AI-generated decisions",
+        "Candidates notified of AI use before interview",
+        "Right to request human review of AI scoring",
+        "Data retention limits enforced with automated purging",
+      ],
+    },
+    consentFramework: {
+      consentMethod: "Explicit opt-in consent obtained before AI interview begins",
+      consentScope: "Collection, use, and processing of interview video for AI-powered competency assessment",
+      withdrawalMechanism: "Candidates may withdraw consent at any time by contacting support or using the self-service portal",
+      totalCandidatesInPeriod: totalCandidates,
+      aiInterviewsWithConsent: aiSessions,
+    },
+    automatedDecisionDisclosure: {
+      law25Section12: "Quebec Law 25, Section 12 requires disclosure when automated processing is used to render a decision about an individual.",
+      disclosureProvided: true,
+      disclosureMethod: "Pre-interview consent screen explicitly states that AI will be used to evaluate the interview",
+      rightToInformation: "Candidates can request information about the personal data used to render the decision and have it corrected",
+    },
+    technologyWatch: {
+      note: "Quebec Law 25 requires organizations to establish and publish a 'technology watch' policy.",
+      aiTechnologiesUsed: [
+        { technology: "Google Gemini", purpose: "Interview response evaluation and scoring", dataAccess: "Interview transcripts" },
+        { technology: "DeepSeek", purpose: "Advanced judgment scoring", dataAccess: "Interview transcripts" },
+        { technology: "LiveKit", purpose: "Real-time video/audio communication", dataAccess: "Video/audio streams (not stored by LiveKit)" },
+        { technology: "Tavus", purpose: "AI avatar rendering", dataAccess: "None — renders only" },
+      ],
+    },
+    frenchLanguageCompliance: {
+      note: "Quebec Law 25 and the Charter of the French Language require candidate-facing content to be available in French for Quebec-based candidates.",
+      status: "PENDING — French localization of consent screens and AI disclosure text is in development.",
+      recommendation: "Implement French-language consent gate for candidates with Quebec addresses before enabling Quebec market.",
+    },
+    breachResponsePlan: {
+      pipedaBreachNotification: "Must notify OPC and affected individuals 'as soon as feasible' after breach discovery",
+      law25BreachNotification: "Must notify CAI within 72 hours of discovery of a confidentiality incident",
+      incidentsInPeriod: 0,
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 7. AI BIAS MONITORING — Score Distribution & Override Analysis
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function generateAiBiasMonitoring(orgId: string | null, start: Date, end: Date): Promise<ReportPayload> {
+  const where: any = {
+    createdAt: { gte: start, lte: end },
+    jdMatchScore: { not: null },
+  };
+  if (orgId) where.organizationId = orgId;
+
+  // Fetch all scored resumes in the period
+  const resumes = await prisma.resume.findMany({
+    where,
+    select: {
+      jdMatchScore: true,
+      jdMatchLabel: true,
+      aiRecommendationLabel: true,
+      finalRecommendationLabel: true,
+      candidateSource: true,
+      location: true,
+      advancedJudgmentProvider: true,
+    },
+  });
+
+  const totalScored = resumes.length;
+
+  // ── Helper: stats from array of numbers ────────────────────────────────
+  function computeStats(scores: number[]) {
+    if (scores.length === 0) return { count: 0, mean: 0, median: 0, stdDev: 0, min: 0, max: 0 };
+    const sorted = [...scores].sort((a, b) => a - b);
+    const mean = scores.reduce((s, v) => s + v, 0) / scores.length;
+    const median = sorted.length % 2 === 0
+      ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+      : sorted[Math.floor(sorted.length / 2)];
+    const variance = scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length;
+    return {
+      count: scores.length,
+      mean: Math.round(mean * 10) / 10,
+      median: Math.round(median * 10) / 10,
+      stdDev: Math.round(Math.sqrt(variance) * 10) / 10,
+      min: sorted[0],
+      max: sorted[sorted.length - 1],
+    };
+  }
+
+  // ── Score Distribution by Candidate Source ──────────────────────────────
+  const bySource: Record<string, number[]> = {};
+  for (const r of resumes) {
+    const src = r.candidateSource || "UNKNOWN";
+    if (!bySource[src]) bySource[src] = [];
+    bySource[src].push(r.jdMatchScore!);
+  }
+  const sourceDistribution = Object.entries(bySource).map(([source, scores]) => ({
+    source,
+    ...computeStats(scores),
+  }));
+
+  // ── Score Distribution by Location (top 10) ────────────────────────────
+  const byLocation: Record<string, number[]> = {};
+  for (const r of resumes) {
+    const loc = r.location || "UNKNOWN";
+    if (!byLocation[loc]) byLocation[loc] = [];
+    byLocation[loc].push(r.jdMatchScore!);
+  }
+  const locationDistribution = Object.entries(byLocation)
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 10)
+    .map(([location, scores]) => ({
+      location,
+      ...computeStats(scores),
+    }));
+
+  // ── Recommendation Distribution ────────────────────────────────────────
+  const recCounts: Record<string, number> = {};
+  for (const r of resumes) {
+    const rec = r.aiRecommendationLabel || "UNSCORED";
+    recCounts[rec] = (recCounts[rec] || 0) + 1;
+  }
+  const recommendationDistribution = Object.entries(recCounts).map(([label, count]) => ({
+    label,
+    count,
+    percentage: totalScored > 0 ? `${((count / totalScored) * 100).toFixed(1)}%` : "0%",
+  }));
+
+  // ── Human Override Analysis ────────────────────────────────────────────
+  const overrides = resumes.filter(
+    (r) => r.finalRecommendationLabel && r.aiRecommendationLabel &&
+      r.finalRecommendationLabel !== r.aiRecommendationLabel
+  );
+  const overrideCount = overrides.length;
+  const overrideRate = totalScored > 0 ? ((overrideCount / totalScored) * 100).toFixed(1) : "0";
+
+  // Categorize override directions
+  const overrideDirections: Record<string, number> = {};
+  for (const o of overrides) {
+    const dir = `${o.aiRecommendationLabel} → ${o.finalRecommendationLabel}`;
+    overrideDirections[dir] = (overrideDirections[dir] || 0) + 1;
+  }
+
+  // ── Adverse Impact Detection (4/5ths Rule across sources) ──────────────
+  // Selection = AI recommends STRONG_HIRE or HIRE
+  const sourceSelectionRates: Record<string, { selected: number; total: number; rate: number }> = {};
+  for (const r of resumes) {
+    const src = r.candidateSource || "UNKNOWN";
+    if (!sourceSelectionRates[src]) sourceSelectionRates[src] = { selected: 0, total: 0, rate: 0 };
+    sourceSelectionRates[src].total++;
+    if (r.aiRecommendationLabel === "STRONG_HIRE" || r.aiRecommendationLabel === "HIRE") {
+      sourceSelectionRates[src].selected++;
+    }
+  }
+  // Compute rates
+  for (const src of Object.keys(sourceSelectionRates)) {
+    const d = sourceSelectionRates[src];
+    d.rate = d.total > 0 ? d.selected / d.total : 0;
+  }
+  const maxRate = Math.max(...Object.values(sourceSelectionRates).map((d) => d.rate));
+
+  const adverseImpactFlags = Object.entries(sourceSelectionRates)
+    .filter(([, d]) => d.total >= 5 && maxRate > 0 && d.rate / maxRate < 0.8)
+    .map(([source, d]) => ({
+      source,
+      selectionRate: `${(d.rate * 100).toFixed(1)}%`,
+      referenceRate: `${(maxRate * 100).toFixed(1)}%`,
+      impactRatio: (d.rate / maxRate).toFixed(2),
+      flag: "BELOW_4_5THS_THRESHOLD",
+    }));
+
+  // ── Score Gap Detection ────────────────────────────────────────────────
+  const allScores = resumes.map((r) => r.jdMatchScore!);
+  const overallStats = computeStats(allScores);
+
+  const scoreGapAlerts: { group: string; groupMean: number; overallMean: number; gap: number; alert: string }[] = [];
+  for (const [source, scores] of Object.entries(bySource)) {
+    if (scores.length < 3) continue; // Skip tiny groups
+    const groupStats = computeStats(scores);
+    const gap = Math.abs(groupStats.mean - overallStats.mean);
+    if (gap > 15) {
+      scoreGapAlerts.push({
+        group: `Source: ${source}`,
+        groupMean: groupStats.mean,
+        overallMean: overallStats.mean,
+        gap: Math.round(gap * 10) / 10,
+        alert: groupStats.mean < overallStats.mean ? "BELOW_AVERAGE" : "ABOVE_AVERAGE",
+      });
+    }
+  }
+
+  return {
+    reportTitle: "AI Decision Bias Monitoring Report",
+    regulation: "NYC Local Law 144, GDPR Art. 22, EU AI Act (High-Risk Category)",
+    reportingPeriod: { start: start.toISOString(), end: end.toISOString() },
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalCandidatesScored: totalScored,
+      overallScoreStats: overallStats,
+      humanOverrideRate: `${overrideRate}%`,
+      adverseImpactFlagsCount: adverseImpactFlags.length,
+      scoreGapAlertsCount: scoreGapAlerts.length,
+    },
+    scoreDistributionBySource: sourceDistribution,
+    scoreDistributionByLocation: locationDistribution,
+    recommendationDistribution,
+    humanOverrideAnalysis: {
+      totalOverrides: overrideCount,
+      overrideRate: `${overrideRate}%`,
+      overrideDirections: Object.entries(overrideDirections).map(([direction, count]) => ({
+        direction,
+        count,
+      })),
+      interpretation: overrideCount === 0
+        ? "No human overrides recorded. Ensure recruiters are reviewing AI recommendations and using the override panel when they disagree."
+        : `${overrideCount} human overrides detected (${overrideRate}% of scored candidates). This indicates active human oversight of AI decisions.`,
+    },
+    adverseImpactAnalysis: {
+      method: "4/5ths (80%) Rule applied to AI recommendation rates across candidate sources",
+      referenceGroup: "Source with highest STRONG_HIRE + HIRE selection rate",
+      flags: adverseImpactFlags,
+      status: adverseImpactFlags.length === 0 ? "NO_FLAGS" : "REVIEW_REQUIRED",
+    },
+    scoreGapAlerts: {
+      threshold: "Groups with >15pt mean score gap from overall average",
+      alerts: scoreGapAlerts,
+      status: scoreGapAlerts.length === 0 ? "NO_GAPS" : "REVIEW_REQUIRED",
+    },
+    recommendations: [
+      "Review score distributions quarterly to identify emerging patterns",
+      "Investigate any source group with >15pt mean score deviation",
+      "Target a human override rate of 5-15% to demonstrate active oversight",
+      "Document remediation actions for any 4/5ths rule violations",
+      "Consider blind scoring (removing source/location from AI input) if persistent bias detected",
+    ],
+  };
+}

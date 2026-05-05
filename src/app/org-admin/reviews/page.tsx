@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { getCallerPermissions } from "@/lib/rbac"
 import Link from "next/link"
+import { formatDate } from "@/lib/locale-utils"
 
 export const metadata = {
   title: "Candidate Reviews | IQMela",
@@ -9,7 +10,7 @@ export const metadata = {
 
 const REC_CONFIG: Record<string, { label: string; emoji: string; cls: string }> = {
   STRONG_HIRE:    { label: "Strong Hire",    emoji: "🚀", cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800/40" },
-  HIRE:           { label: "Hire",           emoji: "✅", cls: "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800/40" },
+  HIRE:           { label: "Hire",           emoji: "✅", cls: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-800/40" },
   NO_HIRE:        { label: "No Hire",        emoji: "⚠️", cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/40" },
   STRONG_NO_HIRE: { label: "Strong No Hire", emoji: "🚫", cls: "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800/40" },
 }
@@ -152,7 +153,7 @@ export default async function ReviewsDashboard() {
                   </Link>
                   {session.resumeId && (
                     <Link href={`/org-admin/candidates/${session.resumeId}/intelligence`}
-                      className="flex-1 py-2 rounded-xl bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-bold text-center border border-violet-200 dark:border-violet-800/40 transition-colors">
+                      className="flex-1 py-2 rounded-xl bg-pink-50 dark:bg-pink-900/20 hover:bg-pink-100 dark:hover:bg-pink-900/30 text-pink-700 dark:text-pink-300 text-xs font-bold text-center border border-pink-200 dark:border-pink-800/40 transition-colors">
                       ⚡ Intel Hub
                     </Link>
                   )}
@@ -166,7 +167,7 @@ export default async function ReviewsDashboard() {
       {/* ── Section 2: Panelist Scorecards ── */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-indigo-500" />
+          <span className="w-2 h-2 rounded-full bg-rose-500" />
           <h2 className="text-[11px] font-extrabold text-gray-900 dark:text-white uppercase tracking-widest">
             Panelist Scorecards — Human Interviews ({panelistFeedbacks.length})
           </h2>
@@ -185,7 +186,7 @@ export default async function ReviewsDashboard() {
                 <div key={fb.id} className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center gap-4">
 
                   {/* Score dial */}
-                  <div className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 border border-violet-100 dark:border-violet-800/30 flex flex-col items-center justify-center">
+                  <div className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 border border-pink-100 dark:border-pink-800/30 flex flex-col items-center justify-center">
                     <span className={`text-lg font-black ${fb.overallScore >= 80 ? "text-emerald-600" : fb.overallScore >= 60 ? "text-amber-600" : "text-red-500"}`}>
                       {fb.overallScore}
                     </span>
@@ -213,8 +214,8 @@ export default async function ReviewsDashboard() {
                     <div className="flex gap-3 mt-1.5 flex-wrap">
                       {[
                         { label: "Tech", val: fb.technicalScore, color: "bg-blue-500" },
-                        { label: "Comms", val: fb.communicationScore, color: "bg-teal-500" },
-                        { label: "PS", val: fb.problemSolvingScore, color: "bg-violet-500" },
+                        { label: "Comms", val: fb.communicationScore, color: "bg-rose-500" },
+                        { label: "PS", val: fb.problemSolvingScore, color: "bg-pink-500" },
                         { label: "Fit", val: fb.cultureFitScore, color: "bg-amber-500" },
                       ].map(d => (
                         <div key={d.label} className="flex items-center gap-1.5">
@@ -233,11 +234,11 @@ export default async function ReviewsDashboard() {
                     <div className="text-right">
                       <p className="text-[10px] text-gray-400">Evaluated by</p>
                       <p className="text-xs font-bold text-gray-700 dark:text-gray-200">{fb.interviewer?.name || "Interviewer"}</p>
-                      <p className="text-[9px] text-gray-400 mt-0.5">{new Date(fb.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                      <p className="text-[9px] text-gray-400 mt-0.5">{formatDate(new Date(fb.submittedAt), { style: "short" })}</p>
                     </div>
                     {resumeId && (
                       <Link href={`/org-admin/candidates/${resumeId}/intelligence`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 text-[10px] font-bold border border-violet-200 dark:border-violet-800/40 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors">
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-pink-50 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300 text-[10px] font-bold border border-pink-200 dark:border-pink-800/40 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                         Intel Hub
                       </Link>
@@ -271,12 +272,12 @@ export default async function ReviewsDashboard() {
                 </div>
                 <div className="flex flex-col gap-1.5 shrink-0">
                   <Link href={`/org-admin/ai-interview/${session.id}/scorecard`}
-                    className="text-[10px] font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400 transition-colors">
+                    className="text-[10px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 transition-colors">
                     View Report →
                   </Link>
                   {session.resumeId && (
                     <Link href={`/org-admin/candidates/${session.resumeId}/intelligence`}
-                      className="text-[10px] font-bold text-violet-600 hover:text-violet-700 dark:text-violet-400 transition-colors">
+                      className="text-[10px] font-bold text-pink-600 hover:text-pink-700 dark:text-pink-400 transition-colors">
                       Intel Hub →
                     </Link>
                   )}

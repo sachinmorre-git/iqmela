@@ -14,8 +14,8 @@ const STAGE_COLORS: Record<string, string> = {
   SUBMITTED: "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400",
   SCREENING: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   ROUND_1: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  ROUND_2: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
-  ROUND_3: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+  ROUND_2: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
+  ROUND_3: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
   ROUND_4: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
   ROUND_5: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-400",
   OFFERED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
@@ -112,7 +112,7 @@ export default async function VendorPortalDashboard() {
       <div className="flex items-start justify-between">
         <div className="max-w-2xl">
           <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/20">
               <Building2 className="w-5 h-5" />
             </div>
             Vendor Portal
@@ -134,11 +134,11 @@ export default async function VendorPortalDashboard() {
           <p className="text-xs font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-wider mt-1">Positions</p>
         </div>
         <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 text-center">
-          <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{totalResumes}</p>
+          <p className="text-2xl font-black text-rose-600 dark:text-rose-400">{totalResumes}</p>
           <p className="text-xs font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-wider mt-1">Submitted</p>
         </div>
         <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 text-center">
-          <p className="text-2xl font-black text-violet-600 dark:text-violet-400">{totalInRounds}</p>
+          <p className="text-2xl font-black text-pink-600 dark:text-pink-400">{totalInRounds}</p>
           <p className="text-xs font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-wider mt-1">In Rounds</p>
         </div>
         <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 text-center">
@@ -183,9 +183,9 @@ export default async function VendorPortalDashboard() {
                       href={`/org-admin/vendor-portal/${position.id}`}
                       className="group block"
                     >
-                      <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 h-full transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-200 dark:hover:border-indigo-900/50">
+                      <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 h-full transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-500/10 hover:border-rose-200 dark:hover:border-rose-900/50">
                         <div className="flex justify-between items-start mb-3">
-                          <h4 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight line-clamp-2 flex-1 mr-3">
+                          <h4 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors leading-tight line-clamp-2 flex-1 mr-3">
                             {position.title}
                           </h4>
                           {stats && stats.furthestStage !== "SUBMITTED" && (
@@ -208,7 +208,7 @@ export default async function VendorPortalDashboard() {
                             {stats?.total || 0} sent
                           </span>
                           {(stats?.inRounds || 0) > 0 && (
-                            <span className="text-violet-600 dark:text-violet-400 flex items-center gap-1">
+                            <span className="text-pink-600 dark:text-pink-400 flex items-center gap-1">
                               <TrendingUp className="w-3.5 h-3.5" />
                               {stats!.inRounds} in rounds
                             </span>
@@ -219,7 +219,7 @@ export default async function VendorPortalDashboard() {
                               {stats!.offered} offered
                             </span>
                           )}
-                          <span className="ml-auto text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 font-semibold">
+                          <span className="ml-auto text-rose-600 dark:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 font-semibold">
                             View <ArrowRight className="w-3.5 h-3.5" />
                           </span>
                         </div>

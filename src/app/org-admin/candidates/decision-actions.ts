@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCallerPermissions } from "@/lib/rbac";
 import { revalidatePath } from "next/cache";
 import { CandidatePipelineStatus, HiringDecisionAction } from "@prisma/client";
+import { dispatchNotification } from "@/lib/notify";
 
 // ── RBAC: who can do what ─────────────────────────────────────────────────────
 const ACTION_ROLE_MAP: Record<HiringDecisionAction, string[]> = {
@@ -122,6 +123,44 @@ export async function makeHiringDecisionAction(input: MakeDecisionInput) {
     }).catch((err) =>
       console.error("[HiringDecision] Audit log write failed:", err)
     );
+
+    // ── In-app notification — ONLY for high-signal terminal events ────
+    // ADVANCE and OFFER are routine — the recruiter sees them immediately.
+    // We only notify on HIRE (rare, celebratory) and REJECT (audit trail).
+    const candidateInfo = await prisma.resume.findUnique({
+      where: { id: input.resumeId },
+      select: { candidateName: true, position: { select: { title: true } } },
+    });
+    const cName = candidateInfo?.candidateName || "Candidate";
+    const pTitle = candidateInfo?.position?.title || "Position";
+
+    if (input.action === "HIRE" || input.action === "REJECT") {
+      const notif = input.action === "HIRE"
+        ? { title: `${cName} Hired! 🎉`, body: `${cName} has been officially hired for ${pTitle}`, type: "OFFER_ACCEPTED" as const }
+        : { title: `${cName} Rejected`, body: `${cName} has been rejected for ${pTitle}`, type: "CANDIDATE_REJECTED" as const };
+
+      // Only notify ORG_ADMINs (not every hiring manager) — keeps the feed lean
+      const orgAdmins = await prisma.user.findMany({
+        where: {
+          organizationId: perms.orgId,
+          roles: { hasSome: ["ORG_ADMIN"] },
+        },
+        select: { id: true },
+      });
+      for (const u of orgAdmins) {
+        if (u.id !== perms.userId) {
+          dispatchNotification({
+            organizationId: perms.orgId,
+            userId: u.id,
+            type: notif.type,
+            title: notif.title,
+            body: notif.body,
+            link: `/org-admin/candidates/${input.resumeId}/intelligence`,
+            sendPush: false, // Bell only — no browser interruption
+          }).catch(() => {});
+        }
+      }
+    }
 
     return { success: true, resume: updatedResume, decision };
   } catch (err: any) {

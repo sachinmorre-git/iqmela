@@ -3,6 +3,14 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { buildCompliantJdText } from "@/lib/compliance-constants";
 import { ApplyForm } from "./ApplyForm";
+import { ScrollReveal } from "../ScrollReveal";
+import { StickyApplyBar } from "./StickyApplyBar";
+import { ReadingProgress } from "./ReadingProgress";
+import { isIntakeOpen, daysRemaining } from "@/lib/intake-window";
+import { auth } from "@clerk/nextjs/server";
+import { Gift } from "lucide-react";
+import { ViewTracker } from "./ViewTracker";
+import { ReferralLinkButton } from "./ReferralLinkButton";
 
 export async function generateMetadata({
   params,
@@ -22,6 +30,14 @@ export async function generateMetadata({
       title: `${pos.title} | IQMela Careers`,
       description: (pos.description || "").substring(0, 155),
       type: "website",
+      images: [
+        {
+          url: "/brand/icon/iq-icon-512.png",
+          width: 512,
+          height: 512,
+          alt: "IQMela Logo",
+        },
+      ],
     },
   };
 }
@@ -50,6 +66,8 @@ export default async function CareerJobPage({
       jdPreferredSkillsJson: true,
       createdAt: true,
       updatedAt: true,
+      isPublished: true,
+      intakeWindowDays: true,
     },
   });
 
@@ -68,7 +86,62 @@ export default async function CareerJobPage({
     (Date.now() - position.createdAt.getTime()) / (1000 * 60 * 60 * 24)
   );
 
+  // Intake window status
+  const intakeClosed = !isIntakeOpen(position);
+  const daysLeft = daysRemaining(position);
+
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.iqmela.com";
+
+  // ── Quick Apply: detect signed-in Talent Network member ─────────────
+  let quickProfile: {
+    name: string;
+    email: string;
+    resumeUrl: string | null;
+    profileId: string;
+  } | null = null;
+
+  try {
+    const { userId } = await auth();
+    if (userId) {
+      const profile = await prisma.candidateProfile.findUnique({
+        where: { userId },
+        select: {
+          id: true,
+          resumeUrl: true,
+          user: { select: { name: true, email: true } },
+          talentNetworkJoinedAt: true,
+        },
+      });
+      // Only enable Quick Apply for Talent Network members
+      if (profile?.talentNetworkJoinedAt && profile.user.email) {
+        quickProfile = {
+          name: profile.user.name || "Candidate",
+          email: profile.user.email,
+          resumeUrl: profile.resumeUrl,
+          profileId: profile.id,
+        };
+      }
+    }
+  } catch {
+    // Auth check can fail gracefully — just show full form
+  }
+
+  // ── Fetch Referral Flags ───────────────────────────────────────────────────
+  const platformConfig = await prisma.platformConfig.findUnique({ where: { id: "GLOBAL" } });
+  const showJobBounties = platformConfig?.referralsEnabled && platformConfig?.jobBountyReferralsEnabled;
+  let bountyReward = { amount: 2000, currency: "USD", rewardType: "CASH" };
+  if (platformConfig?.referralRewardRules) {
+    try {
+      const rules = platformConfig.referralRewardRules as any[];
+      const rule = rules.find((r) => r.type === "JOB_BOUNTY" && r.country === "GLOBAL");
+      if (rule) bountyReward = rule;
+    } catch (e) {}
+  }
+
+  const formatReward = (reward: any) => {
+    const curr = reward.currency === "USD" ? "$" : reward.currency + " ";
+    return `${curr}${reward.amount.toLocaleString()}`;
+  };
 
   // Google Jobs JSON-LD
   const jsonLd = {
@@ -77,7 +150,7 @@ export default async function CareerJobPage({
     title: position.title,
     description: compliantJd,
     datePosted: position.createdAt.toISOString().split("T")[0],
-    validThrough: getValidThrough(position.createdAt),
+    validThrough: getValidThrough(position.createdAt, position.intakeWindowDays),
     hiringOrganization: {
       "@type": "Organization",
       name: "IQMela Partner Organization",
@@ -123,25 +196,13 @@ export default async function CareerJobPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div style={{ maxWidth: "800px", margin: "0 auto", padding: "0 24px" }}>
-        {/* ── Ambient glow ──────────────────────────────────────────────── */}
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "1000px",
-            height: "500px",
-            background:
-              "radial-gradient(ellipse, rgba(99,102,241,0.06) 0%, transparent 70%)",
-            pointerEvents: "none",
-            zIndex: 0,
-          }}
-        />
+      {/* Reading Progress Bar */}
+      <ReadingProgress />
+      <ViewTracker positionId={position.id} />
 
+      <div style={{ maxWidth: "800px", margin: "0 auto", padding: "0 24px" }}>
         {/* ── Back link ────────────────────────────────────────────────── */}
-        <div style={{ padding: "32px 0 0", position: "relative", zIndex: 1 }}>
+        <div className="hero-enter-1" style={{ padding: "40px 0 0" }}>
           <a
             href="/careers"
             style={{
@@ -149,142 +210,204 @@ export default async function CareerJobPage({
               color: "#818cf8",
               textDecoration: "none",
               fontWeight: 500,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.2s",
             }}
           >
-            ← All Positions
+            <span style={{ fontSize: "16px" }}>←</span>
+            All Positions
           </a>
         </div>
 
         {/* ── Job header ───────────────────────────────────────────────── */}
-        <div style={{ padding: "24px 0 32px", position: "relative", zIndex: 1 }}>
-          <h1
-            style={{
-              fontSize: "clamp(28px, 4vw, 40px)",
-              fontWeight: 900,
-              letterSpacing: "-0.03em",
-              color: "#fff",
-              margin: "0 0 16px",
-              lineHeight: 1.15,
-            }}
-          >
-            {position.title}
-          </h1>
+        <div style={{ padding: "28px 0 40px" }}>
+          <div className="hero-enter-2">
+            <h1
+              style={{
+                fontSize: "clamp(32px, 4.5vw, 48px)",
+                fontWeight: 900,
+                letterSpacing: "-0.04em",
+                color: "#fff",
+                margin: "0 0 20px",
+                lineHeight: 1.1,
+              }}
+            >
+              {position.title}
+              {/* Gradient underline accent */}
+              <div
+                style={{
+                  height: "3px",
+                  width: "60px",
+                  borderRadius: "2px",
+                  background: "linear-gradient(90deg, #6366f1, #c084fc)",
+                  marginTop: "16px",
+                }}
+              />
+            </h1>
+          </div>
 
           {/* Badge row */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "16px" }}>
-            {position.location && (
-              <Badge icon="📍" label={position.location} />
-            )}
-            {position.remotePolicy && (
+          <div className="hero-enter-3">
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "8px",
+                marginBottom: "16px",
+              }}
+            >
+              {position.location && (
+                <Badge icon="📍" label={position.location} />
+              )}
+              {position.remotePolicy && (
+                <Badge
+                  label={position.remotePolicy}
+                  accent={position.remotePolicy === "REMOTE"}
+                />
+              )}
+              {position.employmentType && (
+                <Badge
+                  label={position.employmentType.replace("_", " ")}
+                />
+              )}
+              {position.salaryMin && (
+                <Badge
+                  label={`${position.salaryCurrency || "$"}${position.salaryMin.toLocaleString()}${position.salaryMax ? `–${position.salaryMax.toLocaleString()}` : "+"}/yr`}
+                  accent
+                />
+              )}
               <Badge
-                label={position.remotePolicy}
-                accent={position.remotePolicy === "REMOTE"}
+                label={
+                  daysAgo === 0
+                    ? "Posted today"
+                    : daysAgo === 1
+                    ? "Posted yesterday"
+                    : `Posted ${daysAgo}d ago`
+                }
               />
-            )}
-            {position.employmentType && (
-              <Badge label={position.employmentType.replace("_", " ")} />
-            )}
-            {position.salaryMin && (
-              <Badge
-                label={`${position.salaryCurrency || "$"}${position.salaryMin.toLocaleString()}${
-                  position.salaryMax
-                    ? `–${position.salaryMax.toLocaleString()}`
-                    : "+"
-                }/yr`}
-                accent
-              />
-            )}
-            <Badge label={daysAgo === 0 ? "Posted today" : `Posted ${daysAgo}d ago`} />
+            </div>
           </div>
         </div>
 
         {/* ── Key Requirements ──────────────────────────────────────────── */}
         {requiredSkills.length > 0 && (
-          <div style={{ marginBottom: "32px", position: "relative", zIndex: 1 }}>
-            <h2 style={sectionHeading}>Key Requirements</h2>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-              {requiredSkills.map((s) => (
-                <span
-                  key={s}
-                  style={{
-                    padding: "4px 12px",
-                    borderRadius: "6px",
-                    background: "rgba(99,102,241,0.08)",
-                    border: "1px solid rgba(99,102,241,0.15)",
-                    color: "#a5b4fc",
-                    fontSize: "12px",
-                    fontWeight: 500,
-                  }}
-                >
-                  {s}
-                </span>
-              ))}
+          <ScrollReveal>
+            <div style={{ marginBottom: "36px" }}>
+              <h2 style={sectionHeading}>Key Requirements</h2>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {requiredSkills.map((s) => (
+                  <span
+                    key={s}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: "8px",
+                      background: "rgba(99,102,241,0.06)",
+                      border: "1px solid rgba(99,102,241,0.12)",
+                      color: "#a5b4fc",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          </ScrollReveal>
         )}
 
         {/* ── Job Description ───────────────────────────────────────────── */}
-        <div
-          style={{
-            position: "relative",
-            zIndex: 1,
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: "16px",
-            padding: "32px",
-            marginBottom: "32px",
-          }}
-        >
-          <h2 style={sectionHeading}>About This Role</h2>
+        <ScrollReveal>
           <div
+            className="glass"
             style={{
-              whiteSpace: "pre-wrap",
-              fontSize: "14px",
-              lineHeight: 1.8,
-              color: "#a1a1aa",
+              borderRadius: "20px",
+              padding: "36px",
+              marginBottom: "36px",
             }}
           >
-            {compliantJd}
+            <h2 style={sectionHeading}>About This Role</h2>
+            <div
+              style={{
+                whiteSpace: "pre-wrap",
+                fontSize: "14px",
+                lineHeight: 1.85,
+                color: "#a1a1aa",
+              }}
+            >
+              {compliantJd}
+            </div>
           </div>
-        </div>
+        </ScrollReveal>
 
         {/* ── Preferred Skills ──────────────────────────────────────────── */}
         {preferredSkills.length > 0 && (
-          <div style={{ marginBottom: "32px", position: "relative", zIndex: 1 }}>
-            <h2 style={sectionHeading}>Nice to Have</h2>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-              {preferredSkills.map((s) => (
-                <span
-                  key={s}
-                  style={{
-                    padding: "4px 12px",
-                    borderRadius: "6px",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    color: "#71717a",
-                    fontSize: "12px",
-                    fontWeight: 500,
-                  }}
-                >
-                  {s}
-                </span>
-              ))}
+          <ScrollReveal>
+            <div style={{ marginBottom: "36px" }}>
+              <h2 style={sectionHeading}>Nice to Have</h2>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {preferredSkills.map((s) => (
+                  <span
+                    key={s}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: "8px",
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      color: "#71717a",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          </ScrollReveal>
+        )}
+
+        {/* ── Referral Bounty ────────────────────────────────────────────── */}
+        {showJobBounties && (
+          <ScrollReveal>
+            <div className="rounded-2xl border border-teal-500/30 bg-gradient-to-br from-teal-900/40 to-emerald-900/20 p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-teal-500/10 mb-[36px]">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-teal-500/20 flex items-center justify-center border border-teal-500/30 shrink-0">
+                  <Gift className="w-6 h-6 text-teal-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-1">Refer a friend. Earn a bounty.</h3>
+                  <p className="text-sm text-teal-200">
+                    Know someone perfect for this role? Share your unique tracking link. If they get hired, you earn a <strong className="text-white">{formatReward(bountyReward)}</strong> referral bonus.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0 w-full md:w-auto">
+                <ReferralLinkButton positionId={position.id} />
+              </div>
+            </div>
+          </ScrollReveal>
         )}
 
         {/* ── Apply Form ────────────────────────────────────────────────── */}
-        <div
-          id="apply"
-          style={{
-            position: "relative",
-            zIndex: 1,
-            marginBottom: "64px",
-          }}
-        >
-          <ApplyForm positionId={position.id} positionTitle={position.title} />
-        </div>
+        <ScrollReveal>
+          <div id="apply" style={{ marginBottom: "80px" }}>
+            <ApplyForm
+              positionId={position.id}
+              positionTitle={position.title}
+              quickProfile={quickProfile}
+              intakeClosed={intakeClosed}
+              daysLeft={daysLeft}
+            />
+          </div>
+        </ScrollReveal>
       </div>
+
+      {/* Sticky Apply Bar (appears on scroll) */}
+      <StickyApplyBar positionTitle={position.title} />
     </>
   );
 }
@@ -306,11 +429,13 @@ function Badge({
         display: "inline-flex",
         alignItems: "center",
         gap: "4px",
-        padding: "5px 12px",
-        borderRadius: "8px",
+        padding: "6px 14px",
+        borderRadius: "10px",
         fontSize: "12px",
         fontWeight: 500,
-        background: accent ? "rgba(99,102,241,0.08)" : "rgba(255,255,255,0.04)",
+        background: accent
+          ? "rgba(99,102,241,0.08)"
+          : "rgba(255,255,255,0.03)",
         color: accent ? "#818cf8" : "#71717a",
         border: `1px solid ${accent ? "rgba(99,102,241,0.15)" : "rgba(255,255,255,0.06)"}`,
       }}
@@ -325,24 +450,30 @@ const sectionHeading: React.CSSProperties = {
   fontSize: "11px",
   fontWeight: 700,
   textTransform: "uppercase",
-  letterSpacing: "0.1em",
+  letterSpacing: "0.12em",
   color: "#52525b",
-  marginBottom: "12px",
+  marginBottom: "14px",
 };
 
 function mapEmploymentType(type: string | null | undefined): string {
   switch (type?.toUpperCase()) {
-    case "FULL_TIME": return "FULL_TIME";
-    case "PART_TIME": return "PART_TIME";
-    case "CONTRACT": return "CONTRACTOR";
-    case "INTERNSHIP": return "INTERN";
-    case "TEMPORARY": return "TEMPORARY";
-    default: return "FULL_TIME";
+    case "FULL_TIME":
+      return "FULL_TIME";
+    case "PART_TIME":
+      return "PART_TIME";
+    case "CONTRACT":
+      return "CONTRACTOR";
+    case "INTERNSHIP":
+      return "INTERN";
+    case "TEMPORARY":
+      return "TEMPORARY";
+    default:
+      return "FULL_TIME";
   }
 }
 
-function getValidThrough(createdAt: Date): string {
+function getValidThrough(createdAt: Date, intakeWindowDays: number = 10): string {
   const d = new Date(createdAt);
-  d.setDate(d.getDate() + 60);
+  d.setDate(d.getDate() + intakeWindowDays);
   return d.toISOString().split("T")[0];
 }

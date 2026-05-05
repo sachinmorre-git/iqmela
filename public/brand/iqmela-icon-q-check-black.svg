@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!--
+    IQMela — Q+Check Icon (All Black / Trademark version)
+    Usage: Trademark filing, legal documents, single-color print
+  -->
+
+  <!-- Q body — black ring -->
+  <circle cx="240" cy="232" r="160" fill="#000000"/>
+  <circle cx="240" cy="232" r="88" fill="white"/>
+
+  <!-- Checkmark tail — black -->
+  <path
+    d="M 296 312 L 340 356 L 420 260"
+    stroke="#000000"
+    stroke-width="56"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <circle cx="296" cy="312" r="28" fill="#000000"/>
+</svg>

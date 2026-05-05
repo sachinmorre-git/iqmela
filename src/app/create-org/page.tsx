@@ -46,15 +46,15 @@ export default async function CreateOrgPage() {
     <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center p-4">
       {/* Background ambient glow */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-teal-500/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px]" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-rose-500/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] bg-rose-500/5 rounded-full blur-[100px]" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 border border-teal-500/20 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-teal-500/10">
-            <Building2 className="w-7 h-7 text-teal-400" />
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500/20 to-emerald-500/20 border border-rose-500/20 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-rose-500/10">
+            <Building2 className="w-7 h-7 text-rose-400" />
           </div>
 
           <h1 className="text-3xl font-extrabold text-white tracking-tight">

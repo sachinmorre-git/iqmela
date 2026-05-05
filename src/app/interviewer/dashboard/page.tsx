@@ -7,6 +7,9 @@ import { StatsRings } from "./StatsRings";
 import { FeedbackQueue } from "./FeedbackQueue";
 import { ActivityHeatmap } from "./ActivityHeatmap";
 import { StreakBadge } from "./StreakBadge";
+import { maskName } from "@/lib/pii-redact";
+import { formatDate, formatTime } from "@/lib/locale-utils"
+import { BadgeCheck, ArrowRight, Link as LinkIcon } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "Interviewer Dashboard — IQMela",
@@ -39,7 +42,7 @@ export default async function InterviewerDashboard() {
     },
     orderBy: { scheduledAt: "asc" },
     include: {
-      candidate: { select: { name: true, email: true } },
+      candidate: { select: { name: true } },
       position:  { select: { title: true } },
       panelists: { include: { interviewer: { select: { name: true } } } },
     },
@@ -76,7 +79,7 @@ export default async function InterviewerDashboard() {
     orderBy: { scheduledAt: "desc" },
     take: 10,
     include: {
-      candidate: { select: { name: true, email: true } },
+      candidate: { select: { name: true } },
       position:  { select: { title: true, id: true } },
     },
   });
@@ -140,12 +143,29 @@ export default async function InterviewerDashboard() {
     heatmapCounts[key] = (heatmapCounts[key] ?? 0) + 1;
   });
 
+  // ── Fetch Referral Flags ───────────────────────────────────────────────────
+  const platformConfig = await prisma.platformConfig.findUnique({ where: { id: "GLOBAL" } });
+  const showInterviewerReferrals = platformConfig?.referralsEnabled && platformConfig?.interviewerReferralsEnabled;
+  let interviewerReward = { amount: 100, currency: "USD", rewardType: "CASH" };
+  if (platformConfig?.referralRewardRules) {
+    try {
+      const rules = platformConfig.referralRewardRules as any[];
+      const rule = rules.find((r) => r.type === "INTERVIEWER" && r.country === "GLOBAL");
+      if (rule) interviewerReward = rule;
+    } catch (e) {}
+  }
+
+  const formatReward = (reward: any) => {
+    const curr = reward.currency === "USD" ? "$" : reward.currency + " ";
+    return `${curr}${reward.amount.toLocaleString()}`;
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute -top-32 left-1/3 w-[700px] h-[400px] bg-indigo-700/10 blur-3xl rounded-full" />
-        <div className="absolute top-1/2 right-0 w-[400px] h-[400px] bg-violet-700/8 blur-3xl rounded-full" />
+        <div className="absolute -top-32 left-1/3 w-[700px] h-[400px] bg-rose-700/10 blur-3xl rounded-full" />
+        <div className="absolute top-1/2 right-0 w-[400px] h-[400px] bg-pink-700/8 blur-3xl rounded-full" />
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -167,7 +187,7 @@ export default async function InterviewerDashboard() {
                 scheduledAt:    iv.scheduledAt.toISOString(),
                 durationMinutes: iv.durationMinutes,
                 status:         iv.status,
-                candidateName:  iv.candidate.name ?? iv.candidate.email ?? "Candidate",
+                candidateName:  maskName(iv.candidate?.name ?? iv.candidateName),
                 positionTitle:  iv.position?.title ?? iv.title,
               }))}
               upcomingCount={upcomingInterviews.length}
@@ -185,7 +205,7 @@ export default async function InterviewerDashboard() {
           <FeedbackQueue
             interviews={completedInterviews.map((iv) => ({
               id:            iv.id,
-              candidateName: iv.candidate.name ?? iv.candidate.email ?? "Candidate",
+              candidateName: maskName(iv.candidate?.name ?? iv.candidateName),
               positionTitle: iv.position?.title ?? iv.title,
               positionId:    iv.position?.id ?? "",
               scheduledAt:   iv.scheduledAt.toISOString(),
@@ -207,21 +227,48 @@ export default async function InterviewerDashboard() {
                     className="flex items-center justify-between px-5 py-3 rounded-xl border border-zinc-800 bg-zinc-900/30 hover:bg-zinc-900/60 transition-all">
                     <div>
                       <p className="text-sm font-semibold text-white">
-                        {iv.candidate.name ?? "Candidate"}
+                        {iv.candidate?.name ?? iv.candidateName ?? "Candidate"}
                         <span className="text-zinc-500 font-normal"> · {iv.position?.title ?? iv.title}</span>
                       </p>
                       <p className="text-xs text-zinc-600 mt-0.5">
-                        {d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                        {formatDate(d)}
                         {" at "}
-                        {d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                        {formatTime(d, { showTimezone: false })}
                       </p>
                     </div>
-                    <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-lg">
+                    <span className="text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-lg">
                       Scheduled
                     </span>
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Invite an Expert Referral Module ─────────────────────────────── */}
+        {showInterviewerReferrals && (
+          <div className="rounded-2xl border border-sky-500/30 bg-gradient-to-br from-sky-900/40 to-blue-900/20 p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-sky-500/10">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-sky-500/20 flex items-center justify-center border border-sky-500/30 shrink-0">
+                <BadgeCheck className="w-6 h-6 text-sky-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white mb-1">Grow the Elite Peer Network. Earn {formatReward(interviewerReward)}.</h3>
+                <p className="text-sm text-sky-200">
+                  Great engineers know great engineers. Invite a peer expert to interview on IQMela, and both of you get a {formatReward(interviewerReward)} bonus when they complete 5 paid interviews.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0 w-full md:w-auto">
+              <input 
+                readOnly 
+                value={`https://iqmela.com/expert/apply?ref=${userId}`} 
+                className="flex-1 md:w-64 bg-zinc-950/50 border border-sky-500/30 rounded-xl px-4 py-2.5 text-sm text-sky-300 font-mono focus:outline-none"
+              />
+              <button className="shrink-0 rounded-xl shadow-lg shadow-sky-600/20 px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold transition-all flex items-center gap-2">
+                <LinkIcon className="w-4 h-4" /> Copy Link
+              </button>
             </div>
           </div>
         )}

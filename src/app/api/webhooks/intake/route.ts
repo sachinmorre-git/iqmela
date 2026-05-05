@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { runTier1Filter, KnockoutQuestion } from "@/lib/intake-tier1";
-import { batchTier2Score, autoShortlistTopN } from "@/lib/intake-scoring";
+import { batchTier2Score } from "@/lib/intake-scoring";
 import { calculatePurgeDate } from "@/lib/compliance-constants";
 import { parseJsonArray } from "@/lib/intake-utils";
+import { isIntakeOpen } from "@/lib/intake-window";
 
 /**
  * POST /api/webhooks/intake
@@ -69,6 +70,10 @@ export async function POST(request: Request) {
         knockoutQuestionsJson: true,
         intakeTopN: true,
         intakeAutoPromote: true,
+        tier1PassThreshold: true,
+        isPublished: true,
+        createdAt: true,
+        intakeWindowDays: true,
       },
     });
 
@@ -77,6 +82,14 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Position not found or not published" },
         { status: 404 }
+      );
+    }
+
+    // ── Intake window check ────────────────────────────────────────────────
+    if (!isIntakeOpen(position)) {
+      return NextResponse.json(
+        { error: "Application window has closed" },
+        { status: 410 }
       );
     }
 
@@ -142,6 +155,7 @@ export async function POST(request: Request) {
       remotePolicy: position.remotePolicy,
       knockoutAnswers: parsed.knockoutAnswers,
       knockoutConfig: parseJsonArray(position.knockoutQuestionsJson) as unknown as KnockoutQuestion[],
+      passThreshold: position.tier1PassThreshold,
     });
 
     await prisma.intakeCandidate.update({
@@ -161,11 +175,10 @@ export async function POST(request: Request) {
     );
 
     // ── Queue Tier 2 AI Scoring (async — only for Tier 1 survivors) ────────
+    // NOTE: Shortlisting is deferred to intake window close (cron) to prevent
+    // race conditions from concurrent webhook deliveries.
     if (tier1Result.pass && parsed.resumeText) {
-      // Run asynchronously — don't block the webhook response
-      // In production, this would go to a proper job queue (Bull, SQS, etc.)
-      // For now, we use a fire-and-forget promise
-      runTier2AndShortlist(
+      runTier2Only(
         position.id,
         intakeCandidate.id,
         parsed.resumeText,
@@ -173,7 +186,6 @@ export async function POST(request: Request) {
         position.title,
         requiredSkills,
         preferredSkills,
-        position.intakeTopN,
       ).catch((err) =>
         console.error("[Intake] Tier 2 background scoring error:", err)
       );
@@ -200,10 +212,10 @@ export async function POST(request: Request) {
 }
 
 /**
- * Runs Tier 2 AI scoring and auto-shortlists Top N.
+ * Runs Tier 2 AI scoring only (shortlisting deferred to cron).
  * Executed asynchronously after the webhook returns 200.
  */
-async function runTier2AndShortlist(
+async function runTier2Only(
   positionId: string,
   intakeCandidateId: string,
   resumeText: string,
@@ -211,7 +223,6 @@ async function runTier2AndShortlist(
   positionTitle: string,
   requiredSkills: string[],
   preferredSkills: string[],
-  topN: number
 ) {
   await batchTier2Score(
     positionId,
@@ -221,9 +232,8 @@ async function runTier2AndShortlist(
     requiredSkills,
     preferredSkills
   );
-
-  // After each scoring, re-evaluate Top N
-  await autoShortlistTopN(positionId, topN);
+  // Shortlisting happens when intake window closes (cron/process-closed-positions)
+  // to prevent race conditions from concurrent webhook deliveries.
 }
 
 /**

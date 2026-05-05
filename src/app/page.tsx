@@ -25,7 +25,7 @@ export default async function Homepage() {
   const avgScore = avgResult._avg.overallScore;
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white overflow-x-hidden">
+    <main className="min-h-screen bg-white dark:bg-zinc-950 text-gray-900 dark:text-white overflow-x-hidden">
       <HeroSection />
       <MetricsRow
         totalInterviews={totalInterviews}

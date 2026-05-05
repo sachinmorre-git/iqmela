@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { formatDate } from "@/lib/locale-utils"
 import { notFound, redirect } from "next/navigation"
 import { getCallerPermissions } from "@/lib/rbac"
 import Link from "next/link"
@@ -77,7 +78,7 @@ function StageTracker({ currentStage }: { currentStage: string | null }) {
                 isPast
                   ? "bg-emerald-500 text-white"
                   : isCurrent
-                  ? "bg-indigo-600 text-white ring-2 ring-indigo-300 dark:ring-indigo-800 shadow-sm"
+                  ? "bg-rose-600 text-white ring-2 ring-rose-300 dark:ring-rose-800 shadow-sm"
                   : "bg-gray-100 text-gray-400 dark:bg-zinc-800 dark:text-zinc-600"
               }`}
               title={STAGE_LABELS[stage]}
@@ -177,7 +178,7 @@ export default async function VendorPositionDetailPage({
       {/* Back Link */}
       <Link
         href="/org-admin/vendor-portal"
-        className="text-sm font-medium text-gray-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400 flex items-center transition-colors w-fit"
+        className="text-sm font-medium text-gray-500 hover:text-rose-600 dark:text-zinc-400 dark:hover:text-rose-400 flex items-center transition-colors w-fit"
       >
         <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Vendor Portal
       </Link>
@@ -221,7 +222,7 @@ export default async function VendorPositionDetailPage({
 
           {/* Resume Count */}
           <div className="hidden sm:flex flex-col items-end gap-1 text-right shrink-0">
-            <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 leading-none">
+            <span className="text-3xl font-black text-rose-600 dark:text-rose-400 leading-none">
               {resumes.length}
             </span>
             <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
@@ -233,7 +234,7 @@ export default async function VendorPositionDetailPage({
         {/* JD Expandable */}
         {(position.description || position.jdText) && (
           <details className="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
-            <summary className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">
+            <summary className="text-sm font-semibold text-rose-600 dark:text-rose-400 cursor-pointer hover:underline">
               View Job Description
             </summary>
             <div className="mt-3 text-sm text-gray-600 dark:text-zinc-400 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
@@ -269,8 +270,8 @@ export default async function VendorPositionDetailPage({
       {position.status === "OPEN" && (
         <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-3xl p-6">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-              <FileText className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <div className="w-6 h-6 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+              <FileText className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
             </div>
             Upload Candidates
           </h3>
@@ -317,7 +318,7 @@ export default async function VendorPositionDetailPage({
                     </p>
                   )}
                   <p className="text-[10px] text-gray-400 dark:text-zinc-600 mt-0.5">
-                    Uploaded {resume.uploadedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    Uploaded {formatDate(resume.uploadedAt)}
                   </p>
                 </div>
 

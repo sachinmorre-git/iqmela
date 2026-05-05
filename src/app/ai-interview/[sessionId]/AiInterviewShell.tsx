@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { CheckCircle, Mic, MicOff, AlertCircle, ArrowRight, RotateCcw } from "lucide-react";
+import { CheckCircle, Mic, MicOff, AlertCircle, ArrowRight, RotateCcw, Wifi, WifiOff } from "lucide-react";
+import { useNetworkQuality, type NetworkQuality } from "@/hooks/useNetworkQuality";
 import { resolveAvatarProvider } from "@/lib/ai-interview/providers/avatar";
 import { resolveVoiceProvider } from "@/lib/ai-interview/providers/voice";
 import { resolveTtsProvider } from "@/lib/ai-interview/providers/tts";
@@ -13,6 +14,7 @@ import type { VisualProvider } from "@/lib/ai-interview/providers/visual/types";
 
 import { OrbDisplay } from "@/components/ai-interview/OrbDisplay";
 import { VideoAvatarDisplay } from "@/components/ai-interview/VideoAvatarDisplay";
+import { formatTime } from "@/lib/locale-utils"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -216,7 +218,17 @@ function WaveformBars({ active }: { active: boolean }) {
 
 // ── Results Panel ────────────────────────────────────────────────────────────
 
-function ResultsPanel() {
+function ResultsPanel({ showReferral, candidateReward }: { showReferral: boolean, candidateReward?: any }) {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  
+  const formatReward = (reward: any) => {
+    if (!reward) return "$500 Amazon Gift Card";
+    const curr = reward.currency === "USD" ? "$" : reward.currency + " ";
+    const type = reward.rewardType === "AMAZON_GC" ? "Amazon Gift Card" : "Bonus";
+    return `${curr}${reward.amount.toLocaleString()} ${type}`;
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto space-y-6 pb-16 animate-in fade-in slide-in-from-bottom-4 duration-700 mt-20">
       {/* Header */}
@@ -236,10 +248,44 @@ function ResultsPanel() {
          </p>
       </div>
 
+      {showReferral && (
+        <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/20 border border-indigo-500/30 rounded-3xl p-8 text-center max-w-xl mx-auto mt-6 shadow-xl shadow-indigo-500/10">
+          <h3 className="text-xl font-bold text-white mb-2">You just experienced the future of hiring.</h3>
+          <p className="text-indigo-200 text-sm mb-6">
+            Does your current company hire? Introduce IQMela to your HR team and earn a <strong className="text-white">{formatReward(candidateReward)}</strong> when they upgrade.
+          </p>
+          {sent ? (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              Invite sent! We'll track it to your account.
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 max-w-md mx-auto">
+              <input
+                type="email"
+                placeholder="HR Manager's Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 bg-zinc-950/50 border border-indigo-500/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all"
+              />
+              <button
+                onClick={() => {
+                  if (email) setSent(true);
+                  // In a real implementation, we'd trigger a server action here to create ReferralAction
+                }}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/20"
+              >
+                Invite
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="text-center pt-8">
         <a
           href="/candidate/dashboard"
-          className="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-600/20"
+          className="inline-flex items-center gap-2 px-8 py-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-lg shadow-rose-600/20"
         >
           Return to Dashboard <ArrowRight className="w-5 h-5" />
         </a>
@@ -257,6 +303,8 @@ export function AiInterviewShell({
   avatarProvider,
   ttsProvider,
   visualMode,
+  resumeFromIndex = 0,
+  savedAnswers: initialSavedAnswers,
 }: {
   sessionId: string;
   initialQuestions: Question[];
@@ -265,11 +313,20 @@ export function AiInterviewShell({
   /** "browser" (default, free) or "elevenlabs" (high quality, requires API key) */
   ttsProvider?: string;
   visualMode?: string;
+  /** Index to resume from (number of already-answered turns) */
+  resumeFromIndex?: number;
+  /** Previously saved answers (null for unanswered) */
+  savedAnswers?: (string | null)[];
+  showReferral?: boolean;
+  candidateReward?: any;
 }) {
+  const isResuming = resumeFromIndex > 0;
   const [phase, setPhase] = useState<InterviewPhase>("ready");
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(resumeFromIndex);
   const [transcript, setTranscript] = useState<string>("");
-  const [savedAnswers, setSavedAnswers] = useState<string[]>([]);
+  const [savedAnswers, setSavedAnswers] = useState<string[]>(
+    initialSavedAnswers?.map(a => a ?? "") ?? []
+  );
   const [summary, setSummary] = useState<InterviewSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeVisualMode, setActiveVisualMode] = useState(visualMode ?? "orb");
@@ -277,6 +334,54 @@ export function AiInterviewShell({
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [visualStreamUrl, setVisualStreamUrl] = useState<string | undefined>(undefined);
   const [retriedQuestions, setRetriedQuestions] = useState<Record<number, boolean>>({});
+  const [networkSwitchedToOrb, setNetworkSwitchedToOrb] = useState(false);
+  const [networkRecovered, setNetworkRecovered] = useState(false);
+  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
+
+  // ── AI Circuit Breaker ────────────────────────────────────────────────────
+  const handleFailure = useCallback((context: string) => {
+    setConsecutiveFailures(prev => {
+      const next = prev + 1;
+      if (next >= 3) {
+        console.error(`[CircuitBreaker] Tripped after 3 consecutive failures. Last context: ${context}`);
+        setError("We are experiencing technical difficulties connecting to the AI. Your progress is saved. Please refresh the page or try again later.");
+        setPhase("error");
+      }
+      return next;
+    });
+  }, []);
+
+  const recordSuccess = useCallback(() => {
+    setConsecutiveFailures(0);
+  }, []);
+
+
+  // ── Network Quality Monitor ─────────────────────────────────────────────────
+  const isVideoMode = activeVisualMode !== "orb" && !avatarFailed;
+  const networkStats = useNetworkQuality({
+    intervalMs: 5000,
+    degradedThreshold: 3, // 3 consecutive poor readings (~15s)
+    enabled: phase !== "results" && phase !== "error",
+    onDegraded: (stats) => {
+      // Auto-switch from video avatar to Orb on sustained poor connection
+      if (isVideoMode) {
+        console.warn(
+          `[AiInterviewShell:NetworkQuality] Degraded network detected ` +
+          `(RTT: ${stats.rttMs}ms, quality: ${stats.quality}). Switching to Orb.`
+        );
+        setActiveVisualMode("orb");
+        setNetworkSwitchedToOrb(true);
+        visualRef.current = null; // Nuke video provider so it rebuilds as orb
+      }
+    },
+    onRecovered: (stats) => {
+      if (networkSwitchedToOrb) {
+        setNetworkRecovered(true);
+        // Auto-hide the recovered banner after 5s
+        setTimeout(() => setNetworkRecovered(false), 5000);
+      }
+    },
+  });
 
   // ── Step 225: Anti-cheat indicators ─────────────────────────────────────────
   const [tabSwitchCount, setTabSwitchCount]       = useState(0);
@@ -365,30 +470,51 @@ export function AiInterviewShell({
   const totalQuestions = liveQuestions.length;
   const isLastQuestion = currentIndex === totalQuestions - 1;
 
-  // ── Save answer to DB ──────────────────────────────────────────────────────
+  // ── Save answer to DB (with retry) ─────────────────────────────────────────
   const saveAnswer = useCallback(
     async (answer: string, index: number, metadata?: { durationMs?: number; confidence?: number; providerName?: string }) => {
-      try {
-        await fetch("/api/ai-interview/transcript", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            sessionId, 
-            turnIndex: index, 
-            answer,
-            ...metadata,
-            // Step 225: attach anti-cheat snapshot
-            antiCheat: {
-              tabSwitches: antiCheatRef.current.tabSwitchCount,
-              pastes: antiCheatRef.current.pasteCount,
-              camPermission: antiCheatRef.current.camPermission,
-              micPermission: antiCheatRef.current.micPermission,
-            },
-          }),
-        });
-      } catch (e) {
-        console.warn("[AiInterviewShell] Failed to save transcript turn:", e);
-        // Non-fatal — scoring will still work from DB turns that were saved
+      const payload = JSON.stringify({ 
+        sessionId, 
+        turnIndex: index, 
+        answer,
+        ...metadata,
+        // Step 225: attach anti-cheat snapshot
+        antiCheat: {
+          tabSwitches: antiCheatRef.current.tabSwitchCount,
+          pastes: antiCheatRef.current.pasteCount,
+          camPermission: antiCheatRef.current.camPermission,
+          micPermission: antiCheatRef.current.micPermission,
+        },
+      });
+
+      const MAX_RETRIES = 3;
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          const res = await fetch("/api/ai-interview/transcript", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+          });
+          if (res.ok) {
+            recordSuccess();
+            return; // success
+          }
+          throw new Error(`HTTP ${res.status}`);
+        } catch (e) {
+          if (attempt < MAX_RETRIES - 1) {
+            // Exponential backoff: 1s, 2s, 4s
+            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+            console.warn(`[AiInterviewShell] Retrying save (attempt ${attempt + 2}/${MAX_RETRIES})...`);
+          } else {
+            console.error("[AiInterviewShell] All save retries exhausted for turn", index, e);
+            handleFailure("saveAnswer");
+            // Last resort: store in sessionStorage so scoring endpoint can recover
+            try {
+              const key = `iqm_unsaved_answer_${sessionId}_${index}`;
+              sessionStorage.setItem(key, answer);
+            } catch { /* sessionStorage unavailable — give up silently */ }
+          }
+        }
       }
     },
     [sessionId]
@@ -468,8 +594,10 @@ export function AiInterviewShell({
           const tts = getTts();
           try {
             await tts.speak({ text: displayQuestion, onEnd: advanceToListening });
+            recordSuccess();
           } catch (ttsErr) {
             console.warn("[AiInterviewShell] TTS provider failed, falling back to browser TTS:", ttsErr);
+            handleFailure("TTS");
             // Import BrowserTtsProvider inline to avoid circular deps
             const { BrowserTtsProvider } = await import("@/lib/ai-interview/providers/tts/browser-tts");
             const fallback = new BrowserTtsProvider();
@@ -568,7 +696,9 @@ export function AiInterviewShell({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sessionId, turnIndex: index, candidateAnswer: answer }),
           });
+          if (!fuRes.ok) throw new Error(`HTTP ${fuRes.status}`);
           const fuData = await fuRes.json();
+          recordSuccess();
 
           if (fuData.shouldFollowUp && fuData.followUpQuestion) {
             // Dynamically inject follow-up question into the live queue
@@ -589,6 +719,7 @@ export function AiInterviewShell({
         } catch (fuErr) {
           // Non-fatal — if follow-up evaluation fails, just move on
           console.warn("[AiInterviewShell] Follow-up evaluation failed:", fuErr);
+          handleFailure("Follow-up evaluation");
         }
 
         const nextIndex = currentIndex + 1;
@@ -611,43 +742,110 @@ export function AiInterviewShell({
     return () => window.removeEventListener("keydown", handler);
   }, [phase, submitAnswer]);
 
-  // ── Clean up providers on unmount ─────────────────────────────────────────
+  // ── Clean up providers on unmount & browser close ─────────────────────────
   useEffect(() => {
-    return () => {
-      avatarRef.current?.destroySession();
-      voiceRef.current?.close();
-      visualRef.current?.destroy();
+    // 1. Unified teardown function to kill active media & sessions
+    const performTeardown = () => {
+      console.log("[AiInterviewShell] Tearing down session...");
+      try {
+        avatarRef.current?.destroySession();
+      } catch (e) { /* ignore */ }
+      try {
+        voiceRef.current?.close();
+      } catch (e) { /* ignore */ }
+      try {
+        visualRef.current?.destroy();
+      } catch (e) { /* ignore */ }
     };
-  }, []);
+
+    // 2. The unload handler (fires when tab closes or reloads)
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      performTeardown();
+      
+      // If we are actively interviewing (not results, not error), mark as ABANDONED in DB
+      setPhase((currentPhase) => {
+        if (currentPhase !== "results" && currentPhase !== "error" && currentPhase !== "ready") {
+          try {
+            // sendBeacon guarantees delivery even as the page unloads
+            const payload = JSON.stringify({ sessionId, status: "ABANDONED" });
+            navigator.sendBeacon("/api/ai-interview/beacon-teardown", payload);
+          } catch (err) {
+            console.error("Beacon failed", err);
+          }
+        }
+        return currentPhase;
+      });
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // 3. The React unmount handler
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      performTeardown();
+    };
+  }, [sessionId]);
 
   // ── Results view ──────────────────────────────────────────────────────────
   if (phase === "results" && summary) {
     return (
       <div className="min-h-screen bg-zinc-950 px-4 py-10 overflow-y-auto">
-        <ResultsPanel />
+        <ResultsPanel showReferral={showReferral ?? false} candidateReward={candidateReward} />
       </div>
     );
   }
 
   // ── Error view ────────────────────────────────────────────────────────────
   if (phase === "error") {
+    // Determine if the error happened during scoring (all answers saved, just scoring failed)
+    const isScoringError = currentIndex === totalQuestions - 1 && savedAnswers.filter(a => a).length === totalQuestions;
+
+    const handleRetry = async () => {
+      setError(null);
+      if (isScoringError) {
+        // Only retry the scoring call — don't restart the interview
+        setPhase("scoring");
+        try {
+          const res = await fetch("/api/ai-interview/score", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId }),
+          });
+          if (!res.ok) throw new Error("Scoring failed.");
+          const data = await res.json();
+          setSummary(data.summary);
+          setPhase("results");
+        } catch (err: any) {
+          setError(err.message ?? "Scoring failed. Please try again.");
+          setPhase("error");
+        }
+      } else {
+        // General error — reset to ready
+        setPhase("ready");
+      }
+    };
+
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-8">
         <div className="max-w-md w-full text-center space-y-6">
           <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
             <AlertCircle className="w-10 h-10 text-red-400" />
           </div>
-          <h2 className="text-2xl font-bold text-white">Something went wrong</h2>
+          <h2 className="text-2xl font-bold text-white">
+            {isScoringError ? "Scoring failed" : "Something went wrong"}
+          </h2>
           <p className="text-zinc-400">{error}</p>
+          {isScoringError && (
+            <p className="text-zinc-500 text-sm">
+              Your answers are safely saved. Only the final scoring needs to be retried.
+            </p>
+          )}
           <button
-            onClick={() => {
-              setPhase("ready");
-              setError(null);
-            }}
+            onClick={handleRetry}
             className="inline-flex items-center gap-2 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-semibold rounded-2xl transition-all"
           >
             <RotateCcw className="w-4 h-4" />
-            Try Again
+            {isScoringError ? "Retry Scoring" : "Try Again"}
           </button>
         </div>
       </div>
@@ -671,7 +869,7 @@ export function AiInterviewShell({
         </div>
         <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-700"
+          className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full transition-all duration-700"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -789,21 +987,48 @@ export function AiInterviewShell({
           </div>
         )}
 
+        {/* Network Quality Warning Badge */}
+        {networkSwitchedToOrb && !networkRecovered && (
+          <div className="px-4 py-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-full text-xs font-bold flex items-center gap-2 animate-in fade-in">
+            <WifiOff className="w-4 h-4" />
+            Poor connection detected — switched to lightweight AI Orb
+            {networkStats.rttMs !== null && (
+              <span className="text-rose-500/60 font-mono">({networkStats.rttMs}ms)</span>
+            )}
+          </div>
+        )}
+
+        {/* Network Recovered Badge */}
+        {networkRecovered && (
+          <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold flex items-center gap-2 animate-in fade-in">
+            <Wifi className="w-4 h-4" />
+            Connection recovered
+          </div>
+        )}
+
         {/* Question Bubble */}
-        <div className={`transition-all duration-700 w-full max-w-3xl flex-shrink-0 bg-zinc-900 border ${phase === "asking" ? "border-violet-500 shadow-lg shadow-violet-500/20" : "border-zinc-800 opacity-60"} rounded-3xl p-8 relative overflow-hidden`}>
+        <div className={`transition-all duration-700 w-full max-w-3xl flex-shrink-0 bg-zinc-900 border ${phase === "asking" ? "border-pink-500 shadow-lg shadow-pink-500/20" : "border-zinc-800 opacity-60"} rounded-3xl p-8 relative overflow-hidden`}>
           {phase === "ready" && (
             <div className="space-y-4 animate-in fade-in duration-500">
-              <h2 className="text-2xl font-extrabold text-white">Ready to start?</h2>
+              <h2 className="text-2xl font-extrabold text-white">
+                {isResuming ? "Welcome back!" : "Ready to start?"}
+              </h2>
+              {isResuming && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-sm font-medium">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                  You answered {resumeFromIndex} of {initialQuestions.length} questions — resuming from where you left off
+                </div>
+              )}
               <p className="text-zinc-400 max-w-sm mx-auto">
                 Make sure your microphone is connected. The AI interviewer will speak each question — answer out loud, then press{" "}
                 <kbd className="px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-300 text-xs font-mono">Space</kbd>{" "}
                 or click <strong className="text-white">Submit Answer</strong> when done.
               </p>
               <button
-                onClick={() => askQuestion(0)}
-                className="mt-2 px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-xl shadow-indigo-600/30 text-lg"
+                onClick={() => askQuestion(resumeFromIndex)}
+                className="mt-2 px-10 py-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-xl shadow-rose-600/30 text-lg"
               >
-                Begin Interview
+                {isResuming ? "Resume Interview" : "Begin Interview"}
               </button>
             </div>
           )}
@@ -830,7 +1055,7 @@ export function AiInterviewShell({
                 {currentQuestion.question.replace(/^\[FOLLOW-UP\]\s*/i, "")}
               </p>
               {phase === "asking" && (
-                <p className="text-sm text-indigo-400 animate-pulse font-medium">
+                <p className="text-sm text-rose-400 animate-pulse font-medium">
                   AI is speaking
                 </p>
               )}
@@ -880,7 +1105,7 @@ export function AiInterviewShell({
               Speech recognition unavailable — type your answer below
             </p>
             <textarea
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-2xl p-4 text-zinc-200 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              className="w-full bg-zinc-900 border border-zinc-700 rounded-2xl p-4 text-zinc-200 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-rose-500 text-sm"
               placeholder="Type your answer here…"
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
@@ -902,7 +1127,7 @@ export function AiInterviewShell({
           <>
             <button
               onClick={() => submitAnswer()}
-              className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-600/20 flex items-center gap-2"
+              className="px-8 py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-lg shadow-rose-600/20 flex items-center gap-2"
             >
               Submit Answer{" "}
               {isLastQuestion ? (

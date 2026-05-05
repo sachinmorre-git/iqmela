@@ -30,7 +30,7 @@ export function AiTestButton() {
       <button
         onClick={handleTest}
         disabled={isPending}
-        className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+        className="inline-flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
       >
         {isPending ? "Testing..." : "Test AI Connection"}
       </button>

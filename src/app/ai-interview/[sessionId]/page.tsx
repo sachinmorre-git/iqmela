@@ -41,12 +41,21 @@ export default async function AiInterviewRoomPage({
     redirect("/candidate/dashboard");
   }
 
-  // If already completed, redirect to results view
-  // (The shell handles results display too, so we pass the stored data)
+  // If already completed, show results directly
+  if (session.status === "COMPLETED") {
+    // Redirect to scorecard or results page
+    redirect(`/candidate/ai-interview`);
+  }
+
   const questions = session.turns.map((t: any) => ({
     category: t.category as "INTRO" | "TECHNICAL" | "BEHAVIORAL" | "CLOSING",
     question: t.question,
   }));
+
+  // Detect how many turns already have answers (for session resume)
+  const answeredTurns = session.turns.filter((t: any) => t.candidateAnswer != null);
+  const resumeFromIndex = answeredTurns.length;
+  const savedAnswers = session.turns.map((t: any) => t.candidateAnswer ?? null);
 
   const config = session.position?.aiInterviewConfigs?.[0];
   const retriesAllowed  = config?.retriesAllowed  ?? false;
@@ -57,6 +66,17 @@ export default async function AiInterviewRoomPage({
   const ttsProvider = process.env.TTS_PROVIDER ?? "browser";
   const visualMode = config?.visualMode ?? process.env.VISUAL_MODE ?? "orb";
 
+  const platformConfig = await prisma.platformConfig.findUnique({ where: { id: "GLOBAL" } });
+  const showReferral = platformConfig?.referralsEnabled && platformConfig?.candidateReferralsEnabled;
+  let candidateReward = { amount: 500, currency: "USD", rewardType: "AMAZON_GC" };
+  if (platformConfig?.referralRewardRules) {
+    try {
+      const rules = platformConfig.referralRewardRules as any[];
+      const rule = rules.find((r) => r.type === "CANDIDATE" && r.country === "GLOBAL");
+      if (rule) candidateReward = rule;
+    } catch (e) {}
+  }
+
   return (
     <AiInterviewShell
       sessionId={session.id}
@@ -65,6 +85,10 @@ export default async function AiInterviewRoomPage({
       avatarProvider={avatarProvider}
       ttsProvider={ttsProvider}
       visualMode={visualMode}
+      resumeFromIndex={resumeFromIndex}
+      savedAnswers={savedAnswers}
+      showReferral={!!showReferral}
+      candidateReward={candidateReward}
     />
   );
 }

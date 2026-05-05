@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!--
+    IQMela — IQM Monogram (Website Theme v2)
+    Indigo I · Emerald Q · Violet M
+    Smart contrast: hiring intelligence (indigo) + success (emerald) + premium (violet)
+  -->
+  <!-- M — Violet peaks (behind Q) -->
+  <path d="M 150 420 L 150 100 L 270 240 L 390 60 L 390 420 L 340 420 L 340 190 L 270 300 L 200 190 L 200 420 Z" fill="#8B5CF6"/>
+  <!-- Q — Emerald ring -->
+  <circle cx="270" cy="275" r="138" fill="#10B981"/>
+  <circle cx="270" cy="275" r="78" fill="white"/>
+  <!-- Q tail -->
+  <path d="M 350 365 L 430 445 L 400 475 L 320 395 Z" fill="#10B981"/>
+  <!-- I — Indigo bar -->
+  <rect x="40" y="80" width="40" height="350" rx="4" fill="#6366F1"/>
+</svg>

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" fill="none">
+  <!--
+    IQMela — Full Horizontal Lockup (Q+Check Icon + Wordmark)
+    Usage: Website header, email header, documents
+  -->
+
+  <!-- === Q + Checkmark Icon (scaled to fit 280px square) === -->
+  <g transform="translate(60, 60) scale(0.55)">
+    <!-- Q body — thick ring -->
+    <circle cx="240" cy="232" r="160" fill="#0D9488"/>
+    <circle cx="240" cy="232" r="88" fill="white"/>
+
+    <!-- Checkmark tail -->
+    <path
+      d="M 296 312 L 340 356 L 420 260"
+      stroke="#0D9488"
+      stroke-width="56"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      fill="none"
+    />
+    <circle cx="296" cy="312" r="28" fill="#0D9488"/>
+  </g>
+
+  <!-- === Wordmark === -->
+  <!-- "IQ" — Bold Indigo -->
+  <text
+    x="380"
+    y="248"
+    font-family="Inter, Satoshi, -apple-system, sans-serif"
+    font-weight="700"
+    font-size="120"
+    fill="#4338CA"
+    letter-spacing="-3"
+  >IQ</text>
+
+  <!-- "Mela" — Medium Teal -->
+  <text
+    x="576"
+    y="248"
+    font-family="Inter, Satoshi, -apple-system, sans-serif"
+    font-weight="500"
+    font-size="120"
+    fill="#0D9488"
+    letter-spacing="-1"
+  >Mela</text>
+</svg>

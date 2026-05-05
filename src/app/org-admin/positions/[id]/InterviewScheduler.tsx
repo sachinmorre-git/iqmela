@@ -71,7 +71,7 @@ export function InterviewScheduler({
     <>
       <Button 
         onClick={() => setIsOpen(true)}
-        className="rounded-xl shadow-md shadow-teal-600/20 bg-teal-600 hover:bg-teal-700 text-white border-transparent hover:-translate-y-0.5 transition-transform"
+        className="rounded-xl shadow-md shadow-rose-600/20 bg-rose-600 hover:bg-rose-700 text-white border-transparent hover:-translate-y-0.5 transition-transform"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
         Schedule Interview
@@ -92,7 +92,7 @@ export function InterviewScheduler({
               name="resumeId"
               value={selectedResumeId}
               onChange={(e) => setSelectedResumeId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+              className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
             >
               <option value="" disabled className="dark:bg-zinc-800">Select candidate...</option>
               {resumes.map(r => (
@@ -144,7 +144,7 @@ export function InterviewScheduler({
                     }
                   }}
                   defaultValue=""
-                  className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition disabled:opacity-50"
+                  className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition disabled:opacity-50"
                   disabled={selectedInterviewerIds.length >= 6}
                 >
                   <option value="" disabled className="dark:bg-zinc-800">
@@ -163,7 +163,7 @@ export function InterviewScheduler({
                       if (!u) return null;
                       return (
                         <div key={id} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-full text-xs font-semibold text-gray-800 dark:text-gray-200 shadow-sm animate-in zoom-in-50 duration-150">
-                          <span className="w-4 h-4 rounded-full bg-teal-500 text-white flex items-center justify-center text-[8px] shrink-0">
+                          <span className="w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[8px] shrink-0">
                             {u.name?.charAt(0) || u.email.charAt(0).toUpperCase()}
                           </span>
                           <span className="truncate max-w-[120px]">{u.name || u.email}</span>
@@ -190,7 +190,7 @@ export function InterviewScheduler({
               type="text"
               name="title"
               placeholder="e.g. Technical Screen with John"
-              className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+              className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
             />
           </div>
 
@@ -201,7 +201,7 @@ export function InterviewScheduler({
                   required
                   type="datetime-local"
                   name="scheduledAt"
-                  className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                  className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
                 />
              </div>
              <div>
@@ -213,7 +213,7 @@ export function InterviewScheduler({
                   defaultValue="60"
                   min="15"
                   step="15"
-                  className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                  className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
                 />
              </div>
           </div>
@@ -225,7 +225,7 @@ export function InterviewScheduler({
                 type="url"
                 name="externalLink"
                 placeholder="https://zoom.us/j/123456789"
-                className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                className="w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
               />
               <p className="mt-1.5 text-[10px] text-gray-500 dark:text-zinc-500">Provide an external link (Zoom, Google Meet) for the interview.</p>
             </div>
@@ -233,7 +233,7 @@ export function InterviewScheduler({
 
           <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 dark:border-zinc-800">
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button type="submit" disabled={isSubmitting} className="rounded-xl shadow-md bg-teal-600 hover:bg-teal-700 text-white">
+            <Button type="submit" disabled={isSubmitting} className="rounded-xl shadow-md bg-rose-600 hover:bg-rose-700 text-white">
               {isSubmitting ? "Scheduling..." : "Schedule Interview"}
             </Button>
           </div>

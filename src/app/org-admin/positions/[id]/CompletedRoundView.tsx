@@ -26,7 +26,7 @@ interface CompletedRoundViewProps {
 
 const REC_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   STRONG_HIRE:    { bg: "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800", text: "text-emerald-700 dark:text-emerald-400", label: "Strong Hire" },
-  HIRE:           { bg: "bg-teal-100 dark:bg-teal-900/30 border-teal-200 dark:border-teal-800", text: "text-teal-700 dark:text-teal-400", label: "Hire" },
+  HIRE:           { bg: "bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800", text: "text-rose-700 dark:text-rose-400", label: "Hire" },
   NO_HIRE:        { bg: "bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800", text: "text-red-700 dark:text-red-400", label: "No Hire" },
   STRONG_NO_HIRE: { bg: "bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800", text: "text-red-700 dark:text-red-400", label: "Strong No Hire" },
   MAYBE:          { bg: "bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800", text: "text-amber-700 dark:text-amber-400", label: "Maybe" },
@@ -177,7 +177,7 @@ export function CompletedRoundView({
               setLoading(false);
             });
           }}
-          className="mt-2 px-4 py-2 rounded-xl text-xs font-bold bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+          className="mt-2 px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-700 transition-colors"
         >
           Retry
         </button>
@@ -197,7 +197,7 @@ export function CompletedRoundView({
     );
   }
 
-  const { compositeScore, consensusSummary, panelistScores, behaviorReport, recording, aiBrief, aiSession } = data;
+  const { compositeScore, consensusSummary, panelistScores, behaviorReport, recording, aiBrief, aiSession, aiConfidence, keyInsights, skillRadar } = data;
   const scoreColor = (compositeScore ?? 0) >= 80 ? "emerald" : (compositeScore ?? 0) >= 60 ? "amber" : "red";
   const isLastStage = stageIndex >= totalStages - 1;
 
@@ -254,7 +254,7 @@ export function CompletedRoundView({
               <div className="bg-emerald-500" style={{ width: `${(consensusSummary.strongHire / consensusSummary.total) * 100}%` }} />
             )}
             {consensusSummary.hire > 0 && (
-              <div className="bg-teal-400" style={{ width: `${(consensusSummary.hire / consensusSummary.total) * 100}%` }} />
+              <div className="bg-rose-400" style={{ width: `${(consensusSummary.hire / consensusSummary.total) * 100}%` }} />
             )}
             {consensusSummary.noHire > 0 && (
               <div className="bg-amber-400" style={{ width: `${(consensusSummary.noHire / consensusSummary.total) * 100}%` }} />
@@ -273,8 +273,8 @@ export function CompletedRoundView({
                 </span>
               )}
               {consensusSummary.hire > 0 && (
-                <span className="flex items-center gap-1 text-[10px] font-bold text-teal-600 dark:text-teal-400">
-                  <span className="w-2 h-2 rounded-full bg-teal-400" />
+                <span className="flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                  <span className="w-2 h-2 rounded-full bg-rose-400" />
                   Hire: {consensusSummary.hire}
                 </span>
               )}
@@ -304,6 +304,195 @@ export function CompletedRoundView({
         </div>
       )}
 
+      {/* ═══ Section 2b: AI Hiring Confidence Gauge ═══ */}
+      {aiConfidence && (
+        <div className="bg-gradient-to-br from-rose-50/50 to-pink-50/50 dark:from-rose-900/10 dark:to-pink-900/10 rounded-xl border border-rose-200/60 dark:border-rose-800/40 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+            <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">AI Hiring Confidence</span>
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Arc gauge */}
+            <div className="relative w-20 h-20 shrink-0">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" strokeWidth="6" className="stroke-gray-100 dark:stroke-zinc-800" />
+                <circle cx="50" cy="50" r="40" fill="none" strokeWidth="6"
+                  strokeDasharray={`${aiConfidence.confidence * 2.51} 251`}
+                  strokeLinecap="round"
+                  style={{
+                    stroke: aiConfidence.confidence >= 75 ? "#10b981" : aiConfidence.confidence >= 50 ? "#f59e0b" : "#ef4444",
+                    transition: "stroke-dasharray 1.5s ease-out",
+                  }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-xl font-black ${aiConfidence.confidence >= 75 ? "text-emerald-600" : aiConfidence.confidence >= 50 ? "text-amber-600" : "text-red-500"}`}>
+                  {aiConfidence.confidence}%
+                </span>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] text-gray-600 dark:text-zinc-400 leading-relaxed italic">
+                &ldquo;{aiConfidence.justification}&rdquo;
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Section 2c: AI vs Panelist Score Comparison ═══ */}
+      {aiSession && aiSession.overallScore != null && panelistScores.length > 0 && (
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-100 dark:border-zinc-800 p-3">
+          <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-2">AI vs Panelist Comparison</p>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 text-center">
+              <p className="text-[9px] font-bold text-pink-500 uppercase mb-0.5">AI Score</p>
+              <span className={`text-lg font-black ${(aiSession.overallScore ?? 0) >= 70 ? "text-emerald-600" : "text-amber-600"}`}>
+                {aiSession.overallScore}
+              </span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5">
+              {(() => {
+                const delta = (compositeScore ?? 0) - (aiSession.overallScore ?? 0);
+                return (
+                  <>
+                    <span className={`text-[10px] font-black ${delta >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                      {delta >= 0 ? "+" : ""}{delta}
+                    </span>
+                    <span className="text-[8px] text-gray-400 uppercase">delta</span>
+                  </>
+                );
+              })()}
+            </div>
+            <div className="flex-1 text-center">
+              <p className="text-[9px] font-bold text-blue-500 uppercase mb-0.5">Panel Avg</p>
+              <span className={`text-lg font-black ${(compositeScore ?? 0) >= 70 ? "text-emerald-600" : "text-amber-600"}`}>
+                {compositeScore}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Section 2d: Skill Dimension Radar Chart ═══ */}
+      {skillRadar && (
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-100 dark:border-zinc-800 p-4">
+          <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <Brain className="w-3 h-3" /> Skill Radar
+          </p>
+          <div className="flex items-center justify-center">
+            <svg viewBox="0 0 200 200" className="w-44 h-44">
+              {/* Grid lines */}
+              {[20, 40, 60, 80, 100].map((r) => (
+                <polygon key={r} fill="none" strokeWidth="0.5"
+                  className="stroke-gray-200 dark:stroke-zinc-700"
+                  points={[0, 1, 2, 3].map((i) => {
+                    const angle = (i * Math.PI * 2) / 4 - Math.PI / 2;
+                    return `${100 + r * 0.8 * Math.cos(angle)},${100 + r * 0.8 * Math.sin(angle)}`;
+                  }).join(" ")}
+                />
+              ))}
+              {/* Axes */}
+              {[0, 1, 2, 3].map((i) => {
+                const angle = (i * Math.PI * 2) / 4 - Math.PI / 2;
+                return (
+                  <line key={i} x1="100" y1="100"
+                    x2={100 + 80 * Math.cos(angle)} y2={100 + 80 * Math.sin(angle)}
+                    strokeWidth="0.5" className="stroke-gray-200 dark:stroke-zinc-700"
+                  />
+                );
+              })}
+              {/* Data polygon */}
+              <polygon fill="rgba(244,63,94,0.15)" strokeWidth="2"
+                className="stroke-rose-500"
+                points={[
+                  { v: skillRadar.technical, i: 0 },
+                  { v: skillRadar.communication, i: 1 },
+                  { v: skillRadar.problemSolving, i: 2 },
+                  { v: skillRadar.cultureFit, i: 3 },
+                ].map(({ v, i }) => {
+                  const angle = (i * Math.PI * 2) / 4 - Math.PI / 2;
+                  const r = (v / 100) * 80;
+                  return `${100 + r * Math.cos(angle)},${100 + r * Math.sin(angle)}`;
+                }).join(" ")}
+              />
+              {/* Data points */}
+              {[
+                { v: skillRadar.technical, i: 0 },
+                { v: skillRadar.communication, i: 1 },
+                { v: skillRadar.problemSolving, i: 2 },
+                { v: skillRadar.cultureFit, i: 3 },
+              ].map(({ v, i }) => {
+                const angle = (i * Math.PI * 2) / 4 - Math.PI / 2;
+                const r = (v / 100) * 80;
+                return <circle key={i} cx={100 + r * Math.cos(angle)} cy={100 + r * Math.sin(angle)} r="3" className="fill-rose-500" />;
+              })}
+              {/* Labels */}
+              {[
+                { label: "Technical", i: 0, dx: 0, dy: -10 },
+                { label: "Communication", i: 1, dx: 10, dy: 0 },
+                { label: "Problem Solving", i: 2, dx: 0, dy: 12 },
+                { label: "Culture Fit", i: 3, dx: -10, dy: 0 },
+              ].map(({ label, i, dx, dy }) => {
+                const angle = (i * Math.PI * 2) / 4 - Math.PI / 2;
+                const lr = 92;
+                return (
+                  <text key={label}
+                    x={100 + lr * Math.cos(angle) + dx}
+                    y={100 + lr * Math.sin(angle) + dy}
+                    textAnchor="middle"
+                    className="fill-gray-400 dark:fill-zinc-500 text-[8px] font-bold"
+                  >
+                    {label}
+                  </text>
+                );
+              })}
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Section 2e: Key AI Insights Cards ═══ */}
+      {keyInsights && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3 text-pink-500" /> Key AI Insights
+          </p>
+          <div className="grid gap-1.5">
+            {/* Top Strength */}
+            <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-900/10 border border-emerald-200/60 dark:border-emerald-800/40">
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-500 text-sm shrink-0 mt-0.5">✦</span>
+                <div>
+                  <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">Top Strength</p>
+                  <p className="text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed font-medium">{keyInsights.topStrength}</p>
+                </div>
+              </div>
+            </div>
+            {/* Biggest Risk */}
+            <div className="p-3 rounded-xl bg-red-50/70 dark:bg-red-900/10 border border-red-200/60 dark:border-red-800/40">
+              <div className="flex items-start gap-2">
+                <span className="text-red-500 text-sm shrink-0 mt-0.5">⚠</span>
+                <div>
+                  <p className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-0.5">Biggest Risk</p>
+                  <p className="text-[11px] text-red-800 dark:text-red-300 leading-relaxed font-medium">{keyInsights.biggestRisk}</p>
+                </div>
+              </div>
+            </div>
+            {/* Next Round Suggestion */}
+            <div className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-800/40">
+              <div className="flex items-start gap-2">
+                <span className="text-amber-500 text-sm shrink-0 mt-0.5">→</span>
+                <div>
+                  <p className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-0.5">Next Round Focus</p>
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed font-medium">{keyInsights.nextRoundSuggestion}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ Section 3: Panelist Scorecard Cards ═══ */}
       {panelistScores.length > 0 && (
         <div className="space-y-2">
@@ -324,7 +513,7 @@ export function CompletedRoundView({
                   onClick={() => setExpandedPanelist(isExpanded ? -1 : i)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                     {initials}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -348,8 +537,8 @@ export function CompletedRoundView({
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       {[
                         { label: "Technical", val: ps.technicalScore, color: "bg-blue-500" },
-                        { label: "Communication", val: ps.communicationScore, color: "bg-teal-500" },
-                        { label: "Problem Solving", val: ps.problemSolvingScore, color: "bg-violet-500" },
+                        { label: "Communication", val: ps.communicationScore, color: "bg-rose-500" },
+                        { label: "Problem Solving", val: ps.problemSolvingScore, color: "bg-pink-500" },
                         { label: "Culture Fit", val: ps.cultureFitScore, color: "bg-amber-500" },
                       ].map((d) => (
                         <div key={d.label} className="flex items-center gap-2">
@@ -390,10 +579,10 @@ export function CompletedRoundView({
 
       {/* ═══ Section 3b: AI Session (for AI_SCREEN rounds) ═══ */}
       {aiSession && panelistScores.length === 0 && (
-        <div className="bg-violet-50/50 dark:bg-violet-900/10 rounded-xl border border-violet-200 dark:border-violet-800/40 p-4 space-y-2">
+        <div className="bg-pink-50/50 dark:bg-pink-900/10 rounded-xl border border-pink-200 dark:border-pink-800/40 p-4 space-y-2">
           <div className="flex items-center gap-2">
-            <Brain className="w-4 h-4 text-violet-500" />
-            <p className="text-xs font-bold text-violet-800 dark:text-violet-300">AI Interview Results</p>
+            <Brain className="w-4 h-4 text-pink-500" />
+            <p className="text-xs font-bold text-pink-800 dark:text-pink-300">AI Interview Results</p>
           </div>
           <div className="flex items-center gap-4">
             <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center ${
@@ -418,7 +607,7 @@ export function CompletedRoundView({
             </div>
           </div>
           {aiSession.executiveSummary && (
-            <p className="text-[11px] text-violet-700 dark:text-violet-400 italic leading-relaxed border-l-2 border-violet-300 dark:border-violet-700 pl-2">
+            <p className="text-[11px] text-pink-700 dark:text-pink-400 italic leading-relaxed border-l-2 border-pink-300 dark:border-pink-700 pl-2">
               &ldquo;{aiSession.executiveSummary}&rdquo;
             </p>
           )}
@@ -434,7 +623,7 @@ export function CompletedRoundView({
             className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
           >
             <div className="flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5 text-violet-500" />
+              <Shield className="w-3.5 h-3.5 text-pink-500" />
               <span className="text-[10px] font-bold text-gray-700 dark:text-zinc-300 uppercase tracking-wider">
                 AI Behavior Analysis
               </span>
@@ -452,9 +641,9 @@ export function CompletedRoundView({
               {/* 4 mini indicators */}
               <div className="grid grid-cols-4 gap-2">
                 {[
-                  { label: "Integrity", val: behaviorReport.integrityScore, icon: Shield, color: "text-violet-500" },
+                  { label: "Integrity", val: behaviorReport.integrityScore, icon: Shield, color: "text-pink-500" },
                   { label: "Confidence", val: behaviorReport.confidenceScore, icon: Brain, color: "text-blue-500" },
-                  { label: "Composure", val: behaviorReport.composureScore, icon: Smile, color: "text-teal-500" },
+                  { label: "Composure", val: behaviorReport.composureScore, icon: Smile, color: "text-rose-500" },
                   { label: "Engagement", val: behaviorReport.engagementScore, icon: Activity, color: "text-amber-500" },
                 ].map((d) => (
                   <div key={d.label} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
@@ -490,7 +679,7 @@ export function CompletedRoundView({
               {/* View full report link */}
               <Link
                 href={`/org-admin/candidates/${resumeId}/intelligence`}
-                className="inline-flex items-center gap-1 text-[10px] font-bold text-violet-600 dark:text-violet-400 hover:text-violet-700 transition-colors"
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-pink-600 dark:text-pink-400 hover:text-pink-700 transition-colors"
               >
                 View Full Report →
               </Link>
@@ -525,11 +714,11 @@ export function CompletedRoundView({
 
       {/* ═══ Section 6: AI Decision Brief ═══ */}
       {aiBrief && (
-        <div className="relative rounded-xl p-[1px] bg-gradient-to-r from-violet-500 via-indigo-500 to-teal-500">
+        <div className="relative rounded-xl p-[1px] bg-gradient-to-r from-pink-500 via-rose-500 to-rose-500">
           <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-[11px] p-3.5">
             <div className="flex items-center gap-1.5 mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-violet-500" />
-              <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-pink-500" />
+              <span className="text-[10px] font-bold text-pink-600 dark:text-pink-400 uppercase tracking-wider">
                 AI Decision Brief
               </span>
             </div>
@@ -564,7 +753,7 @@ export function CompletedRoundView({
             onChange={(e) => setDecisionNote(e.target.value)}
             rows={2}
             placeholder="Add a note about your decision..."
-            className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition resize-none"
+            className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition resize-none"
             autoFocus
           />
         ) : (

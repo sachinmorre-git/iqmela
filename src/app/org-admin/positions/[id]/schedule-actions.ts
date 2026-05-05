@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { formatDate, formatTime, formatDateTime } from "@/lib/locale-utils";
 import { revalidatePath } from "next/cache";
 import { getCallerPermissions } from "@/lib/rbac";
 import { InterviewMode } from "@prisma/client";
@@ -101,51 +102,41 @@ export async function scheduleInterviewAction(formData: FormData) {
     }
 
     // Formatting date helper
-    const formattedDate = scheduledAt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-    const formattedTime = scheduledAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const formattedDate = formatDate(scheduledAt, { style: "long" });
+    const formattedTime = formatTime(scheduledAt);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const interviewUrl = `${baseUrl}/interview/${interview.id}/live`;
 
-    // Send Candidate Email
-    await emailService.sendEmail({
+    // Build meeting info block
+    const meetingInfo = mode === "HUMAN" && externalLink
+      ? `\n\n🔗 <strong>Meeting Link:</strong> <a href="${externalLink}">${externalLink}</a>`
+      : mode === "AI_AVATAR"
+      ? `\n\n🤖 <strong>Format:</strong> AI Avatar Interview`
+      : "";
+
+    // Send Candidate Email (branded template)
+    await emailService.sendGenericEmail({
       to: candidate.email,
-      subject: `Interview Scheduled for ${position.title} at IQMela`,
-      html: `
-        <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto; color: #333;">
-          <h2 style="color: #0f766e;">Your Interview is Scheduled</h2>
-          <p>Hi ${candidate.name || 'Candidate'},</p>
-          <p>We are excited to schedule your interview for the <strong>${position.title}</strong> position.</p>
-          <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Date:</strong> ${formattedDate}</p>
-            <p><strong>Time:</strong> ${formattedTime}</p>
-            <p><strong>Duration:</strong> ${interview.durationMinutes} minutes</p>
-            ${mode === "HUMAN" ? `<p><strong>Meeting Link:</strong> <a href="${externalLink}">${externalLink}</a></p>` : `<p><strong>Format:</strong> AI Avatar Interview. <a href="${aiLink || 'https://iqmela.v2/candidate/dashboard'}">Start your interview here.</a></p>`}
-          </div>
-          <p>Please log in to your <a href="https://iqmela.v2/candidate/dashboard">Candidate Dashboard</a> to review your schedule.</p>
-          <p>Best regards,<br/>The IQMela Hiring Team</p>
-        </div>
-      `
+      subject: `📅 Interview Scheduled — ${position.title}`,
+      previewText: `Your ${title} interview is scheduled for ${formattedDate} at ${formattedTime}`,
+      heading: "🎉 Your Interview is Scheduled!",
+      body: `Hi <strong>${candidate.name || "Candidate"}</strong>,\n\nWe are excited to confirm your interview for the <strong>${position.title}</strong> position.\n\n📅 <strong>Date:</strong> ${formattedDate}\n⏰ <strong>Time:</strong> ${formattedTime}\n⏱ <strong>Duration:</strong> ${interview.durationMinutes} minutes${meetingInfo}\n\n🌐 <strong>Browser:</strong> Please use Chrome, Edge, or Safari (latest version) on a desktop/laptop for the best experience.\n\nPlease join on time. Good luck!`,
+      ctaLabel: mode === "AI_AVATAR" ? "Start AI Interview →" : "Join Interview Room →",
+      ctaUrl: mode === "AI_AVATAR" ? (aiLink || `${baseUrl}/candidate/dashboard`) : interviewUrl,
     });
 
     // Send Interviewer Emails concurrently (If Human panel)
     if (mode === "HUMAN" && interviewers.length > 0) {
       await Promise.all(interviewers.map(async (u) => {
         if (!u.email) return;
-        return emailService.sendEmail({
+        return emailService.sendGenericEmail({
           to: u.email,
-          subject: `ACTION REQUIRED: Interview Scheduled with ${candidate.name || candidate.email}`,
-          html: `
-            <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto; color: #333;">
-              <h2 style="color: #0f766e;">New Panel Interview Assignment</h2>
-              <p>Hi ${u.name || 'Panelist'},</p>
-              <p>You have been assigned to interview <strong>${candidate.name || candidate.email}</strong> for the <strong>${position.title}</strong> role alongside ${interviewers.length - 1} other panelist(s).</p>
-              <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p><strong>Date:</strong> ${formattedDate}</p>
-                <p><strong>Time:</strong> ${formattedTime}</p>
-                <p><strong>Duration:</strong> ${interview.durationMinutes} minutes</p>
-                <p><strong>Meeting Link:</strong> ${externalLink}</p>
-              </div>
-              <p>You can manage this interview and collaborate on notes from your <a href="https://iqmela.v2/interviewer/interviews">Interviewer Portal</a>.</p>
-            </div>
-          `
+          subject: `📋 Panel Interview — ${candidate.name || candidate.email} for ${position.title}`,
+          previewText: `You've been assigned to interview ${candidate.name || candidate.email} on ${formattedDate}`,
+          heading: "📋 New Panel Interview Assignment",
+          body: `Hi <strong>${u.name || "Panelist"}</strong>,\n\nYou have been assigned to interview <strong>${candidate.name || candidate.email}</strong> for the <strong>${position.title}</strong> role alongside ${interviewers.length - 1} other panelist(s).\n\n📅 <strong>Date:</strong> ${formattedDate}\n⏰ <strong>Time:</strong> ${formattedTime}\n⏱ <strong>Duration:</strong> ${interview.durationMinutes} minutes${externalLink ? `\n🔗 <strong>Meeting Link:</strong> <a href="${externalLink}">${externalLink}</a>` : ""}\n\n🌐 <strong>Browser:</strong> Please use Chrome, Edge, or Safari.\n\nYou can manage this interview and collaborate on notes from your Interviewer Portal.`,
+          ctaLabel: "Join Interview Room →",
+          ctaUrl: interviewUrl,
         });
       }));
     }

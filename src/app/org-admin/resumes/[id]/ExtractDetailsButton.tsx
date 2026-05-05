@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button"
 import { useTransition } from "react"
@@ -11,7 +12,7 @@ export function ExtractDetailsButton({ resumeId, disabled }: { resumeId: string,
     startTransition(async () => {
       const result = await extractCandidateDetailsAction(resumeId)
       if (!result.success) {
-        alert(result.error)
+        toast.error(result.error || "Operation failed")
       }
     })
   }

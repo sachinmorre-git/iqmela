@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { saveFile } from "@/lib/storage";
 import { getCallerPermissions } from "@/lib/rbac";
+import { isIntakeOpen } from "@/lib/intake-window";
 
 const ACCEPTED_MIME = new Set([
   "application/pdf",
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
     // ── Org-scoped check ──────────────────────────────────────────────────────
     const position = await prisma.position.findUnique({
       where: { id: positionId },
-      select: { organizationId: true },
+      select: { organizationId: true, isPublished: true, createdAt: true, intakeWindowDays: true },
     });
 
     if (!position) {
@@ -45,6 +46,14 @@ export async function POST(req: NextRequest) {
     }
     if (position.organizationId !== perms.orgId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // ── Intake window check ──────────────────────────────────────────────────
+    if (position.isPublished && !isIntakeOpen(position)) {
+      return NextResponse.json(
+        { error: "Intake window has closed for this position. Adjust the window in Settings to re-open." },
+        { status: 410 }
+      );
     }
 
     // ── Extract files from FormData ──────────────────────────────────────────

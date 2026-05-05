@@ -3,6 +3,7 @@
 import { useState, useTransition, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { submitAvailabilitySlotsAction } from "@/app/org-admin/positions/[id]/poll-actions";
+import { formatDate, formatTime } from "@/lib/locale-utils"
 
 interface SlotPickerGridProps {
   token: string;
@@ -45,11 +46,7 @@ export function SlotPickerGrid({ token, dateStart, dateEnd, durationMinutes }: S
     for (let hour = HOUR_START; hour < HOUR_END; hour++) {
       for (let min = 0; min < 60; min += BLOCK_MINUTES) {
         const time = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
-        const label = new Date(`2000-01-01T${time}`).toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
+        const label = formatTime(new Date(`2000-01-01T${time}`), { showTimezone: false });
         blocks.push({ time, label });
       }
     }
@@ -146,10 +143,10 @@ export function SlotPickerGrid({ token, dateStart, dateEnd, durationMinutes }: S
             {dates.map((d) => (
               <div key={d} className="px-2 py-3 text-center border-l border-gray-50 dark:border-zinc-800">
                 <p className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase">
-                  {new Date(d + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" })}
+                  {formatDate(new Date(d + "T12:00:00"))}
                 </p>
                 <p className="text-xs font-bold text-gray-900 dark:text-white">
-                  {new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {formatDate(new Date(d + "T12:00:00"))}
                 </p>
               </div>
             ))}
@@ -175,8 +172,8 @@ export function SlotPickerGrid({ token, dateStart, dateEnd, durationMinutes }: S
                     onClick={() => toggleBlock(d, time)}
                     className={`h-8 border-l border-gray-50 dark:border-zinc-800/50 transition-all duration-100 ${
                       isSelected
-                        ? "bg-teal-500 hover:bg-teal-600"
-                        : "bg-transparent hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                        ? "bg-rose-500 hover:bg-rose-600"
+                        : "bg-transparent hover:bg-rose-50 dark:hover:bg-rose-900/20"
                     }`}
                     title={`${d} ${label}`}
                   />
@@ -199,7 +196,7 @@ export function SlotPickerGrid({ token, dateStart, dateEnd, durationMinutes }: S
           type="button"
           onClick={handleSubmit}
           disabled={isPending || selectedBlocks.size === 0}
-          className="px-5 py-2 rounded-xl text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+          className="px-5 py-2 rounded-xl text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
         >
           {isPending ? (
             <>

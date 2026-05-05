@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { formatDate } from "@/lib/locale-utils"
 
 export const metadata: Metadata = {
   title: "Welcome to the Talent Network | IQMela",
@@ -224,7 +225,7 @@ export default async function WelcomePage({
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: "13px", color: "#71717a" }}>Member since</span>
               <span style={{ fontSize: "13px", color: "#fff", fontWeight: 500 }}>
-                {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                {formatDate(new Date(), { style: "long" })}
               </span>
             </div>
           </div>

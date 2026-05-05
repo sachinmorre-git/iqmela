@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import { CandidatePipelineBar, type StageState } from "./CandidatePipelineBar";
 import { ScheduleDrawer } from "./ScheduleDrawer";
 import { OfferWorkspaceDrawer } from "./OfferWorkspaceDrawer";
+import { BgvWorkspaceDrawer } from "./BgvWorkspaceDrawer";
 import { rankInterviewers, type InterviewerForMatch, type MatchResult } from "@/lib/interviewer-match";
 import type { InterviewRoundType } from "@prisma/client";
 
@@ -57,6 +58,7 @@ export function PipelineWrapper({
 }: PipelineWrapperProps) {
   const [drawerStage, setDrawerStage] = useState<StageState | null>(null);
   const [isOfferDrawerOpen, setIsOfferDrawerOpen] = useState(false);
+  const [isBgvDrawerOpen, setIsBgvDrawerOpen] = useState(false);
 
   // Build previous rounds for the drawer context
   const previousRounds = stages
@@ -111,8 +113,7 @@ export function PipelineWrapper({
     }
   }, [stages]);
 
-  const allStagesCompleted = stages.length > 0 && stages.every(s => s.status === "COMPLETED" || s.status === "SKIPPED");
-  const showOfferButton = pipelineStatus !== "HIRED" && pipelineStatus !== "REJECTED" && pipelineStatus !== "WITHDRAWN" && allStagesCompleted;
+  const showActions = pipelineStatus !== "HIRED" && pipelineStatus !== "REJECTED" && pipelineStatus !== "WITHDRAWN";
 
   return (
     <div className="flex items-center gap-4">
@@ -127,13 +128,32 @@ export function PipelineWrapper({
         }}
       />
 
-      {showOfferButton && (
-        <button
-          onClick={() => setIsOfferDrawerOpen(true)}
-          className="px-3 py-1 bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-bold rounded-lg shadow-sm shadow-violet-500/20 transition-all ml-2"
-        >
-          {pipelineStatus === "OFFER_PENDING" ? "View Offer" : "Extend Offer"}
-        </button>
+      {showActions && (
+        <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200 dark:border-zinc-800">
+          <button
+            type="button"
+            onClick={() => setIsBgvDrawerOpen(true)}
+            className="w-11 h-11 flex flex-col items-center justify-center leading-tight bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-[10px] font-bold rounded-xl transition-all shadow-sm"
+          >
+            <span>BGV</span>
+            <span>Check</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsOfferDrawerOpen(true)}
+            className={`w-11 h-11 flex flex-col items-center justify-center leading-tight text-[10px] font-bold rounded-xl transition-all shadow-sm ${
+              pipelineStatus === "OFFER_PENDING"
+                ? "bg-pink-600 hover:bg-pink-700 text-white shadow-pink-500/20"
+                : "bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 border border-pink-200 dark:border-pink-800/50 hover:bg-pink-100 dark:hover:bg-pink-900/50"
+            }`}
+          >
+            {pipelineStatus === "OFFER_PENDING" ? (
+              <><span>View</span><span>Offer</span></>
+            ) : (
+              <><span>Extend</span><span>Offer</span></>
+            )}
+          </button>
+        </div>
       )}
 
       <ScheduleDrawer
@@ -159,6 +179,16 @@ export function PipelineWrapper({
         resumeId={resumeId}
         positionId={positionId}
         candidateName={candidateName}
+        pipelineStatus={pipelineStatus}
+      />
+
+      <BgvWorkspaceDrawer
+        isOpen={isBgvDrawerOpen}
+        onClose={() => setIsBgvDrawerOpen(false)}
+        resumeId={resumeId}
+        positionId={positionId}
+        candidateName={candidateName}
+        totalStages={stages.length}
       />
     </div>
   );

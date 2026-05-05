@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react"
 import Link from "next/link"
-import { deletePositionAction, archivePositionAction } from "./[id]/actions"
+import { deletePositionAction, archivePositionAction, closePositionAction } from "./[id]/actions"
+import { formatDate } from "@/lib/locale-utils"
 
 type Position = {
   id: string
@@ -16,20 +17,29 @@ type Position = {
 
 const STATUS_STYLES: Record<Position["status"], string> = {
   DRAFT:    "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400",
-  OPEN:     "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400",
+  OPEN:     "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
   PAUSED:   "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
   CLOSED:   "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-500",
   ARCHIVED: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
 }
 
-function PositionRow({ position, onDeleted, onArchived }: {
+function PositionRow({ position, onDeleted, onArchived, onClosed }: {
   position: Position
   onDeleted: (id: string) => void
   onArchived: (id: string) => void
+  onClosed: (id: string) => void
 }) {
   const [isPending, startTransition] = useTransition()
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  function handleClose() {
+    startTransition(async () => {
+      const res = await closePositionAction(position.id)
+      if (res.success) onClosed(position.id)
+      else setError(res.error ?? "Failed to close")
+    })
+  }
 
   function handleArchive() {
     startTransition(async () => {
@@ -49,13 +59,16 @@ function PositionRow({ position, onDeleted, onArchived }: {
     setConfirmDelete(false)
   }
 
+  const canClose = position.status === "OPEN" || position.status === "PAUSED" || position.status === "DRAFT"
+  const canArchive = position.status !== "ARCHIVED"
+
   return (
-    <tr className="hover:bg-gray-50/70 dark:hover:bg-zinc-900/40 transition-colors group">
+    <tr className="hover:bg-gray-50/70 dark:hover:bg-zinc-900/40 transition-colors group relative cursor-pointer">
       {/* Clickable title */}
       <td className="px-6 py-4 whitespace-nowrap">
         <Link
           href={`/org-admin/positions/${position.id}`}
-          className="font-semibold text-gray-900 dark:text-white hover:text-teal-600 dark:hover:text-teal-400 transition-colors underline-offset-2 hover:underline"
+          className="font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors underline-offset-4 hover:underline after:absolute after:inset-0"
         >
           {position.title}
         </Link>
@@ -75,12 +88,22 @@ function PositionRow({ position, onDeleted, onArchived }: {
         </span>
       </td>
       <td className="px-6 py-4 text-gray-400 dark:text-gray-500 text-xs hidden lg:table-cell whitespace-nowrap">
-        {position.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        {formatDate(position.createdAt)}
       </td>
       <td className="px-6 py-4 text-right">
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-2 relative z-10">
           {error && <span className="text-xs text-rose-500">{error}</span>}
-          {position.status !== "ARCHIVED" && (
+          {canClose && (
+            <button
+              onClick={handleClose}
+              disabled={isPending}
+              title="Close position & unpublish from all job boards"
+              className="text-xs font-medium text-orange-600 dark:text-orange-400 hover:text-orange-700 hover:underline disabled:opacity-50"
+            >
+              Close
+            </button>
+          )}
+          {canArchive && (
             <button
               onClick={handleArchive}
               disabled={isPending}
@@ -129,6 +152,10 @@ export function PositionsTable({ initialPositions }: { initialPositions: Positio
     setPositions(prev => prev.map(p => p.id === id ? { ...p, status: "ARCHIVED" as const } : p))
   }
 
+  function handleClosed(id: string) {
+    setPositions(prev => prev.map(p => p.id === id ? { ...p, status: "CLOSED" as const } : p))
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Active Positions */}
@@ -160,6 +187,7 @@ export function PositionsTable({ initialPositions }: { initialPositions: Positio
                     position={position}
                     onDeleted={handleDeleted}
                     onArchived={handleArchived}
+                    onClosed={handleClosed}
                   />
                 ))}
               </tbody>
@@ -187,6 +215,7 @@ export function PositionsTable({ initialPositions }: { initialPositions: Positio
                     position={position}
                     onDeleted={handleDeleted}
                     onArchived={handleArchived}
+                    onClosed={handleClosed}
                   />
                 ))}
               </tbody>

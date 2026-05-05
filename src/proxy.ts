@@ -1,6 +1,16 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { LEGAL_VERSIONS } from "@/lib/legal-versions";
+import { isIpBlocked } from "@/lib/security-block";
+import { isCountryBlocked } from "@/lib/geo-block";
+import {
+  getClientIp,
+  generalApiLimiter,
+  healthLimiter,
+  aiInterviewLimiter,
+  rateLimitResponse,
+  trackViolation,
+} from "@/lib/rate-limiter";
 
 const isProtectedRoute = createRouteMatcher([
   '/candidate(.*)',
@@ -14,7 +24,74 @@ const isProtectedRoute = createRouteMatcher([
 const isLegalRoute  = createRouteMatcher(['/legal(.*)']);
 const isApiRoute    = createRouteMatcher(['/api(.*)']);
 
+// Public API routes — no auth required (for external health monitors)
+const isPublicApi   = createRouteMatcher(['/api/health', '/api/cron(.*)']);
+
+// AI Interview API routes — moderate rate limiting
+const isAiInterviewApi = createRouteMatcher(['/api/ai-interview(.*)']);
+
 export default clerkMiddleware(async (auth, req) => {
+  const ip = getClientIp(req);
+
+  // ── ⓪ Security Block Check ──────────────────────────────────────────────
+  // Check if this IP is blocked before doing anything else
+  const blockStatus = isIpBlocked(ip);
+  if (blockStatus.blocked) {
+    return new NextResponse(
+      JSON.stringify({
+        error: "Access denied. Your IP has been temporarily blocked.",
+        reason: blockStatus.reason,
+        expiresAt: blockStatus.expiresAt ? new Date(blockStatus.expiresAt).toISOString() : "permanent",
+      }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  // ── ⓪.₁ Geo-Block Check ────────────────────────────────────────────────
+  // Pure in-memory check — cache is populated by admin actions & API routes
+  // (We cannot call prisma in Edge middleware, so no DB sync here)
+  const countryCode = req.headers.get("x-vercel-ip-country") ?? null;
+  const geoStatus = isCountryBlocked(countryCode);
+  if (geoStatus.blocked) {
+    return new NextResponse(
+      JSON.stringify({
+        error: "Access denied. This service is not available in your region.",
+        countryCode: geoStatus.countryCode,
+      }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  // ── Rate Limiting for API routes ────────────────────────────────────────
+  const path = req.nextUrl.pathname;
+  if (path.startsWith("/api/")) {
+    let result;
+
+    if (path === "/api/health") {
+      result = healthLimiter.check(ip);
+    } else if (path.startsWith("/api/ai-interview")) {
+      result = aiInterviewLimiter.check(ip);
+    } else if (!path.startsWith("/api/cron")) {
+      // General API rate limit (crons are already protected by CRON_SECRET)
+      result = generalApiLimiter.check(ip);
+    }
+
+    if (result && !result.allowed) {
+      // Track violations — auto-ban if threshold exceeded
+      const shouldBlock = trackViolation(ip);
+      if (shouldBlock) {
+        // Dynamic import to avoid circular dependencies at module load
+        import("@/lib/security-block").then(({ autoBlockIp }) => {
+          autoBlockIp(ip, `Exceeded rate limit on ${path} (auto-ban threshold reached)`);
+        }).catch(() => {});
+      }
+      return rateLimitResponse(result);
+    }
+  }
+
+  // Public API routes — bypass auth entirely (health monitors, cron)
+  if (isPublicApi(req)) return;
+
   const { userId, orgId, sessionClaims } = await auth();
 
   if (userId) {
@@ -26,7 +103,9 @@ export default clerkMiddleware(async (auth, req) => {
     // ── ① Agreement Gate: User ToS ────────────────────────────────────────
     // Skip for: legal pages, API routes, system staff, already on accept page
     const tosVersion = meta?.tosVersion as string | undefined;
+    const tosJustAccepted = req.cookies.get('tos_accepted')?.value === LEGAL_VERSIONS.PLATFORM_TOS;
     const needsToS   = !isSystemStaff
+      && !tosJustAccepted
       && !isLegalRoute(req)
       && !isApiRoute(req)
       && isProtectedRoute(req)
@@ -41,7 +120,8 @@ export default clerkMiddleware(async (auth, req) => {
     // Only for org-admin routes, and only if user is in an org
     if (orgId && path.startsWith('/org-admin') && !isLegalRoute(req) && !isApiRoute(req)) {
       const msaVersion = orgMeta?.msaVersion as string | undefined;
-      if (msaVersion !== LEGAL_VERSIONS.ORG_MSA) {
+      const msaJustAccepted = req.cookies.get('msa_accepted')?.value === LEGAL_VERSIONS.ORG_MSA;
+      if (!msaJustAccepted && msaVersion !== LEGAL_VERSIONS.ORG_MSA) {
         const next = encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search);
         return NextResponse.redirect(new URL(`/legal/accept-org?next=${next}`, req.url));
       }
@@ -110,8 +190,14 @@ export default clerkMiddleware(async (auth, req) => {
       await auth.protect();
     }
 
+    // 4. Public APIs — return early before fallback auth.protect
+    if (isPublicApi(req)) return;
+
     if (res) return res;
   }
+
+  // Public APIs bypass auth entirely (health checks, cron triggers)
+  if (isPublicApi(req)) return;
 
   // Fallback for non-authenticated states or routes not intercepted above
   if (isProtectedRoute(req)) {
@@ -121,10 +207,10 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    // Skip Next.js internals, static files, and public API routes (health checks)
+    '/((?!_next|api/health|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes (except health which is excluded above)
+    '/(api(?!/health)|trpc)(.*)',
   ],
 };
 

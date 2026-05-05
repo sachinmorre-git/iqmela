@@ -41,7 +41,7 @@ export function StartNewSessionForm({
       <button
         onClick={handleStart}
         disabled={loading}
-        className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-600/20 text-sm"
+        className="inline-flex items-center gap-2 px-6 py-3 bg-rose-600 hover:bg-rose-500 disabled:opacity-60 text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-lg shadow-rose-600/20 text-sm"
       >
         {loading ? (
           <>

@@ -35,8 +35,8 @@ const TIERS: Tier[] = [
   },
   {
     id: "plus", name: "Plus", monthly: 49, annual: 470,
-    color:  "text-teal-300",
-    border: "border-teal-500/30",
+    color:  "text-rose-300",
+    border: "border-rose-500/30",
     highlight: false,
     cta: "Start Plus", ctaHref: "/sign-up?plan=plus",
     features: [
@@ -52,8 +52,8 @@ const TIERS: Tier[] = [
   {
     id: "ultra", name: "Ultra", monthly: 500, annual: 4800,
     badge: "Most Popular",
-    color:  "text-violet-300",
-    border: "border-violet-500/40",
+    color:  "text-pink-300",
+    border: "border-pink-500/40",
     highlight: true,
     cta: "Start Ultra", ctaHref: "/sign-up?plan=ultra",
     features: [
@@ -149,14 +149,14 @@ export function PricingSection() {
               key={tier.id}
               className={`relative flex flex-col rounded-3xl border p-6 transition-all ${tier.border} ${
                 tier.highlight
-                  ? "bg-gradient-to-b from-violet-950/60 to-zinc-950 shadow-xl shadow-violet-900/20"
+                  ? "bg-gradient-to-b from-pink-950/60 to-zinc-950 shadow-xl shadow-pink-900/20"
                   : "bg-zinc-900/40"
               }`}
             >
               {/* Badge */}
               {tier.badge && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-violet-600 text-white text-[10px] font-black">
+                  <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-pink-600 text-white text-[10px] font-black">
                     <Zap className="w-3 h-3" /> {tier.badge}
                   </div>
                 </div>
@@ -179,7 +179,7 @@ export function PricingSection() {
               <Link href={tier.ctaHref}>
                 <button className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
                   tier.highlight
-                    ? "bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-600/25"
+                    ? "bg-pink-600 hover:bg-pink-500 text-white shadow-lg shadow-pink-600/25"
                     : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700"
                 }`}>
                   {tier.cta} <ArrowRight className="w-3.5 h-3.5" />

@@ -50,9 +50,9 @@ export function CreateOrgForm() {
   // ── Success State ──────────────────────────────────────────────────────
   if (state === "success" && createdOrg) {
     return (
-      <div className="bg-zinc-900/80 border border-teal-500/30 rounded-2xl p-8 text-center backdrop-blur-sm animate-in fade-in-0 zoom-in-95 duration-300">
-        <div className="w-16 h-16 rounded-full bg-teal-500/20 flex items-center justify-center mx-auto mb-5">
-          <Sparkles className="w-7 h-7 text-teal-400 animate-pulse" />
+      <div className="bg-zinc-900/80 border border-rose-500/30 rounded-2xl p-8 text-center backdrop-blur-sm animate-in fade-in-0 zoom-in-95 duration-300">
+        <div className="w-16 h-16 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto mb-5">
+          <Sparkles className="w-7 h-7 text-rose-400 animate-pulse" />
         </div>
         <h2 className="text-xl font-bold text-white mb-2">
           {createdOrg.orgName} is ready!
@@ -60,7 +60,7 @@ export function CreateOrgForm() {
         <p className="text-zinc-400 text-sm mb-4">
           Your workspace has been created. Redirecting to your dashboard...
         </p>
-        <div className="flex items-center justify-center gap-2 text-teal-400 text-sm font-medium">
+        <div className="flex items-center justify-center gap-2 text-rose-400 text-sm font-medium">
           <Loader2 className="w-4 h-4 animate-spin" />
           <span>Setting up your workspace...</span>
         </div>
@@ -94,7 +94,7 @@ export function CreateOrgForm() {
             autoFocus
             autoComplete="organization"
             disabled={state === "creating"}
-            className="w-full pl-10 pr-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-700 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500/50 transition-all text-sm font-medium disabled:opacity-50"
+            className="w-full pl-10 pr-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-700 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-rose-500/40 focus:border-rose-500/50 transition-all text-sm font-medium disabled:opacity-50"
           />
           {/* Character count */}
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -124,7 +124,7 @@ export function CreateOrgForm() {
       <button
         type="submit"
         disabled={!isValid || state === "creating"}
-        className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold text-sm shadow-lg shadow-teal-600/20 hover:shadow-teal-600/30 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none"
+        className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl bg-gradient-to-r from-rose-600 to-emerald-600 text-white font-bold text-sm shadow-lg shadow-rose-600/20 hover:shadow-rose-600/30 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none"
       >
         {state === "creating" ? (
           <>
@@ -141,7 +141,7 @@ export function CreateOrgForm() {
 
       {/* Starter plan badge */}
       <div className="flex items-center justify-center gap-2 text-[11px] text-zinc-600">
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 font-semibold">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 font-semibold">
           FREE
         </span>
         <span>Starter plan · 3 positions · 3 team members · Upgrade anytime</span>

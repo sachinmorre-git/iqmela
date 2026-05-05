@@ -104,20 +104,20 @@ export default function TermsPage() {
         </ul>
       </LegalSection>
 
-      <LegalSection title="6. AI-Generated Content and Analysis">
+  <LegalSection title="6. AI-Generated Content, Avatars, and Proctoring">
         <p>
-          The Service uses artificial intelligence, including Google Gemini models and MediaPipe computer vision,
-          to generate interview insights, candidate analyses, question recommendations, and behavioural reports.
+          The Service uses artificial intelligence, including conversational video avatars, large language models,
+          and computer vision, to conduct interviews, monitor integrity, generate insights, and evaluate candidates.
         </p>
         <p>
           <strong>You acknowledge and agree that:</strong>
         </p>
         <ul>
-          <li>AI-generated outputs are informational only and do not constitute employment recommendations, psychological assessments, or hiring decisions</li>
-          <li>{COMPANY_NAME} makes no warranty as to the accuracy, completeness, or fitness for purpose of any AI-generated analysis</li>
-          <li>Hiring decisions must always be made by qualified human decision-makers using AI outputs as one input among many</li>
-          <li>AI behavioural signals (gaze, posture, pace) are probabilistic estimates, not definitive behavioural assessments</li>
-          <li>You must not use AI-generated outputs as the sole basis for any adverse employment action</li>
+          <li><strong>AI Avatars:</strong> Asynchronous interviews may be conducted entirely by AI conversational avatars without human presence. You consent to interacting with an AI representative.</li>
+          <li><strong>Proctoring & Integrity:</strong> AI and browser systems actively monitor tab switching, external displays, multiple faces in frame, and speaking anomalies to flag potential cheating. Flags do not automatically disqualify candidates but are reported to the hiring organisation.</li>
+          <li><strong>Information & Assessment:</strong> AI-generated outputs (resume scores, behavioural flags, transcripts) are informational only. They do not constitute definitive assessments or automated hiring decisions.</li>
+          <li><strong>Human Oversight:</strong> Final hiring or disciplinary decisions must always be made by a qualified human decision-maker reviewing the AI&apos;s output alongside the raw interview data.</li>
+          <li><strong>Fairness:</strong> {COMPANY_NAME} makes no warranty that AI analysis is completely free from algorithmic bias, though we continually monitor our models for such issues.</li>
         </ul>
       </LegalSection>
 
@@ -159,7 +159,7 @@ export default function TermsPage() {
       <LegalSection title="9. Privacy">
         <p>
           Your use of the Service is also governed by our{" "}
-          <a href="/legal/privacy" className="text-indigo-400 hover:underline">Privacy Policy</a>, which is
+          <a href="/legal/privacy" className="text-rose-400 hover:underline">Privacy Policy</a>, which is
           incorporated into these Terms by reference. By using the Service, you consent to the data practices
           described in the Privacy Policy.
         </p>
@@ -180,7 +180,7 @@ export default function TermsPage() {
         <p>
           Each provider operates under its own terms and privacy policies. {COMPANY_NAME} maintains data processing
           agreements with all sub-processors handling personal data. See our{" "}
-          <a href="/legal/dpa" className="text-indigo-400 hover:underline">Data Processing Agreement</a> for details.
+          <a href="/legal/dpa" className="text-rose-400 hover:underline">Data Processing Agreement</a> for details.
         </p>
       </LegalSection>
 
@@ -264,7 +264,7 @@ export default function TermsPage() {
       <LegalSection title="18. Contact">
         <p>
           For questions about these Terms, contact us at{" "}
-          <a href={`mailto:${LEGAL_EMAIL}`} className="text-indigo-400 hover:underline">
+          <a href={`mailto:${LEGAL_EMAIL}`} className="text-rose-400 hover:underline">
             {LEGAL_EMAIL}
           </a>
           .

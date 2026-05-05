@@ -23,8 +23,8 @@ export interface Tier2Input {
 }
 
 export interface Tier2Result {
-  score: number; // 0-100
-  label: "STRONG_MATCH" | "GOOD_MATCH" | "PARTIAL_MATCH" | "WEAK_MATCH";
+  score: number | null; // 0-100, null if scoring failed
+  label: "STRONG_MATCH" | "GOOD_MATCH" | "PARTIAL_MATCH" | "WEAK_MATCH" | "SCORING_FAILED";
   rationale: string;
   matchedSkills: string[];
   missingSkills: string[];
@@ -32,6 +32,7 @@ export interface Tier2Result {
   redFlags: string[];
   inputTokens: number;
   outputTokens: number;
+  scoringFailed: boolean;
 }
 
 const TIER2_PROMPT = `You are an expert technical recruiter AI. Analyze the following resume against the job description and provide a structured assessment.
@@ -74,6 +75,7 @@ Return ONLY the JSON object, no markdown, no explanation outside the JSON.`;
 
 /**
  * Runs Tier 2 AI semantic scoring on a single candidate.
+ * On failure, returns scoringFailed=true with score=null instead of a fake score.
  */
 export async function runTier2Scoring(input: Tier2Input): Promise<Tier2Result> {
   const prompt = TIER2_PROMPT
@@ -116,13 +118,14 @@ export async function runTier2Scoring(input: Tier2Input): Promise<Tier2Result> {
       redFlags: Array.isArray(parsed.redFlags) ? parsed.redFlags : [],
       inputTokens,
       outputTokens,
+      scoringFailed: false,
     };
   } catch (error) {
     console.error("[IntakeScoring] Tier 2 AI scoring failed:", error);
-    // Return a safe fallback — don't block the pipeline
+    // Return FAILED state — NOT a fake score of 50
     return {
-      score: 50,
-      label: "PARTIAL_MATCH",
+      score: null,
+      label: "SCORING_FAILED",
       rationale: "AI scoring failed — manual review recommended",
       matchedSkills: [],
       missingSkills: [],
@@ -130,6 +133,7 @@ export async function runTier2Scoring(input: Tier2Input): Promise<Tier2Result> {
       redFlags: ["AI_SCORING_ERROR"],
       inputTokens: 0,
       outputTokens: 0,
+      scoringFailed: true,
     };
   }
 }
@@ -173,7 +177,26 @@ export async function batchTier2Score(
         preferredSkills,
       });
 
-      // Update candidate with scores
+      if (result.scoringFailed) {
+        // Mark as NEEDS_REVIEW instead of faking a score
+        await prisma.intakeCandidate.update({
+          where: { id: candidate.intakeCandidateId },
+          data: {
+            tier2Score: null,
+            tier2Label: "SCORING_FAILED",
+            tier2Rationale: result.rationale,
+            tier2At: new Date(),
+            tier1Status: "TIER2_SCORED", // Still mark as processed
+            finalStatus: "NEEDS_REVIEW", // New: flag for recruiter attention
+          },
+        });
+        console.warn(
+          `[IntakeScoring] Scoring failed for candidate ${candidate.intakeCandidateId} — flagged as NEEDS_REVIEW`
+        );
+        continue;
+      }
+
+      // Update candidate with valid scores
       await prisma.intakeCandidate.update({
         where: { id: candidate.intakeCandidateId },
         data: {
@@ -217,28 +240,45 @@ export async function batchTier2Score(
 
 /**
  * Auto-shortlists the Top N candidates for a position based on Tier 2 scores.
- * Called after batch scoring completes.
+ *
+ * RACE-SAFE: Only operates on candidates with valid (non-null) tier2Scores.
+ * Candidates with SCORING_FAILED are excluded from auto-shortlisting and
+ * left as NEEDS_REVIEW for recruiter attention.
+ *
+ * Called ONCE when the intake window closes (not per-application) to prevent
+ * the race condition where concurrent shortlisting corrupts rankings.
  */
 export async function autoShortlistTopN(
   positionId: string,
   topN: number
-): Promise<{ shortlisted: number; total: number }> {
-  // Get all scored candidates, ordered by score descending
+): Promise<{ shortlisted: number; total: number; needsReview: number }> {
+  // Get all successfully scored candidates (exclude SCORING_FAILED)
   const scored = await prisma.intakeCandidate.findMany({
     where: {
       positionId,
       finalStatus: "TIER2_SCORED",
+      tier2Score: { not: null }, // Only candidates with valid AI scores
     },
     orderBy: { tier2Score: "desc" },
-    take: topN,
     select: { id: true, tier2Score: true },
   });
 
+  // Count candidates needing manual review (scoring failed)
+  const needsReview = await prisma.intakeCandidate.count({
+    where: {
+      positionId,
+      finalStatus: "NEEDS_REVIEW",
+    },
+  });
+
   // Mark top N as shortlisted
-  if (scored.length > 0) {
+  const topCandidates = scored.slice(0, topN);
+  const restCandidates = scored.slice(topN);
+
+  if (topCandidates.length > 0) {
     await prisma.intakeCandidate.updateMany({
       where: {
-        id: { in: scored.map((c) => c.id) },
+        id: { in: topCandidates.map((c) => c.id) },
       },
       data: {
         finalStatus: "SHORTLISTED",
@@ -246,27 +286,26 @@ export async function autoShortlistTopN(
     });
   }
 
-  // Archive the rest
-  await prisma.intakeCandidate.updateMany({
-    where: {
-      positionId,
-      finalStatus: "TIER2_SCORED",
-    },
-    data: {
-      finalStatus: "ARCHIVED",
-      archivedAt: new Date(),
-    },
-  });
+  // Archive the rest (those BELOW the top N cutoff)
+  if (restCandidates.length > 0) {
+    await prisma.intakeCandidate.updateMany({
+      where: {
+        id: { in: restCandidates.map((c) => c.id) },
+      },
+      data: {
+        finalStatus: "ARCHIVED",
+        archivedAt: new Date(),
+      },
+    });
+  }
 
-  const total = await prisma.intakeCandidate.count({
-    where: { positionId, finalStatus: { not: "RECEIVED" } },
-  });
+  const total = scored.length + needsReview;
 
   console.log(
-    `[IntakeScoring] Shortlisted ${scored.length}/${total} candidates for position ${positionId}`
+    `[IntakeScoring] Shortlisted ${topCandidates.length}/${total} candidates for position ${positionId} (${needsReview} need manual review)`
   );
 
-  return { shortlisted: scored.length, total };
+  return { shortlisted: topCandidates.length, total, needsReview };
 }
 
 function validateLabel(
@@ -274,6 +313,6 @@ function validateLabel(
 ): "STRONG_MATCH" | "GOOD_MATCH" | "PARTIAL_MATCH" | "WEAK_MATCH" {
   const valid = ["STRONG_MATCH", "GOOD_MATCH", "PARTIAL_MATCH", "WEAK_MATCH"];
   return valid.includes(label)
-    ? (label as Tier2Result["label"])
+    ? (label as "STRONG_MATCH" | "GOOD_MATCH" | "PARTIAL_MATCH" | "WEAK_MATCH")
     : "PARTIAL_MATCH";
 }

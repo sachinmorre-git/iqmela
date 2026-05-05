@@ -61,13 +61,17 @@ export function TabsTrigger({ value, className, children }: { value: string; cla
       aria-selected={isActive}
       onClick={() => context.setActiveTab(value)}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-6 py-2.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500",
+        "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-6 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 relative",
         isActive
-          ? "bg-white text-gray-900 shadow-sm dark:bg-zinc-800 dark:text-white"
+          ? "bg-rose-50 text-rose-700 shadow-sm border border-rose-200/60 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800/50"
           : "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-800/50",
         className
       )}
     >
+      {/* Active bottom indicator bar */}
+      {isActive && (
+        <span className="absolute -bottom-[5px] left-1/2 -translate-x-1/2 w-6 h-[3px] rounded-full bg-rose-500 dark:bg-rose-400 shadow-sm shadow-rose-500/40" />
+      )}
       {children}
     </button>
   );
@@ -83,10 +87,17 @@ export function TabsContent({ value, className, children }: { value: string; cla
     <div
       role="tabpanel"
       className={cn(
-        "mt-2 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 dark:ring-offset-zinc-950",
+        "mt-2 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 dark:ring-offset-zinc-950 animate-in fade-in-0 duration-200",
         className
       )}
+      style={{ animation: "fadeSlideIn 200ms ease-out" }}
     >
+      <style>{`
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       {children}
     </div>
   );

@@ -174,6 +174,7 @@ enum HiringDecisionAction {
   HIRE            // Mark as hired (offer accepted)
   WITHDRAW        // Candidate withdrew
   REACTIVATE      // Reverse a hold/reject (overrides only)
+  AI_OVERRIDE     // Human explicitly overrode an AI score/label
 }
 
 // ── Offer Studio Enums ───────────────────────────────────────────────────────
@@ -214,6 +215,7 @@ enum IntakeSource {
   VENDOR_SUBMIT       // Existing vendor portal path
   API                 // Direct API integration
   IQMELA_DIRECT       // Applied directly on IQMela Careers page
+  IQMELA_QUICK_APPLY  // One-tap reapply from Talent Network member
 }
 
 enum IntakeStatus {
@@ -222,6 +224,7 @@ enum IntakeStatus {
   TIER1_FAIL          // Failed knockout criteria
   TIER2_SCORING       // Gemini AI analysis in progress
   TIER2_SCORED        // AI score assigned
+  NEEDS_REVIEW        // AI scoring failed — requires manual recruiter review
   SHORTLISTED         // Promoted to shortlist
   PROMOTED            // Moved to active pipeline (Resume created)
   ARCHIVED            // Not shortlisted, retained for compliance
@@ -266,6 +269,31 @@ enum VendorDispatchStatus {
   REVOKED
 }
 
+// ── Client Support Enums ─────────────────────────────────────────────────────
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_CLIENT
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketCategory {
+  BILLING
+  TECHNICAL
+  INTEGRATION
+  ONBOARDING
+  OTHER
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -302,9 +330,20 @@ model User {
   // Background Verification
   bgvChecksAsCandidate BgvCheck[] @relation("CandidateBgvChecks")
 
+  // Panel Discussion (internal chat about candidates)
+  panelDiscussions PanelDiscussion[] @relation("AuthoredDiscussions")
+
+  // Question Bank
+  createdQuestions InterviewQuestion[] @relation("CreatedQuestions")
+
   // Legal agreement acceptance (Phase 7)
   tosAcceptedAt DateTime? // When user accepted Platform ToS + Privacy + CoC
   tosVersion    String?   // Version string at time of acceptance, e.g. "1.0.0"
+
+  // Support
+  supportTicketsAsCreator  SupportTicket[] @relation("TicketCreator")
+  supportTicketsAsAssignee SupportTicket[] @relation("TicketAssignee")
+  ticketMessages           TicketMessage[]
 
   @@index([organizationId, createdAt])
 }
@@ -328,7 +367,77 @@ model CandidateProfile {
   lastMatchedAt          DateTime?    // When AI last ran matching
   matchPreferencesJson   Json?        // { remoteOnly: true, minSalary: 100000 }
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vsi       CandidateVSI?
+  documents CandidateDocument[]
+}
+
+// ── Candidate Document Hub ────────────────────────────────────────────────────
+// Cross-position document storage for hiring compliance.
+// Linked to CandidateProfile so docs travel with the candidate across positions.
+model CandidateDocument {
+  id              String   @id @default(cuid())
+  profileId       String   // Links to CandidateProfile
+  organizationId  String?  // Which org requested this doc (null = candidate self-upload)
+
+  // Document Identity
+  docType         String   // "PASSPORT", "I9_FORM", "AADHAAR", "PAN_CARD", etc.
+  countryCode     String   // "US", "IN"
+  label           String   // Human-readable label
+  category        String   // "IDENTITY", "TAX", "EMPLOYMENT", "EDUCATION", "BACKGROUND", "LEGAL"
+
+  // File Storage
+  storagePath     String   // R2 object key
+  originalFileName String
+  mimeType        String   // e.g. "application/pdf"
+  fileSize        Int      // Bytes
+
+  // AI Analysis Results
+  aiStatus        String   @default("PENDING") // PENDING, ANALYZING, COMPLETED, FAILED
+  aiExtractedJson Json?    // { name, idNumber, expiryDate, issueDate, issuerOrg, ... }
+  aiConfidence    Float?   // 0.0 - 1.0
+  aiDocTypeGuess  String?  // What AI thinks the doc type is
+  aiWarnings      Json?    // ["Expired", "Name mismatch with profile", "Low quality scan"]
+
+  // Verification
+  verificationStatus String @default("UNVERIFIED") // UNVERIFIED, VERIFIED, REJECTED, EXPIRED
+  verifiedById       String?
+  verifiedAt         DateTime?
+  rejectionReason    String?
+
+  // Expiry Tracking
+  expiryDate      DateTime?
+  isExpired       Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  profile CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, countryCode])
+  @@index([profileId, docType])
+  @@index([organizationId])
+}
+
+/// Voluntary Self-Identification data — OFCCP / EEO-1 compliance.
+/// SEALED: This data is NEVER exposed to hiring managers or org-admin APIs.
+/// Only aggregate counts may be surfaced for EEO-1 reporting.
+model CandidateVSI {
+  id        String   @id @default(cuid())
+  profileId String   @unique   // Links to CandidateProfile
+
+  // OFCCP CC-305 fields — all nullable (truly voluntary)
+  gender            String?   // "male" | "female" | "non_binary" | "prefer_not"
+  ethnicity         String?   // "hispanic_latino" | "not_hispanic_latino" | "prefer_not"
+  race              String?   // "white" | "black" | "asian" | "native_american" | "pacific_islander" | "two_or_more" | "prefer_not"
+  veteranStatus     String?   // "veteran" | "not_veteran" | "prefer_not"
+  disabilityStatus  String?   // "yes" | "no" | "prefer_not"
+
+  completedAt  DateTime?      // When they finished (null = skipped entirely)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  profile CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
 
 model InterviewerProfile {
@@ -351,6 +460,21 @@ model InterviewerProfile {
   isVerified      Boolean   @default(false) // IQMela verified badge
   avatarUrl       String?
   linkedinUrl     String?
+
+  // ── Marketplace Privacy Controls ──────────────────────────────
+  // These fields control what clients see for MARKETPLACE interviewers.
+  // INTERNAL interviewers always show full profile to their own org.
+  displayName       String?             // e.g. "Alex M." — auto-generated or custom
+  industryTier      String?             // "Big Tech", "Startup", "Enterprise", "Consulting"
+  seniorityLabel    String?             // "Senior", "Staff", "Principal", "Director"
+  yearsOfExperience Int?
+  bioPublic         String?   @db.Text  // Public bio for marketplace listing
+  pastCompaniesJson Json?               // ["Meta", "Stripe"] — self-disclosed, NOT current employer
+  currentEmployer   String?             // Admin-only: never shown to clients
+  disclosureLevel   String    @default("ANONYMOUS") // "ANONYMOUS" | "PARTIAL" | "FULL"
+  showLinkedin      Boolean   @default(false)
+  showFullName      Boolean   @default(false)
+  showAvatar        Boolean   @default(true)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -407,6 +531,15 @@ model Position {
   isPublished          Boolean   @default(false)  // Master toggle for external distribution
   intakeTopN           Int       @default(50)      // How many to auto-shortlist
   intakeAutoPromote    Boolean   @default(false)   // false = manual, true = auto-trigger pipeline
+
+  // AI Pipeline Configuration — 3-Stage Funnel
+  intakeWindowDays     Int       @default(10)       // Accept resumes for N days after publishing
+  atsPreScreenSize     Int       @default(100)      // Zero-cost ATS narrows all resumes to top N
+  aiShortlistSize      Int       @default(10)       // AI deep-scores pre-screen pool → shortlists N
+  autoProcessOnClose   Boolean   @default(true)     // Auto-trigger ATS→AI pipeline when intake window closes
+  autoInviteAiScreen   Boolean   @default(false)    // Auto-send AI interview invite when candidates are shortlisted
+  tier1PassThreshold   Int       @default(35)       // Min Tier 1 score (0-100) to advance to Tier 2
+  resumePurgeDays      Int       @default(90)       // Delete stored resume files after N days
   knockoutQuestionsJson Json?                // [{ question, type, required, knockoutAnswer }]
 
   createdBy User @relation("PositionCreator", fields: [createdById], references: [id], onDelete: Cascade)
@@ -428,6 +561,7 @@ model Position {
   jobOffers            JobOffer[]            @relation("PositionJobOffers")
   distributions        JobDistribution[]     @relation("PositionDistributions")
   intakeCandidates     IntakeCandidate[]     @relation("PositionIntake")
+  panelDiscussions     PanelDiscussion[]     @relation("PositionDiscussions")
 
   departmentRel Department? @relation(fields: [departmentId], references: [id])
   isDeleted     Boolean     @default(false)
@@ -465,6 +599,12 @@ model Organization {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
+  // ── Locale & Internationalization ──────────────────────────────
+  country          String?   @default("US")              // ISO 3166-1 alpha-2 (US, IN, GB, DE, etc.)
+  defaultTimezone  String?   @default("America/New_York") // IANA timezone (America/New_York, Asia/Kolkata, etc.)
+  defaultCurrency  String?   @default("USD")             // ISO 4217 (USD, INR, EUR, GBP, etc.)
+  defaultLocale    String?   @default("en-US")           // BCP 47 (en-US, en-IN, hi-IN, de-DE, etc.)
+
   // Legal agreement acceptance (Phase 7)
   msaAcceptedAt DateTime? // When org MSA + DPA was accepted
   msaVersion    String?   // MSA version string, e.g. "1.0.0"
@@ -472,6 +612,8 @@ model Organization {
 
   // Relations
   vendorDispatches PositionVendor[] // Positions dispatched TO this org (as vendor)
+  clientRelations  ClientVendorRelation[] @relation("ClientRelations")
+  vendorRelations  ClientVendorRelation[] @relation("VendorRelations")
 
   // BGV Integration Settings
   checkrApiKey         String?          // Org's Checkr API key (encrypted)
@@ -481,6 +623,28 @@ model Organization {
   bgvChecks            BgvCheck[]       @relation("OrgBgvChecks")
   offerTemplates       OfferTemplate[]  @relation("OrgOfferTemplates")
   jobOffers            JobOffer[]       @relation("OrgJobOffers")
+  supportTickets       SupportTicket[]  @relation("OrgSupportTickets")
+}
+
+model ClientVendorRelation {
+  id             String   @id @default(cuid())
+  clientOrgId    String
+  vendorOrgId    String
+  
+  // Client-specific contact details for this vendor
+  contactName    String?
+  contactEmail   String
+  contactPhone   String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  clientOrg      Organization @relation("ClientRelations", fields: [clientOrgId], references: [id], onDelete: Cascade)
+  vendorOrg      Organization @relation("VendorRelations", fields: [vendorOrgId], references: [id], onDelete: Cascade)
+
+  @@unique([clientOrgId, vendorOrgId])
+  @@index([clientOrgId])
+  @@index([vendorOrgId])
 }
 
 model Resume {
@@ -541,6 +705,13 @@ model Resume {
   finalRecommendationReason String?
   recruiterReviewNeeded     Boolean   @default(false)
 
+  // ── AI Compliance & Human Oversight (HITL) ──
+  aiOverrideScore           Int?      // Human's corrected score
+  aiOverrideLabel           String?   // Human's corrected label (e.g. STRONG_HIRE)
+  aiOverrideReason          String?   // Mandatory text explaining why the AI was wrong
+  aiOverrideById            String?   // User ID of the recruiter/HM
+  aiOverrideAt              DateTime? // Timestamp for the audit log
+
   isNearDuplicate Boolean @default(false)
   duplicateReason String?
 
@@ -584,6 +755,7 @@ model Resume {
   hiringDecisions     HiringDecision[]     @relation("ResumeDecisions")
   bgvChecks           BgvCheck[]           @relation("ResumeBgvChecks")
   jobOffers           JobOffer[]           @relation("ResumeJobOffers")
+  panelDiscussions    PanelDiscussion[]    @relation("ResumeDiscussions")
 
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
@@ -628,7 +800,9 @@ model Interview {
   consentGiven   Boolean   @default(false) // Candidate consented to recording
   consentGivenAt DateTime?                 // When consent was given
 
-  candidateId    String
+  candidateId    String?  // Nullable — candidate may not have a Clerk account yet
+  candidateEmail String?  // Fallback: candidate email from resume (for accountless scheduling)
+  candidateName  String?  // Fallback: candidate name from resume
   interviewerId  String? // Legacy 1-to-1 fallback. Transitioning to panelists.
   positionId     String? // Links to the position being interviewed for
   organizationId String? // Org scoping
@@ -644,7 +818,7 @@ model Interview {
   updatedAt DateTime @updatedAt
 
   // Relations
-  candidate   User      @relation("CandidateInterviews", fields: [candidateId], references: [id])
+  candidate   User?     @relation("CandidateInterviews", fields: [candidateId], references: [id])
   interviewer User?     @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
   position    Position? @relation("PositionInterviews", fields: [positionId], references: [id], onDelete: SetNull)
   resume      Resume?   @relation("ResumeInterviews", fields: [resumeId], references: [id], onDelete: SetNull)
@@ -687,6 +861,7 @@ model InterviewStage {
   interviewMode   InterviewMode      @default(HUMAN)
   isRequired      Boolean            @default(true)
   description     String?            // Optional instructions for the interviewer
+  assignedPanelJson Json?            // Array of assigned panelist objects
 
   createdAt DateTime @default(now())
 
@@ -898,23 +1073,26 @@ model PositionBatchRun {
 }
 
 model AiUsageLog {
-  id            String   @id @default(cuid())
-  positionId    String?
-  resumeId      String?
-  aiSessionId   String? // AI Avatar Interview session
-  provider      String
-  model         String
-  taskType      String // e.g. EXTRACTION, RANKING, JD_ANALYSIS, ADVANCED_JUDGMENT, AI_INTERVIEW_SCORE
-  inputTokens   Int      @default(0)
-  outputTokens  Int      @default(0)
-  totalTokens   Int      @default(0)
-  estimatedCost Float    @default(0)
-  promptVersion String?
-  createdAt     DateTime @default(now())
+  id              String   @id @default(cuid())
+  organizationId  String?  // For per-client cost attribution
+  positionId      String?
+  resumeId        String?
+  aiSessionId     String?  // AI Avatar Interview session
+  provider        String
+  model           String
+  taskType        String   // e.g. EXTRACTION, RANKING, JD_ANALYSIS, ADVANCED_JUDGMENT, AI_INTERVIEW_SCORE
+  inputTokens     Int      @default(0)
+  outputTokens    Int      @default(0)
+  totalTokens     Int      @default(0)
+  estimatedCost   Float    @default(0)
+  promptVersion   String?
+  createdAt       DateTime @default(now())
 
   position  Position?           @relation(fields: [positionId], references: [id], onDelete: Cascade)
   resume    Resume?             @relation(fields: [resumeId], references: [id], onDelete: Cascade)
   aiSession AiInterviewSession? @relation("AiSessionUsage", fields: [aiSessionId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
 }
 
 // ── AI Avatar Interview ─────────────────────────────────────────────────────
@@ -1313,8 +1491,9 @@ model OfferAuditLog {
 model JobDistribution {
   id                String                  @id @default(cuid())
   positionId        String
-  boardName         String                  // "INDEED", "GOOGLE_JOBS", etc.
+  boardName         String                  // "INDEED", "GOOGLE_JOBS", "LINKEDIN"
   boardJobId        String?                 // External ID assigned by the board
+  distributionTier  String                  @default("ORGANIC") // "ORGANIC" | "DIRECT" | "NETWORK"
   status            JobDistributionStatus   @default(DRAFT)
   publishedAt       DateTime?
   unpublishedAt     DateTime?
@@ -1329,6 +1508,27 @@ model JobDistribution {
 
   @@unique([positionId, boardName])
   @@index([positionId])
+}
+
+// ── Organization Integrations ───────────────────────────────────────────────
+// Stores OAuth tokens for connected job board accounts per org.
+
+model OrgIntegration {
+  id              String    @id @default(cuid())
+  organizationId  String
+  platform        String    // "LINKEDIN" | "INDEED"
+  accessToken     String    @db.Text    // Encrypted OAuth access token
+  refreshToken    String?   @db.Text    // For token refresh
+  tokenExpiresAt  DateTime?
+  externalOrgId   String?               // e.g., LinkedIn company URN
+  externalOrgName String?               // Display name for UI
+  connectedBy     String?               // userId who connected
+  status          String    @default("ACTIVE")  // ACTIVE | EXPIRED | REVOKED
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([organizationId, platform])
+  @@index([organizationId])
 }
 
 // ── AI Intake Queue ─────────────────────────────────────────────────────────
@@ -1383,6 +1583,10 @@ model IntakeCandidate {
   archivedAt          DateTime?     // For data retention compliance
   purgeScheduledAt    DateTime?     // GDPR: auto-delete date (receivedAt + 24 months)
 
+  // Work Authorization — visible to hiring team (lawful screening question)
+  workAuthorized      Boolean?      // "Are you legally authorized to work in the US?"
+  sponsorshipNeeded   Boolean?      // "Will you now or in the future require visa sponsorship?"
+
   // Compliance — GDPR / CCPA
   consentSource       String?       // "indeed_tos", "linkedin_tos", "direct_consent"
   dataProcessingBasis String?       // GDPR: "legitimate_interest" or "consent"
@@ -1399,4 +1603,500 @@ model IntakeCandidate {
   @@index([organizationId, createdAt])
   @@index([candidateEmail])
   @@index([purgeScheduledAt])              // For GDPR cron job
+}
+
+// ── Panel Discussion Thread ───────────────────────────────────────────────────
+// Internal chat for hiring panels to discuss a candidate privately.
+// Scoped to a specific candidate (Resume) + position combination.
+
+model PanelDiscussion {
+  id         String   @id @default(cuid())
+  resumeId   String
+  positionId String
+  authorId   String
+  message    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  author   User     @relation("AuthoredDiscussions", fields: [authorId], references: [id])
+  resume   Resume   @relation("ResumeDiscussions", fields: [resumeId], references: [id], onDelete: Cascade)
+  position Position @relation("PositionDiscussions", fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId, positionId])
+  @@index([positionId])
+}
+
+// ── Interview Question Bank ──────────────────────────────────────────────────
+// Supports 5 types: CODING | PLAIN_TEXT | MCQ_SINGLE | MCQ_MULTI | FILE_BASED
+
+model InterviewQuestion {
+  id              String   @id @default(cuid())
+  organizationId  String
+  createdById     String
+
+  // Core
+  type            String                     // CODING | PLAIN_TEXT | MCQ_SINGLE | MCQ_MULTI | FILE_BASED
+  title           String
+  description     String   @db.Text          // Markdown-formatted problem statement
+  difficulty      String   @default("MEDIUM") // EASY | MEDIUM | HARD
+  category        String?                    // "Arrays", "System Design", "SQL", etc.
+  tags            String[] @default([])
+
+  // Coding-specific
+  language        String?                    // Default language (javascript, python, etc.)
+  starterCode     String?  @db.Text          // Pre-filled code template
+  sampleInput     String?  @db.Text          // stdin test data
+  expectedOutput  String?  @db.Text          // Expected stdout
+
+  // MCQ-specific (stored as JSON array)
+  options         Json?                      // [{id, text, isCorrect}]
+  explanation     String?  @db.Text          // Why the answer is correct
+
+  // File-based (Vercel Blob URLs)
+  attachmentUrl   String?                    // Blob URL for uploaded CSV/Excel/image
+  attachmentName  String?                    // Original filename
+
+  // Metadata
+  isFromSeedBank  Boolean  @default(false)   // True for platform-seeded questions
+  usageCount      Int      @default(0)       // How many times used in interviews
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  creator         User     @relation("CreatedQuestions", fields: [createdById], references: [id])
+
+  @@index([organizationId, type])
+  @@index([organizationId, category])
+  @@index([organizationId, difficulty])
+}
+
+// ── IQMela Internal Admin — Platform Configuration ──────────────────────────
+
+model PlatformConfig {
+  id                      String   @id @default("GLOBAL")
+
+  // AI Provider Selection (per task type)
+  defaultAiProvider       String   @default("GEMINI")    // GEMINI | DEEPSEEK | OPENAI
+  extractionProvider      String   @default("GEMINI")    // Resume extraction
+  rankingProvider         String   @default("GEMINI")    // Candidate ranking
+  judgmentProvider        String   @default("DEEPSEEK")  // Advanced judgment
+  interviewScoreProvider  String   @default("GEMINI")    // AI interview scoring
+  jdAnalysisProvider      String   @default("GEMINI")    // JD analysis
+  codingGenProvider       String   @default("GEMINI")    // Coding question generation
+
+  // AI Interview Mode
+  defaultInterviewMode    String   @default("AI_AVATAR") // AI_AVATAR | AI_ORB
+
+  // Platform-Wide Kill Switches
+  aiPipelineEnabled       Boolean  @default(true)
+  aiInterviewsEnabled     Boolean  @default(true)
+  vendorDispatchEnabled   Boolean  @default(true)
+  bgvEnabled              Boolean  @default(true)
+  offersEnabled           Boolean  @default(true)
+  jobDistributionEnabled  Boolean  @default(true)
+
+  // Referral Engine Global Toggles
+  referralsEnabled        Boolean  @default(false)
+  b2bReferralsEnabled     Boolean  @default(false)
+  candidateReferralsEnabled Boolean @default(false)
+  interviewerReferralsEnabled Boolean @default(false)
+  jobBountyReferralsEnabled Boolean @default(false)
+  
+  // Dynamic Referral Reward Configuration (JSON Array of rules based on Geo/Domain)
+  referralRewardRules     Json?    
+
+  // Code Execution Backend
+  codeExecutionBackend    String   @default("PISTON_PUBLIC") // PISTON_PUBLIC | PISTON_SELF_HOSTED
+  pistonEndpoint          String?
+
+  // BGV Geo-Routing
+  bgvVendorRouting        Json?    // { [countryCode: string]: BgvVendorType }
+
+  updatedAt               DateTime @updatedAt
+  updatedBy               String?  // Clerk userId of last editor
+}
+
+// ── Geo-Compliance Market Registry ───────────────────────────────────────────
+
+model GeoMarket {
+  id              String   @id @default(cuid())
+  countryCode     String   // ISO 3166-1 alpha-2: "US", "IN", "CA", "GB", "AU"
+  countryName     String   // "United States"
+  region          String   @default("") // State/Province: "California", "Ontario"
+  city            String   @default("") // Optional city-level (e.g. "New York City")
+
+  // Platform Availability
+  isEnabled       Boolean  @default(false)
+  isComingSoon    Boolean  @default(false)
+
+  // ── Standard Privacy Frameworks ───────────────────────────────────────────
+  gdprApplies           Boolean @default(false)  // EU / UK GDPR
+  ccpaApplies           Boolean @default(false)  // California CCPA / CPRA
+  pdpaApplies           Boolean @default(false)  // India DPDP Act 2023
+  pipedaApplies         Boolean @default(false)  // Canada PIPEDA
+  quebecLaw25Applies    Boolean @default(false)  // Quebec Law 25 (stricter than PIPEDA)
+  albertaPipa           Boolean @default(false)  // Alberta PIPA
+  eeocApplies           Boolean @default(false)  // US EEOC / Equal Employment
+  aicaApplies           Boolean @default(false)  // Australia Privacy Act
+
+  // ── AI-Specific Hiring Laws ───────────────────────────────────────────────
+  // NYC Local Law 144 (2023): AEDT bias audit required before use in hiring
+  aiAuditRequired           Boolean @default(false)
+  aiAuditLawRef             String? // e.g. "NYC Local Law 144 (2023)"
+
+  // Illinois AIVIA (2020): Must notify + get consent before AI video analysis
+  aiVideoConsentRequired    Boolean @default(false)
+  aiVideoLawRef             String? // "Illinois AIVIA (820 ILCS 42)"
+
+  // General: Must disclose to candidates that AI is used in the hiring process
+  aiDisclosureRequired      Boolean @default(false)
+  aiDisclosureLawRef        String?
+
+  // Colorado SB 24-205 (2024): High-risk AI in consequential employment decisions
+  automatedDecisionReview   Boolean @default(false)
+  automatedDecisionLawRef   String? // "Colorado SB 24-205"
+
+  // Maryland HB 1202: Facial recognition in interviews requires written consent
+  facialRecogConsentRequired Boolean @default(false)
+  facialRecogLawRef          String?
+
+  // Texas HB 1709 (pending): Algorithmic hiring transparency
+  algorithmicTransparency   Boolean @default(false)
+  algorithmicLawRef         String?
+
+  // Washington State My Health MY Data Act (data minimization)
+  dataMinimizationRequired  Boolean @default(false)
+
+  // ── Feature Availability per Market ───────────────────────────────────────
+  aiInterviewsAllowed       Boolean @default(true)
+  bgvAllowed                Boolean @default(true)
+  videoRecordingAllowed     Boolean @default(true)
+  biometricProhibited       Boolean @default(false)  // Illinois BIPA
+
+  // ── Admin Notes & Audit ───────────────────────────────────────────────────
+  notes           String?   // Legal team annotations
+  legalReviewedAt DateTime? // Date legal team signed off
+  legalReviewedBy String?   // Name/email of legal reviewer
+  updatedAt       DateTime  @updatedAt
+  updatedBy       String?   // Clerk userId of last admin
+
+  @@unique([countryCode, region, city])
+  @@index([countryCode])
+  @@index([isEnabled])
+  @@index([aiAuditRequired])
+}
+
+// ── Compliance Reporting Engine ───────────────────────────────────────────────
+
+enum ComplianceReportType {
+  NYC_AEDT_BIAS_AUDIT       // NYC Local Law 144 — Annual AEDT Bias Audit
+  EEOC_DIVERSITY_LOG        // EEOC Demographic & Selection Rate Report
+  GDPR_DSAR_SUMMARY         // GDPR / DPDP Data Subject Access & Deletion Log
+  AIVIA_CONSENT_LOG         // Illinois AIVIA + BIPA Biometric Consent Audit
+  DATA_MINIMIZATION_AUDIT   // WA / CPRA Data Minimization & Retention Checks
+  PIPEDA_PRIVACY_REPORT     // Canada PIPEDA / Quebec Law 25 Compliance Report
+  AI_BIAS_MONITORING        // AI Score Distribution & Override Bias Analysis
+}
+
+enum ComplianceReportStatus {
+  GENERATING
+  READY
+  FAILED
+}
+
+model ComplianceReport {
+  id              String                  @id @default(cuid())
+
+  // Scope — null = platform-wide (Super Admin); orgId = org-scoped
+  orgId           String?
+  positionId      String?                 // Optional: scoped to a single position
+
+  type            ComplianceReportType
+  status          ComplianceReportStatus  @default(READY)
+
+  // Report Period
+  periodStart     DateTime?
+  periodEnd       DateTime?
+
+  // The Actual Report Payload (structured JSON)
+  reportData      Json?
+  downloadUrl     String?                 // Future: PDF/CSV storage URL
+
+  // Metadata
+  requestedBy     String                  // Clerk userId who triggered it
+  notes           String?
+
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([orgId, type])
+  @@index([positionId])
+  @@index([createdAt])
+}
+
+// ── Platform Health Monitoring ──────────────────────────────────────────────
+
+model HealthCheckLog {
+  id          String   @id @default(cuid())
+  service     String   // "database", "clerk", "gemini", "deepseek", "livekit", "tavus", "piston"
+  status      String   // "healthy", "degraded", "unhealthy"
+  latencyMs   Int?
+  error       String?
+  region      String?  // "us-east-1", "eu-west-1" — future multi-region
+  checkedAt   DateTime @default(now())
+
+  @@index([service, checkedAt])
+  @@index([checkedAt])
+}
+
+model Incident {
+  id            String    @id @default(cuid())
+  title         String
+  service       String
+  severity      String    // "critical", "high", "medium", "low"
+  status        String    @default("open") // "open", "investigating", "mitigating", "resolved"
+  description   String?
+  autoDetected  Boolean   @default(false)
+  resolvedAt    DateTime?
+  resolvedBy    String?   // Clerk userId
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status])
+  @@index([service])
+  @@index([createdAt])
+}
+
+// ── Client Support Ticketing System ─────────────────────────────────────────
+
+model SupportTicket {
+  id                 String         @id @default(cuid())
+  ticketNumber       String         @unique // e.g. TCK-1024
+  organizationId     String
+  createdById        String
+  assignedToId       String?        // System admin assigned to ticket
+  
+  subject            String
+  description        String         @db.Text
+  status             TicketStatus   @default(OPEN)
+  priority           TicketPriority @default(MEDIUM)
+  category           TicketCategory @default(OTHER)
+  
+  targetResolutionAt DateTime?      // SLA Deadline
+  resolvedAt         DateTime?
+  
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  organization       Organization   @relation("OrgSupportTickets", fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy          User           @relation("TicketCreator", fields: [createdById], references: [id])
+  assignedTo         User?          @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  messages           TicketMessage[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model TicketMessage {
+  id             String        @id @default(cuid())
+  ticketId       String
+  senderId       String
+  messageText    String        @db.Text
+  isInternalNote Boolean       @default(false)
+  attachmentsUrl String?       // Optional JSON or CSV of attachment URLs
+  
+  createdAt      DateTime      @default(now())
+
+  ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender         User          @relation(fields: [senderId], references: [id])
+
+  @@index([ticketId, createdAt])
+}
+
+model OrgFeatureOverride {
+  id              String   @id @default(cuid())
+  organizationId  String
+  featureKey      String   // AI_PIPELINE, AI_INTERVIEWS, VENDOR_DISPATCH, BGV, OFFERS, JOB_DISTRIBUTION
+  enabled         Boolean
+  overriddenBy    String?  // userId who set this override
+  note            String?  // Reason for override
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, featureKey])
+  @@index([organizationId])
+}
+
+model ComplianceRule {
+  id              String   @id @default(cuid())
+  country         String   @default("US")
+  state           String?  // e.g. "CA", "NY", "TX"
+  city            String?  // e.g. "New York City", "San Francisco"
+  ruleType        String   // SALARY_TRANSPARENCY | BAN_THE_BOX | EEOC | RIGHT_TO_WORK | DATA_PRIVACY | CUSTOM
+  ruleKey         String   // Machine-readable key
+  ruleValue       Json     // Rule configuration/parameters
+  description     String   // Human-readable description
+  isActive        Boolean  @default(true)
+  isAutoApplied   Boolean  @default(true) // Auto-apply based on org/position location
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([country, state, city, ruleKey])
+  @@index([country, state])
+  @@index([isActive])
+}
+
+model ManualCostEntry {
+  id              String   @id @default(cuid())
+  organizationId  String?  // null = platform-wide cost
+  category        String   // TAVUS_VIDEO | CLOUDFLARE_R2 | ASSEMBLYAI | PISTON | CLERK | OTHER
+  amount          Float    // Cost in USD
+  description     String
+  periodStart     DateTime // Billing period start
+  periodEnd       DateTime // Billing period end
+  enteredBy       String   // userId of admin
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId, periodStart])
+  @@index([category, periodStart])
+}
+
+// ── Notification System ──────────────────────────────────────────────────────
+// In-app notification center (bell icon feed) with push subscription support.
+
+model Notification {
+  id              String   @id @default(cuid())
+  organizationId  String
+  userId          String   // Target recipient
+  type            String   // e.g. OFFER_APPROVED, AI_INTERVIEW_DONE, BGV_COMPLETED
+  title           String
+  body            String
+  icon            String?  // Emoji or icon identifier
+  link            String?  // Deep link to relevant page
+  isRead          Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  metadata        Json?    // Extra structured data (candidateName, positionTitle, etc.)
+  createdAt       DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([userId, isArchived])
+}
+
+model PushSubscription {
+  id             String   @id @default(cuid())
+  userId         String
+  endpoint       String   @unique
+  p256dh         String   // Public key
+  auth           String   // Auth secret
+  userAgent      String?  // Browser info for debugging
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ── Viral Referral Engine ───────────────────────────────────────────────────
+
+model ReferralLink {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  ownerUserId    String?  // Candidate, Interviewer, or OrgAdmin
+  ownerOrgId     String?  // If it's an Org-level referral link
+  type           String   // B2B_PARTNER | CANDIDATE_TROJAN | EXPERT_PEER | JOB_BOUNTY
+  targetPositionId String? // If JOB_BOUNTY, specific job
+  clicks         Int      @default(0)
+  signups        Int      @default(0)
+  conversions    Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  actions        ReferralAction[]
+}
+
+model ReferralAction {
+  id             String   @id @default(cuid())
+  referralLinkId String
+  referredUserId String?  // The person who clicked and signed up
+  referredOrgId  String?  // The new org created
+  status         String   // PENDING | QUALIFIED | REJECTED | REWARDED
+  rewardAmount   Float    // E.g., 500 for $500, 1000 for credits
+  rewardType     String   // CREDITS | AMAZON_GC | CASH | DISCOUNT
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  link           ReferralLink @relation(fields: [referralLinkId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Security — IP/User Block System
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SecurityBlock {
+  id          String   @id @default(cuid())
+  targetType  String   // "IP" | "USER"
+  targetValue String   // The IP address or user ID
+  reason      String
+  severity    String   // "auto" | "manual" | "critical"
+  isActive    Boolean  @default(true)
+  expiresAt   DateTime?
+  createdBy   String   // "system_auto_ban" or admin userId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([targetType, targetValue])
+  @@index([isActive, expiresAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Security — Login Event Tracking (Geo-Anomaly Detection)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model LoginEvent {
+  id             String   @id @default(cuid())
+  userId         String
+  ip             String
+  userAgent      String?
+  country        String?
+  region         String?
+  city           String?
+  riskScore      Int      @default(0) // 0-100
+  anomalyReasons Json?    // string[] of detected anomalies
+  createdAt      DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([ip])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Security — Automated Security Scan Results
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SecurityScanResult {
+  id             String   @id @default(cuid())
+  overallScore   Int      // 0-100
+  grade          String   // A+, A, B, C, D, F
+  totalChecks    Int
+  passed         Int
+  warnings       Int
+  failed         Int
+  checks         Json     // SecurityCheck[] — full detail
+  scanDurationMs Int
+  triggeredBy    String   // "cron" | "manual"
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Security — Geo-Blocked Countries (Admin-Configurable)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model GeoBlockedCountry {
+  id          String   @id @default(cuid())
+  countryCode String   @unique // ISO-3166 2-letter (e.g. "KP", "IR")
+  countryName String            // Human-readable (e.g. "North Korea")
+  reason      String   @default("High-risk region")
+  isActive    Boolean  @default(true)
+  createdBy   String            // Admin userId who added it
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, countryCode])
 }

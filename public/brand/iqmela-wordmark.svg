@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 120" fill="none">
+  <!--
+    IQMela — Two-Tone Wordmark
+    Design: Bold "IQ" in indigo + Medium "Mela" in teal
+    Font: Geometric sans-serif (outline to vectors in Figma)
+    Usage: Header, email signatures, text-forward contexts
+  -->
+
+  <!-- "IQ" — Bold weight, Indigo #4338CA -->
+  <text
+    x="0"
+    y="92"
+    font-family="Inter, Satoshi, -apple-system, sans-serif"
+    font-weight="700"
+    font-size="96"
+    fill="#4338CA"
+    letter-spacing="-2"
+  >IQ</text>
+
+  <!-- "Mela" — Medium weight, Teal #0D9488 -->
+  <text
+    x="155"
+    y="92"
+    font-family="Inter, Satoshi, -apple-system, sans-serif"
+    font-weight="500"
+    font-size="96"
+    fill="#0D9488"
+    letter-spacing="-1"
+  >Mela</text>
+</svg>

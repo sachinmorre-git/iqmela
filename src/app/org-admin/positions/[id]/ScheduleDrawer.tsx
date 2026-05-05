@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect, useCallback, Dispatch, SetStateAction, RefObject } from "react";
+import { formatDate, formatTime, formatDateTime } from "@/lib/locale-utils";
 import {
   X, Loader2, Calendar, Clock, Users, Link2, FileText, ChevronRight,
   Bot, Send, RefreshCw, CheckCircle, Edit3, Zap, CalendarClock,
@@ -201,10 +202,7 @@ export function ScheduleDrawer({
   const topRecommendations = matchResults.slice(0, 5);
 
   const formattedDate = stage.scheduledAt
-    ? new Date(stage.scheduledAt).toLocaleString("en-US", {
-        weekday: "short", month: "short", day: "numeric",
-        hour: "numeric", minute: "2-digit", hour12: true,
-      })
+    ? formatDateTime(new Date(stage.scheduledAt))
     : null;
 
   return (
@@ -219,7 +217,7 @@ export function ScheduleDrawer({
           <div>
             <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
               {isAI ? (
-                <Bot className="w-4 h-4 text-violet-500" />
+                <Bot className="w-4 h-4 text-pink-500" />
               ) : isBGV ? (
                 <Shield className="w-4 h-4 text-blue-500" />
               ) : isCompleted ? (
@@ -227,7 +225,7 @@ export function ScheduleDrawer({
               ) : isScheduled ? (
                 <Clock className="w-4 h-4 text-amber-500" />
               ) : (
-                <Calendar className="w-4 h-4 text-teal-500" />
+                <Calendar className="w-4 h-4 text-rose-500" />
               )}
               {isAI
                 ? isScheduled ? "AI Interview — In Progress" : isCompleted ? "AI Interview — Completed" : "AI Interview Invite"
@@ -271,7 +269,7 @@ export function ScheduleDrawer({
                     <p className="font-bold text-sm text-gray-900 dark:text-white">{candidateName}</p>
                     {matchScore != null && (
                       <p className="text-xs text-gray-500 dark:text-zinc-400">
-                        Match: <span className="font-bold text-teal-600 dark:text-teal-400">{matchScore}%</span>
+                        Match: <span className="font-bold text-rose-600 dark:text-rose-400">{matchScore}%</span>
                       </p>
                     )}
                   </div>
@@ -288,7 +286,7 @@ export function ScheduleDrawer({
                 {topSkills.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {topSkills.slice(0, 5).map((s) => (
-                      <span key={s} className="px-1.5 py-0.5 text-[10px] font-semibold bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 rounded border border-teal-100 dark:border-teal-800/40">
+                      <span key={s} className="px-1.5 py-0.5 text-[10px] font-semibold bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 rounded border border-rose-100 dark:border-rose-800/40">
                         {s}
                       </span>
                     ))}
@@ -312,8 +310,8 @@ export function ScheduleDrawer({
               {/* ═══ AI INTERVIEW STATES ═══ */}
               {isAI && isAvailable && (
                 <div className="flex flex-col items-center text-center py-6 gap-4">
-                  <div className="w-14 h-14 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                    <Bot className="w-7 h-7 text-violet-500" />
+                  <div className="w-14 h-14 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                    <Bot className="w-7 h-7 text-pink-500" />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-gray-900 dark:text-white">Send AI Interview</p>
@@ -326,8 +324,8 @@ export function ScheduleDrawer({
 
               {isAI && (isScheduled || isCompleted) && (
                 <div className="flex flex-col items-center text-center py-4 gap-4">
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isCompleted ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-violet-100 dark:bg-violet-900/30"}`}>
-                    {isCompleted ? <CheckCircle className="w-7 h-7 text-emerald-500" /> : <Bot className="w-7 h-7 text-violet-500 animate-pulse" />}
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isCompleted ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-pink-100 dark:bg-pink-900/30"}`}>
+                    {isCompleted ? <CheckCircle className="w-7 h-7 text-emerald-500" /> : <Bot className="w-7 h-7 text-pink-500 animate-pulse" />}
                   </div>
                   <div>
                     <p className="text-sm font-bold text-gray-900 dark:text-white">
@@ -419,13 +417,13 @@ export function ScheduleDrawer({
                               onClick={() => toggleInterviewer(m.interviewer.userId)}
                               className={`flex flex-col items-center gap-1 p-2 rounded-xl border min-w-[68px] transition-all shrink-0 ${
                                 isSelected
-                                  ? "border-teal-400 bg-teal-50 dark:bg-teal-900/30 dark:border-teal-700 shadow-sm"
-                                  : "border-gray-200 dark:border-zinc-700 hover:border-teal-300 hover:bg-gray-50 dark:hover:bg-zinc-800"
+                                  ? "border-rose-400 bg-rose-50 dark:bg-rose-900/30 dark:border-rose-700 shadow-sm"
+                                  : "border-gray-200 dark:border-zinc-700 hover:border-rose-300 hover:bg-gray-50 dark:hover:bg-zinc-800"
                               }`}
                             >
                               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
                                 isSelected
-                                  ? "bg-teal-500 text-white"
+                                  ? "bg-rose-500 text-white"
                                   : "bg-gradient-to-br from-gray-200 to-gray-300 dark:from-zinc-600 dark:to-zinc-700 text-gray-700 dark:text-zinc-200"
                               }`}>
                                 {isSelected ? "✓" : initials}
@@ -442,8 +440,8 @@ export function ScheduleDrawer({
                               </span>
                               <span className={`px-1 py-0.5 text-[7px] font-bold uppercase rounded ${
                                 m.interviewer.source === "INTERNAL"
-                                  ? "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400"
-                                  : "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400"
+                                  ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400"
+                                  : "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-400"
                               }`}>
                                 {m.interviewer.source === "INTERNAL" ? "INT" : "MKT"}
                               </span>
@@ -462,7 +460,7 @@ export function ScheduleDrawer({
                         onClick={() => setActiveTab("internal")}
                         className={`flex-1 py-2 text-xs font-bold text-center transition-all border-b-2 ${
                           activeTab === "internal"
-                            ? "border-teal-500 text-teal-700 dark:text-teal-400"
+                            ? "border-rose-500 text-rose-700 dark:text-rose-400"
                             : "border-transparent text-gray-400 hover:text-gray-600"
                         }`}
                       >
@@ -474,7 +472,7 @@ export function ScheduleDrawer({
                         onClick={() => setActiveTab("marketplace")}
                         className={`flex-1 py-2 text-xs font-bold text-center transition-all border-b-2 ${
                           activeTab === "marketplace"
-                            ? "border-violet-500 text-violet-700 dark:text-violet-400"
+                            ? "border-pink-500 text-pink-700 dark:text-pink-400"
                             : "border-transparent text-gray-400 hover:text-gray-600"
                         }`}
                       >
@@ -492,13 +490,13 @@ export function ScheduleDrawer({
                           if (!u) return null;
                           const name = ("name" in u ? u.name : null) || ("email" in u ? u.email : id);
                           return (
-                            <div key={id} className="flex items-center gap-1 px-2 py-1 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded-lg text-xs font-semibold text-teal-700 dark:text-teal-400">
-                              <span className="w-4 h-4 rounded-full bg-teal-500 text-white flex items-center justify-center text-[8px] shrink-0">
+                            <div key={id} className="flex items-center gap-1 px-2 py-1 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-lg text-xs font-semibold text-rose-700 dark:text-rose-400">
+                              <span className="w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[8px] shrink-0">
                                 {(name)[0]?.toUpperCase()}
                               </span>
                               {name.split(" ")[0]}
-                              {m && <span className="text-[9px] text-teal-500 ml-0.5">{m.matchScore}%</span>}
-                              <button type="button" onClick={() => toggleInterviewer(id)} className="ml-1 text-teal-400 hover:text-red-500">×</button>
+                              {m && <span className="text-[9px] text-rose-500 ml-0.5">{m.matchScore}%</span>}
+                              <button type="button" onClick={() => toggleInterviewer(id)} className="ml-1 text-rose-400 hover:text-red-500">×</button>
                             </div>
                           );
                         })}
@@ -526,7 +524,7 @@ export function ScheduleDrawer({
                           ))
                       ) : activeTab === "marketplace" ? (
                         <div className="px-4 py-6 text-center">
-                          <Sparkles className="w-5 h-5 text-violet-400 mx-auto mb-2" />
+                          <Sparkles className="w-5 h-5 text-pink-400 mx-auto mb-2" />
                           <p className="text-xs font-bold text-gray-600 dark:text-zinc-400">IQMela Marketplace</p>
                           <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1">
                             Coming soon — Expert freelance interviewers matched to your requirements
@@ -578,7 +576,7 @@ export function ScheduleDrawer({
                       onClick={() => setMode("quick")}
                       className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all border ${
                         mode === "quick"
-                          ? "bg-teal-50 border-teal-300 text-teal-700 dark:bg-teal-900/30 dark:border-teal-700 dark:text-teal-400 shadow-sm"
+                          ? "bg-rose-50 border-rose-300 text-rose-700 dark:bg-rose-900/30 dark:border-rose-700 dark:text-rose-400 shadow-sm"
                           : "bg-transparent border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800"
                       }`}
                     >
@@ -590,7 +588,7 @@ export function ScheduleDrawer({
                       onClick={() => setMode("poll")}
                       className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all border ${
                         mode === "poll"
-                          ? "bg-violet-50 border-violet-300 text-violet-700 dark:bg-violet-900/30 dark:border-violet-700 dark:text-violet-400 shadow-sm"
+                          ? "bg-pink-50 border-pink-300 text-pink-700 dark:bg-pink-900/30 dark:border-pink-700 dark:text-pink-400 shadow-sm"
                           : "bg-transparent border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800"
                       }`}
                     >
@@ -613,7 +611,7 @@ export function ScheduleDrawer({
                             required
                             value={scheduledAt}
                             onChange={(e) => setScheduledAt(e.target.value)}
-                            className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                            className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
                           />
                         </div>
                         <div>
@@ -624,7 +622,7 @@ export function ScheduleDrawer({
                           <select
                             value={duration}
                             onChange={(e) => setDuration(parseInt(e.target.value))}
-                            className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                            className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
                           >
                             <option value={15}>15 min</option>
                             <option value={30}>30 min</option>
@@ -645,7 +643,7 @@ export function ScheduleDrawer({
                           value={externalLink}
                           onChange={(e) => setExternalLink(e.target.value)}
                           placeholder="https://zoom.us/j/..."
-                          className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
+                          className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
                         />
                       </div>
 
@@ -659,7 +657,7 @@ export function ScheduleDrawer({
                           onChange={(e) => setNotes(e.target.value)}
                           rows={2}
                           placeholder="Focus areas, topics to cover..."
-                          className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition resize-none"
+                          className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition resize-none"
                         />
                       </div>
                     </>
@@ -697,7 +695,7 @@ export function ScheduleDrawer({
             {/* AI: Available → Send */}
             {isAI && isAvailable && (
               <button type="button" onClick={handleSendAiInvite} disabled={isPending}
-                className="px-5 py-2 rounded-xl text-sm font-bold bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
+                className="px-5 py-2 rounded-xl text-sm font-bold bg-pink-600 text-white hover:bg-pink-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
                 {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                 {isPending ? "Sending…" : "Send AI Invite"}
               </button>
@@ -706,7 +704,7 @@ export function ScheduleDrawer({
             {/* AI: Scheduled → Resend */}
             {isAI && isScheduled && (
               <button type="button" onClick={handleResendAiInvite} disabled={isPending}
-                className="px-5 py-2 rounded-xl text-sm font-bold bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
+                className="px-5 py-2 rounded-xl text-sm font-bold bg-pink-600 text-white hover:bg-pink-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
                 {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                 {isPending ? "Resending…" : "Resend AI Invite"}
               </button>
@@ -731,7 +729,7 @@ export function ScheduleDrawer({
             {!isAI && (isAvailable || isEditing) && mode === "quick" && (
               <button type="button" onClick={handleQuickSchedule}
                 disabled={isPending || !scheduledAt || selectedInterviewerIds.length === 0}
-                className="px-5 py-2 rounded-xl text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
+                className="px-5 py-2 rounded-xl text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
                 {isPending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Scheduling…</> : <>🚀 {isEditing ? "Reschedule" : "Schedule & Notify"}</>}
               </button>
             )}
@@ -739,7 +737,7 @@ export function ScheduleDrawer({
             {!isAI && (isAvailable || isEditing) && mode === "poll" && (
               <button type="button" onClick={handleSmartPoll}
                 disabled={isPending || !dateRangeStart || !dateRangeEnd || selectedInterviewerIds.length === 0}
-                className="px-5 py-2 rounded-xl text-sm font-bold bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
+                className="px-5 py-2 rounded-xl text-sm font-bold bg-pink-600 text-white hover:bg-pink-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
                 {isPending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending…</> : <>📨 Request Availability</>}
               </button>
             )}
@@ -784,7 +782,7 @@ function InterviewerListItem({
         >
           <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
             isSelected
-              ? "bg-teal-500 text-white"
+              ? "bg-rose-500 text-white"
               : "bg-gray-200 dark:bg-zinc-700 text-gray-600 dark:text-zinc-300"
           }`}>
             {isSelected ? "✓" : initials}
@@ -794,8 +792,8 @@ function InterviewerListItem({
               <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{interviewer.name || interviewer.email}</p>
               <span className={`px-1 py-0.5 text-[7px] font-bold uppercase rounded ${
                 interviewer.source === "INTERNAL"
-                  ? "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400"
-                  : "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400"
+                  ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400"
+                  : "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-400"
               }`}>
                 {interviewer.source === "INTERNAL" ? "INT" : "MKT"}
               </span>
@@ -814,7 +812,7 @@ function InterviewerListItem({
         <button
           type="button"
           onClick={onViewProfile}
-          className="px-2 py-2 text-gray-400 hover:text-teal-500 transition-colors shrink-0"
+          className="px-2 py-2 text-gray-400 hover:text-rose-500 transition-colors shrink-0"
           title="View profile"
         >
           <ChevronRight className="w-3 h-3" />
@@ -876,15 +874,15 @@ function InterviewerProfilePopover({
     "text-gray-400 dark:text-zinc-500";
 
   return (
-    <div className="mx-1 mb-1 rounded-xl border border-violet-200 dark:border-violet-800/50 bg-white dark:bg-zinc-900 shadow-xl shadow-violet-100/30 dark:shadow-none overflow-hidden animate-in slide-in-from-top-1 duration-150">
+    <div className="mx-1 mb-1 rounded-xl border border-pink-200 dark:border-pink-800/50 bg-white dark:bg-zinc-900 shadow-xl shadow-pink-100/30 dark:shadow-none overflow-hidden animate-in slide-in-from-top-1 duration-150">
       {/* Header strip */}
-      <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3 bg-gradient-to-r from-violet-50/60 to-transparent dark:from-violet-900/10">
+      <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3 bg-gradient-to-r from-pink-50/60 to-transparent dark:from-pink-900/10">
         <div className="flex items-center gap-3 min-w-0">
           {/* Avatar / initials */}
           {interviewer.avatarUrl ? (
-            <img src={interviewer.avatarUrl} alt={interviewer.name ?? ""} className="w-10 h-10 rounded-xl object-cover shrink-0 ring-2 ring-violet-200 dark:ring-violet-700" />
+            <img src={interviewer.avatarUrl} alt={interviewer.name ?? ""} className="w-10 h-10 rounded-xl object-cover shrink-0 ring-2 ring-pink-200 dark:ring-pink-700" />
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-extrabold text-sm shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white font-extrabold text-sm shrink-0">
               {(interviewer.name || interviewer.email).slice(0, 2).toUpperCase()}
             </div>
           )}
@@ -892,7 +890,7 @@ function InterviewerProfilePopover({
             <div className="flex items-center gap-1.5 flex-wrap">
               <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{interviewer.name || interviewer.email}</p>
               {interviewer.isVerified && (
-                <span title="IQMela Verified" className="text-teal-500">
+                <span title="IQMela Verified" className="text-rose-500">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     <path d="m9 12 2 2 4-4"/>
@@ -901,15 +899,16 @@ function InterviewerProfilePopover({
               )}
               <span className={`px-1.5 py-0.5 text-[7px] font-bold uppercase rounded ${
                 interviewer.source === "INTERNAL"
-                  ? "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400"
-                  : "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400"
+                  ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400"
+                  : "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-400"
               }`}>
                 {interviewer.source === "INTERNAL" ? "Internal" : "Marketplace"}
               </span>
             </div>
             <p className="text-[11px] text-gray-500 dark:text-zinc-400 truncate mt-0.5">
               {interviewer.title || "Interviewer"}
-              {interviewer.department && <span className="text-gray-300 dark:text-zinc-600"> · {interviewer.department}</span>}
+              {interviewer.source === "INTERNAL" && interviewer.department && <span className="text-gray-300 dark:text-zinc-600"> · {interviewer.department}</span>}
+              {interviewer.source === "MARKETPLACE" && <span className="text-gray-300 dark:text-zinc-600"> · Contact via IQMela</span>}
             </p>
           </div>
         </div>
@@ -938,7 +937,7 @@ function InterviewerProfilePopover({
             </span>
           )}
           {interviewer.hourlyRate != null && (
-            <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">
               ${interviewer.hourlyRate}/hr
             </span>
           )}
@@ -950,7 +949,7 @@ function InterviewerProfilePopover({
 
         {/* Bio */}
         {interviewer.expertise && (
-          <p className="text-[11px] text-gray-600 dark:text-zinc-400 leading-relaxed border-l-2 border-violet-200 dark:border-violet-800 pl-2 italic">
+          <p className="text-[11px] text-gray-600 dark:text-zinc-400 leading-relaxed border-l-2 border-pink-200 dark:border-pink-800 pl-2 italic">
             {interviewer.expertise}
           </p>
         )}
@@ -972,11 +971,11 @@ function InterviewerProfilePopover({
         {/* AI match reasons */}
         {matchReasons && matchReasons.length > 0 && (
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-violet-400 dark:text-violet-500 mb-1.5">Why AI recommended</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-pink-400 dark:text-pink-500 mb-1.5">Why AI recommended</p>
             <ul className="space-y-0.5">
               {matchReasons.slice(0, 3).map((r, i) => (
                 <li key={i} className="flex items-start gap-1 text-[10px] text-gray-500 dark:text-zinc-400">
-                  <span className="text-violet-400 mt-0.5 shrink-0">•</span>
+                  <span className="text-pink-400 mt-0.5 shrink-0">•</span>
                   {r}
                 </li>
               ))}
@@ -1000,8 +999,8 @@ function InterviewerProfilePopover({
             onClick={() => { onSelect(); onClose(); }}
             className={`text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all ${
               isSelected
-                ? "bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 border border-teal-300 dark:border-teal-700"
-                : "bg-violet-600 text-white hover:bg-violet-700 shadow-sm"
+                ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border border-rose-300 dark:border-rose-700"
+                : "bg-pink-600 text-white hover:bg-pink-700 shadow-sm"
             }`}
           >
             {isSelected ? "✓ Added to panel" : "+ Add to panel"}
@@ -1116,9 +1115,7 @@ function SmartPollConfigurator({
 
   // Deadline preview
   const deadlineDate  = addWeekdaysForDisplay(today, deadlineWeekdays);
-  const deadlineLabel = deadlineDate.toLocaleDateString("en-US", {
-    weekday: "short", month: "short", day: "numeric",
-  });
+  const deadlineLabel = formatDate(deadlineDate);
 
   const selectedCount  = selectedDays.size;
   const sortedSelected = [...selectedDays].sort();
@@ -1126,11 +1123,11 @@ function SmartPollConfigurator({
   return (
     <div className="space-y-4">
       {/* How it works */}
-      <div className="bg-violet-50 dark:bg-violet-900/10 rounded-xl p-3 border border-violet-200 dark:border-violet-800/40">
-        <p className="text-[10px] text-violet-600 dark:text-violet-400 font-bold uppercase tracking-wider mb-1">
+      <div className="bg-pink-50 dark:bg-pink-900/10 rounded-xl p-3 border border-pink-200 dark:border-pink-800/40">
+        <p className="text-[10px] text-pink-600 dark:text-pink-400 font-bold uppercase tracking-wider mb-1">
           How Smart Poll works
         </p>
-        <ol className="text-[10px] text-violet-500 dark:text-violet-400/80 space-y-0.5 list-decimal list-inside leading-relaxed">
+        <ol className="text-[10px] text-pink-500 dark:text-pink-400/80 space-y-0.5 list-decimal list-inside leading-relaxed">
           <li>Select the days you want to open for availability</li>
           <li>Panel members mark 9AM–5PM slots they&apos;re free</li>
           <li>AI finds common windows · Candidate picks a time</li>
@@ -1141,17 +1138,17 @@ function SmartPollConfigurator({
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-violet-500" />
+            <Calendar className="w-3.5 h-3.5 text-pink-500" />
             Select Interview Days
             {selectedCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-400 text-[9px] font-bold">
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-400 text-[9px] font-bold">
                 {selectedCount}
               </span>
             )}
           </label>
           <div className="flex items-center gap-2">
             <button type="button" onClick={selectAll}
-              className="text-[10px] font-semibold text-violet-600 dark:text-violet-400 hover:underline">
+              className="text-[10px] font-semibold text-pink-600 dark:text-pink-400 hover:underline">
               All weekdays
             </button>
             <span className="text-gray-300 dark:text-zinc-600">·</span>
@@ -1185,7 +1182,7 @@ function SmartPollConfigurator({
 
           {/* Weeks */}
           {weeks.map((week, wi) => {
-            const weekLabel = week[0].toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            const weekLabel = formatDate(week[0]);
             return (
               <div key={wi} className="flex items-center gap-1.5">
                 <span className="text-[8px] text-gray-300 dark:text-zinc-700 w-9 shrink-0 text-right leading-none">
@@ -1213,14 +1210,14 @@ function SmartPollConfigurator({
                           ${isPast
                             ? "opacity-20 cursor-not-allowed bg-gray-100 dark:bg-zinc-800 text-gray-400"
                             : isSel
-                            ? "bg-violet-600 text-white shadow-sm shadow-violet-300/40 dark:shadow-none ring-2 ring-violet-600 ring-offset-1 ring-offset-white dark:ring-offset-zinc-900 scale-[0.97]"
-                            : "cursor-pointer bg-gray-50 dark:bg-zinc-800/70 text-gray-700 dark:text-zinc-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-700 dark:hover:text-violet-400 border border-gray-100 dark:border-zinc-700/50 hover:border-violet-300 dark:hover:border-violet-700"
+                            ? "bg-pink-600 text-white shadow-sm shadow-pink-300/40 dark:shadow-none ring-2 ring-pink-600 ring-offset-1 ring-offset-white dark:ring-offset-zinc-900 scale-[0.97]"
+                            : "cursor-pointer bg-gray-50 dark:bg-zinc-800/70 text-gray-700 dark:text-zinc-300 hover:bg-pink-50 dark:hover:bg-pink-900/20 hover:text-pink-700 dark:hover:text-pink-400 border border-gray-100 dark:border-zinc-700/50 hover:border-pink-300 dark:hover:border-pink-700"
                           }
                         `}
                       >
                         {day.getDate()}
                         {isToday && !isSel && (
-                          <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-400" />
+                          <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-pink-400" />
                         )}
                       </button>
                     );
@@ -1236,8 +1233,8 @@ function SmartPollConfigurator({
           <div className="mt-2 flex items-center gap-1.5 flex-wrap">
             <span className="text-[10px] text-gray-400 dark:text-zinc-500 shrink-0">Selected:</span>
             {sortedSelected.slice(0, 5).map(iso => (
-              <span key={iso} className="text-[9px] font-semibold text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 px-1.5 py-0.5 rounded-md">
-                {new Date(iso + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+              <span key={iso} className="text-[9px] font-semibold text-pink-700 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 px-1.5 py-0.5 rounded-md">
+                {formatDate(new Date(iso + "T00:00:00"))}
               </span>
             ))}
             {sortedSelected.length > 5 && (
@@ -1251,13 +1248,13 @@ function SmartPollConfigurator({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5 mb-1.5">
-            <Clock className="w-3.5 h-3.5 text-violet-500" />
+            <Clock className="w-3.5 h-3.5 text-pink-500" />
             Duration
           </label>
           <select
             value={duration}
             onChange={(e) => setDuration(parseInt(e.target.value))}
-            className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition"
+            className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition"
           >
             <option value={15}>15 min</option>
             <option value={30}>30 min</option>
@@ -1269,13 +1266,13 @@ function SmartPollConfigurator({
 
         <div>
           <label className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5 mb-1.5">
-            <Clock className="w-3.5 h-3.5 text-violet-500" />
+            <Clock className="w-3.5 h-3.5 text-pink-500" />
             Deadline
           </label>
           <select
             value={deadlineWeekdays}
             onChange={(e) => setDeadlineWeekdays(parseInt(e.target.value))}
-            className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition"
+            className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition"
           >
             {DEADLINE_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>

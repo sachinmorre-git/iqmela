@@ -25,10 +25,10 @@ export function InterviewCard({
   // Theme dictionaries
   const themes = {
     indigo: {
-      wrapper: "border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/30 dark:bg-indigo-900/10 hover:border-indigo-200 dark:hover:border-indigo-800",
-      badge: "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300",
-      subtitle: "text-indigo-600 dark:text-indigo-400",
-      btn: "bg-indigo-600 hover:bg-indigo-700 text-white"
+      wrapper: "border-rose-100 dark:border-rose-900/50 bg-rose-50/30 dark:bg-rose-900/10 hover:border-rose-200 dark:hover:border-rose-800",
+      badge: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300",
+      subtitle: "text-rose-600 dark:text-rose-400",
+      btn: "bg-rose-600 hover:bg-rose-700 text-white"
     },
     purple: {
       wrapper: "border-purple-100 dark:border-purple-900/50 bg-purple-50/30 dark:bg-purple-900/10 hover:border-purple-200 dark:hover:border-purple-800",

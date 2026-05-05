@@ -9,6 +9,7 @@ import { TechCheck } from "./TechCheck";
 import { PrepCoach } from "./PrepCoach";
 import { CalendarX2 } from "lucide-react";
 import Link from "next/link";
+import { formatDate } from "@/lib/locale-utils"
 
 export const metadata: Metadata = {
   title: "My Interviews — IQMela",
@@ -82,7 +83,7 @@ export default async function CandidateDashboard() {
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Ambient glow */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-b from-indigo-700/15 via-violet-700/8 to-transparent blur-3xl rounded-full" />
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-b from-rose-700/15 via-pink-700/8 to-transparent blur-3xl rounded-full" />
       </div>
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -176,7 +177,7 @@ export default async function CandidateDashboard() {
                   <div>
                     <p className="text-sm font-semibold text-white">{s.position?.title ?? "AI Interview"}</p>
                     <p className="text-xs text-zinc-600 mt-0.5">
-                      {new Date(s.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {formatDate(new Date(s.createdAt))}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -187,7 +188,7 @@ export default async function CandidateDashboard() {
                     )}
                     {s.status === "IN_PROGRESS" && s.magicLinkToken && (
                       <Link href={`/ai-interview/${s.magicLinkToken}`}
-                        className="text-xs font-bold text-indigo-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 transition-colors">
+                        className="text-xs font-bold text-rose-400 hover:text-rose-300 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 transition-colors">
                         Continue →
                       </Link>
                     )}

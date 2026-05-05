@@ -33,7 +33,7 @@ export function BulkExtractButton({
       <button
         onClick={handleClick}
         disabled={isPending || totalResumes === 0}
-        className="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md shadow-violet-500/20 border border-violet-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 min-w-[220px]"
+        className="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white shadow-md shadow-pink-500/20 border border-pink-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 min-w-[220px]"
       >
         {isPending ? (
           <>
@@ -59,20 +59,20 @@ export function BulkExtractButton({
           checked={forceReExtract} 
           onChange={(e) => setForceReExtract(e.target.checked)} 
           disabled={isPending}
-          className="rounded border-gray-300 text-violet-600 focus:ring-violet-500 shadow-sm disabled:opacity-50"
+          className="rounded border-gray-300 text-pink-600 focus:ring-pink-500 shadow-sm disabled:opacity-50"
         />
         Force re-extract all
       </label>
 
       {/* Result summary area */}
       {result && !isPending && (
-        <div className="flex flex-col gap-3 mt-4 w-full bg-white dark:bg-zinc-800 p-4 rounded-xl border border-violet-100 dark:border-violet-900/30 shadow-sm text-left">
+        <div className="flex flex-col gap-3 mt-4 w-full bg-white dark:bg-zinc-800 p-4 rounded-xl border border-pink-100 dark:border-pink-900/30 shadow-sm text-left">
           <p className="text-sm font-bold text-gray-800 dark:text-gray-200">Extraction Summary</p>
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300">
               Total Processed: {result.total}
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-400">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400">
               ✓ {result.succeeded} Successful
             </span>
             {result.warnings > 0 && (

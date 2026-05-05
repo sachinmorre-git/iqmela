@@ -15,9 +15,9 @@ type PendingInvite = {
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   ORG_ADMIN: { label: "Org Admin", color: "text-amber-400 bg-amber-400/10 border-amber-500/20" },
   DEPT_ADMIN: { label: "Dept Admin", color: "text-amber-400 bg-amber-400/10 border-amber-500/20" },
-  RECRUITER: { label: "Recruiter", color: "text-indigo-400 bg-indigo-400/10 border-indigo-500/20" },
+  RECRUITER: { label: "Recruiter", color: "text-rose-400 bg-rose-400/10 border-rose-500/20" },
   B2B_INTERVIEWER: { label: "Interviewer", color: "text-purple-400 bg-purple-400/10 border-purple-500/20" },
-  HIRING_MANAGER: { label: "Hiring Mgr", color: "text-teal-400 bg-teal-400/10 border-teal-500/20" },
+  HIRING_MANAGER: { label: "Hiring Mgr", color: "text-rose-400 bg-rose-400/10 border-rose-500/20" },
 };
 
 export function PendingInviteCard({ invite }: { invite: PendingInvite }) {
@@ -46,13 +46,13 @@ export function PendingInviteCard({ invite }: { invite: PendingInvite }) {
       `}
     >
       {/* Subtle gradient glow */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       <div className="relative p-6">
         {/* Org Header */}
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/20 flex items-center justify-center shrink-0">
-            <Building2 className="w-5 h-5 text-indigo-400" />
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500/20 to-purple-500/20 border border-rose-500/20 flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5 text-rose-400" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-white truncate">{invite.orgName}</h3>
@@ -89,11 +89,11 @@ export function PendingInviteCard({ invite }: { invite: PendingInvite }) {
               disabled={isPending}
               className="
                 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-                bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500
+                bg-gradient-to-r from-rose-600 to-purple-600 hover:from-rose-500 hover:to-purple-500
                 text-white text-sm font-semibold
                 transition-all duration-200
                 disabled:opacity-60 disabled:cursor-not-allowed
-                shadow-lg shadow-indigo-500/20
+                shadow-lg shadow-rose-500/20
               "
             >
               {isPending ? (

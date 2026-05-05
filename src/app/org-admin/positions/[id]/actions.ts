@@ -8,6 +8,7 @@ import { mailService } from "@/lib/mail"
 import { revalidatePath } from "next/cache"
 import path from "path"
 import { getCallerPermissions } from "@/lib/rbac"
+import { atsPreScreen } from "@/lib/ats-prescreen"
 
 export interface BulkExtractionResult {
   total: number
@@ -55,7 +56,17 @@ export async function archivePositionAction(positionId: string): Promise<{ succe
     const position = await prisma.position.findUnique({ where: { id: positionId } })
     if (!position || position.organizationId !== perms.orgId) return { success: false, error: "Not found or unauthorized" }
 
-    await prisma.position.update({ where: { id: positionId }, data: { status: "ARCHIVED" } })
+    // ── Close all LIVE distributions before archiving ──────────────────
+    await prisma.jobDistribution.updateMany({
+      where: { positionId, status: "LIVE" },
+      data: { status: "CLOSED", unpublishedAt: new Date() },
+    })
+
+    // ── Unpublish position + archive ──────────────────────────────────
+    await prisma.position.update({
+      where: { id: positionId },
+      data: { status: "ARCHIVED", isPublished: false },
+    })
 
     // ── Audit log ──────────────────────────────────────────────────
     await prisma.auditLog.create({
@@ -75,6 +86,77 @@ export async function archivePositionAction(positionId: string): Promise<{ succe
     return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
   }
 }
+
+export async function closePositionAction(positionId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
+
+    const position = await prisma.position.findUnique({ where: { id: positionId } })
+    if (!position || position.organizationId !== perms.orgId) return { success: false, error: "Not found or unauthorized" }
+    if (position.status === "CLOSED" || position.status === "ARCHIVED") {
+      return { success: false, error: "Position is already closed or archived" }
+    }
+
+    // ── Close all LIVE distributions ─────────────────────────────────
+    await prisma.jobDistribution.updateMany({
+      where: { positionId, status: "LIVE" },
+      data: { status: "CLOSED", unpublishedAt: new Date() },
+    })
+
+    // ── Update position status ───────────────────────────────────────
+    await prisma.position.update({
+      where: { id: positionId },
+      data: { status: "CLOSED", isPublished: false },
+    })
+
+    // ── Audit log ────────────────────────────────────────────────────
+    await prisma.auditLog.create({
+      data: {
+        organizationId: perms.orgId,
+        userId: perms.userId,
+        action: "POSITION_CLOSED",
+        resourceType: "Position",
+        resourceId: positionId,
+        metadata: { title: position.title, previousStatus: position.status, closedBy: "MANUAL" },
+      },
+    }).catch((err) => console.error("[ClosePosition] Audit log failed:", err));
+
+    // ── Notify recruiters ────────────────────────────────────────────
+    try {
+      const { createBulkNotifications } = await import("@/lib/notification-service")
+      const recruiters = await prisma.user.findMany({
+        where: {
+          organizationId: perms.orgId,
+          roles: { hasSome: ["ORG_ADMIN", "DEPT_ADMIN", "HIRING_MANAGER", "RECRUITER"] },
+          isDeleted: false,
+          id: { not: perms.userId }, // Don't notify the person who closed it
+        },
+        select: { id: true },
+      })
+      if (recruiters.length > 0) {
+        await createBulkNotifications(
+          recruiters.map((u) => ({
+            organizationId: perms.orgId,
+            userId: u.id,
+            type: "POSITION_CLOSED" as const,
+            title: "Position Closed",
+            body: `"${position.title}" has been manually closed. All job board listings have been unpublished.`,
+            link: `/org-admin/positions/${positionId}`,
+          })),
+        )
+      }
+    } catch (notifyErr) {
+      console.warn("[ClosePosition] Notification failed (non-blocking):", notifyErr)
+    }
+
+    revalidatePath("/org-admin/positions")
+    revalidatePath(`/org-admin/positions/${positionId}`)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+  }
+}
 export async function dispatchVendorInvites(positionId: string, vendorOrgIds: string[]) {
   try {
     const perms = await getCallerPermissions()
@@ -83,6 +165,16 @@ export async function dispatchVendorInvites(positionId: string, vendorOrgIds: st
     const position = await prisma.position.findUnique({ where: { id: positionId } })
     if (!position || position.organizationId !== perms.orgId) return { success: false, error: "Not found or unauthorized" }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://iqmela.com";
+    const dropzoneUrl = `${appUrl}/vendor/positions/${positionId}`;
+
+    // Get client org name for email context
+    const clientOrg = await prisma.organization.findUnique({
+      where: { id: perms.orgId },
+      select: { name: true },
+    });
+    const clientOrgName = clientOrg?.name || "A client organization";
+
     // Execute bulk upsert mapping logic
     for (const vendorOrgId of vendorOrgIds) {
       await prisma.positionVendor.upsert({
@@ -90,9 +182,35 @@ export async function dispatchVendorInvites(positionId: string, vendorOrgIds: st
         update: { status: "ACTIVE" },
         create: { positionId, vendorOrgId, status: "ACTIVE", dispatchedById: perms.userId },
       });
-      
-      // In production, mailService integration goes here to send the transactional email!
-      // await mailService.sendEmail(...)
+
+      // Send dispatch email to vendor's contact email
+      const vendorRelation = await prisma.clientVendorRelation.findUnique({
+        where: { clientOrgId_vendorOrgId: { clientOrgId: perms.orgId, vendorOrgId } },
+        select: { contactEmail: true },
+      });
+      const vendorOrg = await prisma.organization.findUnique({
+        where: { id: vendorOrgId },
+        select: { name: true },
+      });
+
+      if (vendorRelation?.contactEmail) {
+        // Non-blocking — don't let email failure break the dispatch
+        mailService.sendGenericEmail({
+          to: vendorRelation.contactEmail,
+          subject: `New Position Dispatched: ${position.title}`,
+          heading: `\ud83d\udccb New Position: ${position.title}`,
+          body: [
+            `<strong>${clientOrgName}</strong> has dispatched a position to your agency.`,
+            ``,
+            `<strong>Position:</strong> ${position.title}`,
+            `<strong>Organization:</strong> ${clientOrgName}`,
+            ``,
+            `You can start uploading candidate resumes immediately using the secure dropzone link below.`,
+          ].join("\n"),
+          ctaLabel: "Open Dropzone & Upload Candidates",
+          ctaUrl: dropzoneUrl,
+        }).catch((err) => console.error(`[dispatchVendorInvites] Email to ${vendorRelation.contactEmail} failed:`, err));
+      }
     }
 
     revalidatePath(`/org-admin/positions/${positionId}`)
@@ -154,6 +272,8 @@ export async function updateVendorStageAction(
       return { success: false, error: "This resume was not submitted by a vendor." }
     }
 
+    const previousStage = resume.vendorStage || "SUBMITTED";
+
     await prisma.resume.update({
       where: { id: resumeId },
       data: {
@@ -162,6 +282,61 @@ export async function updateVendorStageAction(
         vendorStageNotes: notes || null,
       },
     })
+
+    // ── Audit log for stage change ───────────────────────────────────────
+    await prisma.auditLog.create({
+      data: {
+        organizationId: perms.orgId,
+        userId: perms.userId,
+        action: "VENDOR_STAGE_UPDATE",
+        resourceType: "Resume",
+        resourceId: resumeId,
+        metadata: {
+          candidateName: resume.candidateName || resume.originalFileName,
+          positionId: resume.positionId,
+          positionTitle: resume.position.title,
+          vendorOrgId: resume.vendorOrgId,
+          previousStage,
+          newStage: stage,
+          notes: notes || null,
+        },
+      },
+    });
+
+    // ── Notify vendor of stage change (non-blocking) ────────────────────
+    const vendorRelation = await prisma.clientVendorRelation.findUnique({
+      where: {
+        clientOrgId_vendorOrgId: {
+          clientOrgId: perms.orgId,
+          vendorOrgId: resume.vendorOrgId,
+        },
+      },
+      select: { contactEmail: true },
+    });
+
+    if (vendorRelation?.contactEmail) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://iqmela.com";
+      const candidateLabel = resume.candidateName || resume.originalFileName;
+      const stageLabel = stage.replace(/_/g, " ");
+      const prevLabel = previousStage.replace(/_/g, " ");
+
+      mailService.sendGenericEmail({
+        to: vendorRelation.contactEmail,
+        subject: `Candidate Update: ${candidateLabel} — ${stageLabel}`,
+        heading: `📊 Candidate Stage Updated`,
+        body: [
+          `Your candidate <strong>${candidateLabel}</strong> for <strong>${resume.position.title}</strong> has been moved to a new stage.`,
+          ``,
+          `<strong>Previous Stage:</strong> ${prevLabel}`,
+          `<strong>New Stage:</strong> ${stageLabel}`,
+          ...(notes ? [``, `<strong>Client Notes:</strong> ${notes}`] : []),
+          ``,
+          `View the full details in your Vendor Portal.`,
+        ].join("\n"),
+        ctaLabel: "View in Vendor Portal",
+        ctaUrl: `${appUrl}/org-admin/vendor-portal/${resume.positionId}`,
+      }).catch((err) => console.error(`[updateVendorStage] Email notification failed:`, err));
+    }
 
     revalidatePath(`/org-admin/positions/${resume.positionId}`)
     return { success: true }
@@ -491,7 +666,7 @@ export interface BulkRankingResult {
   errors: Array<{ fileName: string; error: string }>
 }
 
-export async function bulkRankAllAction(positionId: string): Promise<{ success: boolean; result?: BulkRankingResult; error?: string }> {
+export async function bulkRankAllAction(positionId: string, filterResumeIds?: string[]): Promise<{ success: boolean; result?: BulkRankingResult; error?: string }> {
   const perms = await getCallerPermissions()
   if (!perms || !perms.canRunAI) return { success: false, error: "Unauthorized" }
 
@@ -512,10 +687,16 @@ export async function bulkRankAllAction(positionId: string): Promise<{ success: 
     return { success: false, error: "Position has no Job Description. Add one before ranking." }
   }
 
-  // Only rank resumes that have been extracted
-  const resumesToRank = position.resumes.filter(
+  // Only rank resumes that have been extracted (+ optional pre-screen filter)
+  let resumesToRank = position.resumes.filter(
     (r) => r.extractedText && (r.parsingStatus === "EXTRACTED" || r.parsingStatus === "RANKED")
   )
+
+  // If a pre-screen filter is provided, only rank those specific resumes
+  if (filterResumeIds && filterResumeIds.length > 0) {
+    const filterSet = new Set(filterResumeIds)
+    resumesToRank = resumesToRank.filter((r) => filterSet.has(r.id))
+  }
 
   if (resumesToRank.length === 0) {
     return { success: false, error: "No extracted resumes available to rank. Run extraction first." }
@@ -598,6 +779,30 @@ export async function bulkRankAllAction(positionId: string): Promise<{ success: 
       if (extractedBase.candidateEmail) emailMap.add(extractedBase.candidateEmail.toLowerCase());
       if (extractedBase.phoneNumber) phoneMap.add(extractedBase.phoneNumber);
 
+      // ── Gap 3: Snapshot previous ranking before overwrite ───────────
+      const prevRankSnapshot = (resume.jdMatchScore != null || resume.matchScore != null) ? {
+        _aiDecisionSnapshot: {
+          jdMatchScore: resume.jdMatchScore,
+          jdMatchLabel: resume.jdMatchLabel,
+          matchScore: resume.matchScore,
+          matchLabel: resume.matchLabel,
+          rankingExplanation: resume.rankingExplanation,
+          rankedAt: resume.rankedAt?.toISOString() ?? null,
+          snapshotAt: new Date().toISOString(),
+          snapshotReason: "RE_RANKED",
+        }
+      } : null
+
+      const existingRankHistory = Array.isArray(resume.aiRawOutputJson)
+        ? (resume.aiRawOutputJson as any[])
+        : resume.aiRawOutputJson && typeof resume.aiRawOutputJson === "object"
+          ? [resume.aiRawOutputJson]
+          : []
+
+      const updatedRankHistory = prevRankSnapshot
+        ? [...existingRankHistory, prevRankSnapshot]
+        : existingRankHistory
+
       await prisma.resume.update({
         where: { id: resume.id },
         data: {
@@ -613,6 +818,7 @@ export async function bulkRankAllAction(positionId: string): Promise<{ success: 
           notableStrengthsJson: rankData.notableStrengths as any,
           possibleGapsJson: rankData.possibleGaps as any,
           rankedAt: new Date(),
+          aiRawOutputJson: updatedRankHistory.length > 0 ? (updatedRankHistory as any) : undefined,
 
           isNearDuplicate,
           duplicateReason
@@ -785,6 +991,29 @@ export async function bulkAdvancedJudgmentAction(positionId: string, limit: numb
           }
         });
         
+        // ── Gap 3: Snapshot previous judgment before overwrite ──────────
+        const prevJudgmentSnapshot = resume.aiRecommendationLabel ? {
+          _aiDecisionSnapshot: {
+            aiRecommendationLabel: resume.aiRecommendationLabel,
+            aiRecommendationRationale: resume.aiRecommendationRationale,
+            finalRecommendationLabel: resume.finalRecommendationLabel,
+            advancedJudgmentProvider: resume.advancedJudgmentProvider,
+            advancedJudgmentAt: resume.advancedJudgmentAt?.toISOString() ?? null,
+            snapshotAt: new Date().toISOString(),
+            snapshotReason: "RE_JUDGED",
+          }
+        } : null
+
+        const existingJudgHistory = Array.isArray(resume.aiRawOutputJson)
+          ? (resume.aiRawOutputJson as any[])
+          : resume.aiRawOutputJson && typeof resume.aiRawOutputJson === "object"
+            ? [resume.aiRawOutputJson]
+            : []
+
+        const updatedJudgHistory = prevJudgmentSnapshot
+          ? [...existingJudgHistory, prevJudgmentSnapshot]
+          : existingJudgHistory
+
         await prisma.resume.update({
           where: { id: resume.id },
           data: {
@@ -798,6 +1027,7 @@ export async function bulkAdvancedJudgmentAction(positionId: string, limit: numb
             aiInterviewFocusJson: interviewPrepData.focusAreas as any,
             aiInterviewQuestionsJson: interviewPrepData.questions as any,
             aiRedFlagsJson: redFlagsData.flags as any,
+            aiRawOutputJson: updatedJudgHistory.length > 0 ? (updatedJudgHistory as any) : undefined,
           },
         })
 
@@ -845,22 +1075,185 @@ export async function bulkProcessAllAction(positionId: string, forceReExtract: b
   extractResult?: BulkExtractionResult
   rankResult?: BulkRankingResult
   judgmentResult?: BulkAdvancedJudgmentResult
+  preScreened?: number
+  autoShortlisted?: number
+  autoInvited?: number
 }> {
+  // Fetch position settings for the funnel
+  const posSettings = await prisma.position.findUnique({
+    where: { id: positionId },
+    select: {
+      atsPreScreenSize: true,
+      aiShortlistSize: true,
+      autoInviteAiScreen: true,
+      jdRequiredSkillsJson: true,
+      jdPreferredSkillsJson: true,
+    },
+  })
+
+  const atsTopN = posSettings?.atsPreScreenSize ?? 100
+  const aiTopN = posSettings?.aiShortlistSize ?? 10
+
+  // ── Step 1: Extract all ──────────────────────────────────────────────────
   const extractRes = await bulkExtractAllAction(positionId, forceReExtract)
   if (!extractRes.success) {
     return { success: false, error: `Extraction failed: ${extractRes.error}` }
   }
 
-  const rankRes = await bulkRankAllAction(positionId)
+  // ── Step 2: ATS Pre-Screen (zero-cost keyword matching) ──────────────────
+  const allResumes = await prisma.resume.findMany({
+    where: {
+      positionId,
+      extractedText: { not: null },
+      parsingStatus: { in: ["EXTRACTED", "RANKED"] },
+    },
+    select: {
+      id: true,
+      rawExtractedText: true,
+      extractedText: true,
+    },
+  })
+
+  const requiredSkills = Array.isArray(posSettings?.jdRequiredSkillsJson)
+    ? (posSettings.jdRequiredSkillsJson as string[])
+    : []
+  const preferredSkills = Array.isArray(posSettings?.jdPreferredSkillsJson)
+    ? (posSettings.jdPreferredSkillsJson as string[])
+    : []
+
+  let preScreenedIds: string[] | undefined
+  let preScreenedCount = allResumes.length
+
+  if (allResumes.length > atsTopN && (requiredSkills.length > 0 || preferredSkills.length > 0)) {
+    // Only run pre-screen if we have more resumes than the limit and skills to match against
+    const { topIds } = atsPreScreen(allResumes, requiredSkills, preferredSkills, atsTopN)
+    preScreenedIds = topIds
+    preScreenedCount = topIds.length
+    console.log(`[pipeline] ATS pre-screen: ${allResumes.length} → ${preScreenedCount} resumes`)
+  } else {
+    console.log(`[pipeline] ATS pre-screen: skipped (${allResumes.length} ≤ ${atsTopN} or no skills)`)
+  }
+
+  // ── Step 3: AI Rank (only the pre-screened pool) ─────────────────────────
+  const rankRes = await bulkRankAllAction(positionId, preScreenedIds)
   if (!rankRes.success) {
     return { 
       success: true, 
       warning: `Extraction completed, but Ranking failed: ${rankRes.error}`,
-      extractResult: extractRes.result
+      extractResult: extractRes.result,
+      preScreened: preScreenedCount,
     }
   }
 
-  const judgmentRes = await bulkAdvancedJudgmentAction(positionId, 10, forceReExtract)
+  const judgmentRes = await bulkAdvancedJudgmentAction(positionId, aiTopN, forceReExtract)
+
+  // ── Step 4: Auto-shortlist top N by matchScore ───────────────────────────
+  let autoShortlisted = 0
+  try {
+    const topResumes = await prisma.resume.findMany({
+      where: {
+        positionId,
+        matchScore: { gte: 60 }, // Only auto-shortlist candidates with at least 60% match
+        parsingStatus: "RANKED",
+      },
+      orderBy: { matchScore: "desc" },
+      take: aiTopN,
+      select: { id: true },
+    })
+
+    if (topResumes.length > 0) {
+      // Clear all existing shortlists for this position first
+      await prisma.resume.updateMany({
+        where: { positionId, isShortlisted: true },
+        data: { isShortlisted: false },
+      })
+
+      // Shortlist the top N
+      await prisma.resume.updateMany({
+        where: { id: { in: topResumes.map((r) => r.id) } },
+        data: { isShortlisted: true },
+      })
+
+      autoShortlisted = topResumes.length
+      console.log(`[pipeline] Auto-shortlisted top ${autoShortlisted} candidates`)
+    }
+  } catch (e) {
+    console.error("[pipeline] Auto-shortlist failed:", e)
+  }
+
+  // ── Step 5: Auto-Invite AI Screen (if enabled) ─────────────────────────
+  let autoInvited = 0
+  if (posSettings?.autoInviteAiScreen && autoShortlisted > 0) {
+    try {
+      // Check if position has an AI interview config
+      const aiConfig = await prisma.aiInterviewConfig.findFirst({
+        where: { positionId, interviewId: null },
+        select: { id: true },
+      })
+
+      if (aiConfig) {
+        // Get shortlisted candidates who don't already have an invite
+        const shortlisted = await prisma.resume.findMany({
+          where: {
+            positionId,
+            isShortlisted: true,
+            invite: null, // no existing invite
+            OR: [
+              { candidateEmail: { not: null } },
+              { overrideEmail: { not: null } },
+            ],
+          },
+          select: { id: true, candidateEmail: true, overrideEmail: true, candidateName: true, overrideName: true, originalFileName: true },
+        })
+
+        const positionData = await prisma.position.findUnique({
+          where: { id: positionId },
+          select: { title: true },
+        })
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://iqmela.com"
+
+        for (const resume of shortlisted) {
+          const email = resume.overrideEmail || resume.candidateEmail
+          if (!email) continue
+
+          try {
+            const invite = await prisma.interviewInvite.create({
+              data: {
+                resumeId: resume.id,
+                positionId,
+                targetEmail: email,
+                status: "SENT",
+              },
+            })
+
+            const candidateName = resume.overrideName || resume.candidateName || "Candidate"
+            const inviteLink = `${baseUrl}/candidate/ai-interview/pre-check?inviteId=${invite.id}`
+
+            await mailService.sendAiInterviewInvite({
+              to: email,
+              candidateName,
+              positionTitle: positionData?.title || "Open Position",
+              inviteLink,
+              inviteId: invite.id,
+            })
+
+            autoInvited++
+          } catch (inviteErr) {
+            console.error(`[pipeline] Auto-invite failed for ${resume.originalFileName}:`, inviteErr)
+          }
+        }
+
+        if (autoInvited > 0) {
+          console.log(`[pipeline] Auto-invited ${autoInvited} shortlisted candidates for AI screening`)
+        }
+      } else {
+        console.log("[pipeline] Auto-invite skipped — no AiInterviewConfig found for this position")
+      }
+    } catch (e) {
+      console.error("[pipeline] Auto-invite failed:", e)
+    }
+  }
 
   // Log the batch run for the entire pipeline
   await prisma.positionBatchRun.create({
@@ -872,7 +1265,14 @@ export async function bulkProcessAllAction(positionId: string, forceReExtract: b
       succeeded: extractRes.result?.succeeded || 0,
       failed: (extractRes.result?.failed || 0) + (rankRes.result?.failed || 0) + (judgmentRes.result?.failed || 0),
       skipped: (extractRes.result?.skipped || 0) + (rankRes.result?.skipped || 0) + (judgmentRes.result?.skipped || 0),
-      detailsJson: JSON.stringify({ extractErrors: extractRes.error, rankErrors: rankRes.error, judgmentErrors: judgmentRes.error })
+      detailsJson: JSON.stringify({
+        extractErrors: extractRes.error,
+        rankErrors: rankRes.error,
+        judgmentErrors: judgmentRes.error,
+        preScreened: preScreenedCount,
+        autoShortlisted,
+        autoInvited,
+      })
     }
   })
 
@@ -880,7 +1280,10 @@ export async function bulkProcessAllAction(positionId: string, forceReExtract: b
     success: true, 
     extractResult: extractRes.result, 
     rankResult: rankRes.result,
-    judgmentResult: judgmentRes.result
+    judgmentResult: judgmentRes.result,
+    preScreened: preScreenedCount,
+    autoShortlisted,
+    autoInvited,
   }
 }
 
@@ -1070,6 +1473,13 @@ export async function bulkSendInvitesAction(positionId: string, resumeIds: strin
         aiInterviewConfigs: {
           where: { interviewId: null },
           take: 1,
+        },
+        interviewPlan: {
+          include: {
+            stages: {
+              orderBy: { stageIndex: "asc" }
+            }
+          }
         }
       }
     })
@@ -1078,22 +1488,52 @@ export async function bulkSendInvitesAction(positionId: string, resumeIds: strin
       return { success: false, error: "Position not found or unauthorized" }
     }
 
+    // Validation: Check if the first round is a human interview without a panel
+    if (position.interviewPlan && position.interviewPlan.stages.length > 0) {
+      const firstStage = position.interviewPlan.stages[0]
+      if (firstStage.roundType !== "AI_SCREEN") {
+        const hasPanel = firstStage.assignedPanelJson && Array.isArray(firstStage.assignedPanelJson) && firstStage.assignedPanelJson.length > 0
+        if (!hasPanel) {
+          return { success: false, error: "Cannot send invites: No interview panel assigned for the first round. Please edit the pipeline and select a panel." }
+        }
+      }
+    }
+
     let sent = 0
     let skipped = 0
     const failedLog: string[] = []
 
     for (const resume of position.resumes) {
-      const invite = resume.invite
-      if (!invite) {
-        skipped++
-        failedLog.push(`Skipped: ${resume.originalFileName} (No invite draft found)`)
-        continue
-      }
+      let invite = resume.invite
       
-      if (invite.status !== "DRAFT") {
+      if (invite && invite.status !== "DRAFT" && invite.status !== "FAILED") {
         skipped++
         failedLog.push(`Skipped: ${resume.originalFileName} (Invite already ${invite.status})`)
         continue
+      }
+
+      if (!invite) {
+        if (!resume.isShortlisted) {
+           skipped++
+           failedLog.push(`Skipped: ${resume.originalFileName} (Not shortlisted)`)
+           continue
+        }
+        
+        const targetEmail = resume.overrideEmail || resume.candidateEmail
+        if (!targetEmail) {
+          skipped++
+          failedLog.push(`Skipped: ${resume.originalFileName} (No candidate email found)`)
+          continue
+        }
+
+        invite = await prisma.interviewInvite.create({
+          data: {
+            resumeId: resume.id,
+            positionId: position.id,
+            targetEmail,
+            status: "DRAFT"
+          }
+        })
       }
 
       const candidateName = resume.overrideName || resume.candidateName || "Candidate"
@@ -1269,5 +1709,86 @@ export async function softDeleteResumeAction(resumeId: string): Promise<{ succes
     return { success: true }
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Failed to delete resume" }
+  }
+}
+
+// ── Gap 1+2+3: Human Override of AI Recommendation with Audit Trail ─────────
+
+export async function overrideAiRecommendationAction(
+  resumeId: string,
+  positionId: string,
+  data: {
+    overrideLabel: string;  // STRONG_HIRE | HIRE | MAYBE | NO_HIRE
+    overrideReason: string; // Recruiter's rationale
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const perms = await getCallerPermissions()
+    if (!perms || !perms.canManagePositions) return { success: false, error: "Unauthorized" }
+
+    const resume = await prisma.resume.findUnique({
+      where: { id: resumeId },
+      include: { position: { select: { id: true, organizationId: true } } },
+    })
+    if (!resume || resume.position.organizationId !== perms.orgId) {
+      return { success: false, error: "Not found or unauthorized" }
+    }
+
+    // ── Gap 3: Snapshot previous AI decision before overwriting ──────────
+    const previousSnapshot = {
+      aiRecommendationLabel: resume.aiRecommendationLabel,
+      aiRecommendationRationale: resume.aiRecommendationRationale,
+      finalRecommendationLabel: resume.finalRecommendationLabel,
+      finalRecommendationReason: resume.finalRecommendationReason,
+      jdMatchScore: resume.jdMatchScore,
+      jdMatchLabel: resume.jdMatchLabel,
+      advancedJudgmentProvider: resume.advancedJudgmentProvider,
+      advancedJudgmentAt: resume.advancedJudgmentAt?.toISOString() ?? null,
+      snapshotAt: new Date().toISOString(),
+      snapshotReason: "HUMAN_OVERRIDE",
+    }
+
+    // Append to existing history array (or create new)
+    const existingHistory = Array.isArray(resume.aiRawOutputJson)
+      ? (resume.aiRawOutputJson as any[])
+      : resume.aiRawOutputJson && typeof resume.aiRawOutputJson === "object"
+        ? [resume.aiRawOutputJson]
+        : []
+
+    const updatedHistory = [...existingHistory, { _aiDecisionSnapshot: previousSnapshot }]
+
+    // ── Update the resume with human override ─────────────────────────────
+    await prisma.resume.update({
+      where: { id: resumeId },
+      data: {
+        finalRecommendationLabel: data.overrideLabel,
+        finalRecommendationReason: data.overrideReason,
+        recruiterReviewNeeded: false,
+        aiRawOutputJson: updatedHistory as any,
+      },
+    })
+
+    // ── Gap 2: Immutable audit trail for the override ─────────────────────
+    await prisma.auditLog.create({
+      data: {
+        organizationId: perms.orgId,
+        userId: perms.userId,
+        action: "AI_RECOMMENDATION_OVERRIDDEN",
+        resourceType: "RESUME",
+        resourceId: resumeId,
+        metadata: {
+          positionId,
+          previousAiRecommendation: resume.aiRecommendationLabel,
+          newHumanRecommendation: data.overrideLabel,
+          humanRationale: data.overrideReason,
+          overriddenAt: new Date().toISOString(),
+        },
+      },
+    })
+
+    revalidatePath(`/org-admin/positions/${positionId}`)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to override" }
   }
 }

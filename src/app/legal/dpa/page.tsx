@@ -22,8 +22,8 @@ export default function DpaPage() {
         </div>
       </div>
 
-      <div className="mb-10 p-5 border border-violet-500/20 rounded-2xl bg-violet-950/20">
-        <p className="text-sm text-violet-300 leading-relaxed">
+      <div className="mb-10 p-5 border border-pink-500/20 rounded-2xl bg-pink-950/20">
+        <p className="text-sm text-pink-300 leading-relaxed">
           This Data Processing Agreement (&ldquo;DPA&rdquo;) forms part of the Master Service Agreement between{" "}
           <strong className="text-white">{COMPANY_NAME}</strong> (“Processor”) — the registered legal entity operating
           the <strong className="text-white">{PRODUCT_NAME}™</strong> platform — and the client organisation
@@ -49,11 +49,13 @@ export default function DpaPage() {
         <p>IQMela processes personal data on behalf of the Controller for the purpose of:</p>
         <ul>
           <li>Conducting, managing, and analysing live and asynchronous interview sessions</li>
-          <li>Parsing, storing, and scoring candidate resumes</li>
+          <li>Deploying AI conversational avatars to interact with candidates and conduct interviews</li>
+          <li>Parsing, storing, and scoring candidate resumes using Large Language Models (LLMs)</li>
           <li>Generating AI-powered interview assistance, question recommendations, and candidate analysis</li>
           <li>Recording and transcribing interview sessions (with candidate consent)</li>
-          <li>Computing behavioural signals during live sessions for integrity and quality review</li>
+          <li>Computing behavioural signals and proctoring events during live sessions for integrity review</li>
           <li>Managing hiring pipelines, feedback, and decisions</li>
+          <li>Facilitating Background Verification (BGV) checks when explicitly initiated by the Controller</li>
         </ul>
       </LegalSection>
 
@@ -163,7 +165,7 @@ export default function DpaPage() {
       <LegalSection title="12. Contact">
         <p>
           For DPA queries, contact {COMPANY_NAME}:{" "}
-          <a href={`mailto:${LEGAL_EMAIL}`} className="text-indigo-400 hover:underline">
+          <a href={`mailto:${LEGAL_EMAIL}`} className="text-rose-400 hover:underline">
             {LEGAL_EMAIL}
           </a>
         </p>

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { CheckCircle, Clock, Flame, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
+import { formatDate, formatTime } from "@/lib/locale-utils"
+import { toast as sonnerToast } from "sonner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -44,8 +46,8 @@ interface Props {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PARTICIPANT_COLORS = [
-  { bg: "bg-teal-500",   ring: "ring-teal-400",   dot: "#14b8a6", light: "bg-teal-100 dark:bg-teal-900/30",   text: "text-teal-700 dark:text-teal-400" },
-  { bg: "bg-violet-500", ring: "ring-violet-400",  dot: "#8b5cf6", light: "bg-violet-100 dark:bg-violet-900/30", text: "text-violet-700 dark:text-violet-400" },
+  { bg: "bg-rose-500",   ring: "ring-rose-400",   dot: "#14b8a6", light: "bg-rose-100 dark:bg-rose-900/30",   text: "text-rose-700 dark:text-rose-400" },
+  { bg: "bg-pink-500", ring: "ring-pink-400",  dot: "#8b5cf6", light: "bg-pink-100 dark:bg-pink-900/30", text: "text-pink-700 dark:text-pink-400" },
   { bg: "bg-amber-500",  ring: "ring-amber-400",   dot: "#f59e0b", light: "bg-amber-100 dark:bg-amber-900/30",  text: "text-amber-700 dark:text-amber-400" },
   { bg: "bg-rose-500",   ring: "ring-rose-400",    dot: "#f43f5e", light: "bg-rose-100 dark:bg-rose-900/30",   text: "text-rose-700 dark:text-rose-400" },
   { bg: "bg-sky-500",    ring: "ring-sky-400",     dot: "#0ea5e9", light: "bg-sky-100 dark:bg-sky-900/30",     text: "text-sky-700 dark:text-sky-400" },
@@ -107,7 +109,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
   const [overrideMinSlots, setOverrideMinSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
@@ -159,8 +161,8 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
           if (newSubmitter) {
             const responded = (data.participants as Participant[]).filter((p) => p.hasSubmitted).length;
             const total = data.participants.length;
-            showToast(`✨ ${newSubmitter.name.split(" ")[0]} just responded — ${responded} of ${total} done!`);
-            setLastUpdate(new Date().toLocaleTimeString());
+            sonnerToast.info(`✨ ${newSubmitter.name.split(" ")[0]} just responded — ${responded} of ${total} done!`);
+            setLastUpdate(formatTime(new Date(), { showTimezone: false }));
           }
         }
       } catch { /* ignore parse errors */ }
@@ -169,10 +171,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
     return () => es.close();
   }, [token]);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 4000);
-  };
+
 
   // Compute the week to display
   const rangeStart = new Date(poll.dateRangeStart + "T00:00:00");
@@ -207,7 +206,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
         next.delete(key);
       } else {
         if (next.size >= 15) {
-          showToast("You've selected a lot — the AI works best with 5–15 focused picks.");
+          sonnerToast.warning("You've selected a lot — the AI works best with 5–15 focused picks.");
           return prev;
         }
         next.add(key);
@@ -293,15 +292,6 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
 
   return (
     <div className="space-y-5">
-      {/* ── Toast ─────────────────────────────────────────────────────── */}
-      {toast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top-2 fade-in duration-300">
-          <div className="flex items-center gap-2 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl shadow-2xl text-sm font-semibold">
-            <span>{toast}</span>
-          </div>
-        </div>
-      )}
-
       {/* ── Panel Progress ──────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
@@ -339,7 +329,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
         {/* Progress bar */}
         <div className="mt-3 h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-teal-400 to-teal-500 rounded-full transition-all duration-500"
+            className="h-full bg-gradient-to-r from-rose-400 to-rose-500 rounded-full transition-all duration-500"
             style={{ width: `${(submittedCount / participants.length) * 100}%` }}
           />
         </div>
@@ -364,16 +354,16 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
 
       {/* ── AI Best Overlaps (if any) ────────────────────────────────────── */}
       {poll.commonSlots.length > 0 && (
-        <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/10 border border-teal-200 dark:border-teal-800 rounded-xl p-4">
+        <div className="bg-gradient-to-r from-rose-50 to-cyan-50 dark:from-rose-900/20 dark:to-cyan-900/10 border border-rose-200 dark:border-rose-800 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-            <p className="text-xs font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider">Best Overlaps So Far</p>
+            <TrendingUp className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+            <p className="text-xs font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider">Best Overlaps So Far</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {poll.commonSlots.slice(0, 3).map((s, i) => (
-              <div key={i} className="flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-teal-900/30 border border-teal-200 dark:border-teal-700 rounded-lg text-xs font-semibold text-teal-800 dark:text-teal-300">
+              <div key={i} className="flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-rose-900/30 border border-rose-200 dark:border-rose-700 rounded-lg text-xs font-semibold text-rose-800 dark:text-rose-300">
                 {i === 0 && <Flame className="w-3 h-3 text-amber-500 shrink-0" />}
-                {new Date(s.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} @ {s.startTime}
+                {formatDate(new Date(s.date + "T00:00:00"))} @ {s.startTime}
               </div>
             ))}
           </div>
@@ -391,7 +381,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
         </button>
         <div className="text-center">
           <p className="text-sm font-bold text-gray-900 dark:text-white">
-            Week of {currentWeekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            Week of {formatDate(currentWeekStart)}
           </p>
           <p className="text-[10px] text-gray-400 dark:text-zinc-500">
             {weekOffset + 1} of {maxWeekOffset + 1} weeks
@@ -418,7 +408,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
               return (
                 <div key={iso} className={`p-2 text-center border-l border-gray-100 dark:border-zinc-800 ${!inRange ? "opacity-30" : ""}`}>
                   <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase">
-                    {d.toLocaleDateString("en-US", { weekday: "short" })}
+                    {formatDate(d)}
                   </p>
                   <p className="text-sm font-bold text-gray-900 dark:text-white">
                     {d.getDate()}
@@ -468,7 +458,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
                       relative h-7 border-l border-gray-100 dark:border-zinc-800 transition-all duration-150 group
                       ${!inRange ? "bg-gray-50/50 dark:bg-zinc-950/50 cursor-not-allowed" : "cursor-pointer"}
                       ${isSelected
-                        ? `ring-2 ring-inset ${myColor?.ring} bg-teal-50 dark:bg-teal-900/30`
+                        ? `ring-2 ring-inset ${myColor?.ring} bg-rose-50 dark:bg-rose-900/30`
                         : inRange ? "hover:bg-gray-50 dark:hover:bg-zinc-800/40" : ""
                       }
                       ${hot ? "animate-pulse-subtle" : ""}
@@ -526,11 +516,11 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       {/* ── Legend ──────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4 text-[10px] text-gray-400 dark:text-zinc-500 flex-wrap">
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-teal-500 ring-1 ring-teal-300" />
+          <div className="w-3 h-3 rounded-full bg-rose-500 ring-1 ring-rose-300" />
           <span>Your selection</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-violet-500" />
+          <div className="w-3 h-3 rounded-full bg-pink-500" />
           <span>Panel member</span>
         </div>
         <div className="flex items-center gap-1">
@@ -618,7 +608,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
           disabled={!canSubmit || isExpiredOrCanceled}
           className={`w-full py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-sm
             ${canSubmit && !isExpiredOrCanceled
-              ? "bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-teal-200 dark:shadow-none hover:shadow-md active:scale-[0.98]"
+              ? "bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white shadow-rose-200 dark:shadow-none hover:shadow-md active:scale-[0.98]"
               : "bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 cursor-not-allowed"
             }`}
         >

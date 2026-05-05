@@ -31,7 +31,7 @@ export function RescheduleButton({ interviewId }: { interviewId: string }) {
       <Button 
         variant="outline" 
         onClick={() => setIsOpen(true)}
-        className="w-full sm:w-auto h-12 shadow-sm font-semibold rounded-xl text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+        className="w-full sm:w-auto h-12 shadow-sm font-semibold rounded-xl text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-900/20"
       >
         Reschedule
       </Button>
@@ -43,7 +43,7 @@ export function RescheduleButton({ interviewId }: { interviewId: string }) {
             className="w-full max-w-md bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
           >
             <div className="p-6 sm:p-8">
-              <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-6">
+              <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-6">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 16"/><line x1="16" y1="12" x2="16.01" y2="12"/></svg>
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Reschedule Session</h2>
@@ -60,7 +60,7 @@ export function RescheduleButton({ interviewId }: { interviewId: string }) {
                       id="date"
                       name="date" 
                       type="date" 
-                      className="w-full rounded-xl border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-white"
+                      className="w-full rounded-xl border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 dark:text-white"
                       min={new Date().toISOString().split("T")[0]}
                     />
                   </div>
@@ -71,7 +71,7 @@ export function RescheduleButton({ interviewId }: { interviewId: string }) {
                       id="time"
                       name="time" 
                       type="time" 
-                      className="w-full rounded-xl border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-white"
+                      className="w-full rounded-xl border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 px-4 py-3 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 dark:text-white"
                     />
                   </div>
                 </div>
@@ -92,7 +92,7 @@ export function RescheduleButton({ interviewId }: { interviewId: string }) {
                   </Button>
                   <Button 
                     type="submit" 
-                    className="flex-1 rounded-xl h-12 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20"
+                    className="flex-1 rounded-xl h-12 font-bold bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-600/20"
                     disabled={isRescheduling}
                   >
                     {isRescheduling ? (

@@ -7,6 +7,7 @@ import { useRoomContext } from "@livekit/components-react";
 import { RoomEvent } from "livekit-client";
 import { Button } from "@/components/ui/button";
 import type { LiveSnapshot } from "./signalBuffer";
+import { formatTime } from "@/lib/locale-utils"
 
 export function IntelligenceSidebar({ interviewId, initialNotes }: { interviewId: string, initialNotes: string }) {
   const [activeTab, setActiveTab] = useState<'NOTES' | 'INTELLIGENCE'>('NOTES');
@@ -103,7 +104,7 @@ export function IntelligenceSidebar({ interviewId, initialNotes }: { interviewId
       {/* Sidebar Header & Tab Navigation */}
       <div className="flex flex-col shrink-0 border-b border-zinc-800 bg-black/40 pt-4 px-4 gap-4">
         <h2 className="font-black text-xl text-white tracking-tight flex items-center gap-2 px-2">
-          <BrainCircuit className="w-6 h-6 text-indigo-500" />
+          <BrainCircuit className="w-6 h-6 text-rose-500" />
           Command Center
         </h2>
         
@@ -116,7 +117,7 @@ export function IntelligenceSidebar({ interviewId, initialNotes }: { interviewId
            </button>
            <button 
              onClick={() => setActiveTab('INTELLIGENCE')}
-             className={`flex-1 py-1.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 relative ${activeTab === 'INTELLIGENCE' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+             className={`flex-1 py-1.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 relative ${activeTab === 'INTELLIGENCE' ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/20' : 'text-zinc-500 hover:text-zinc-300'}`}
            >
              <Zap className="w-4 h-4" /> Copilot
              {Object.keys(violations).length > 0 && <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full animate-ping" />}
@@ -139,6 +140,14 @@ export function IntelligenceSidebar({ interviewId, initialNotes }: { interviewId
         {activeTab === 'INTELLIGENCE' && (
           <div className="w-full h-full flex flex-col p-6 gap-6">
              
+             {/* ── INTERVIEW PROGRESS TRACKER ────────────────────────── */}
+             <InterviewProgress />
+
+             {/* ── CANDIDATE PULSE RING ───────────────────────────────── */}
+             {liveSignals && !signalStale && (
+               <CandidatePulseRing signals={liveSignals} />
+             )}
+
              {/* ── LIVE SIGNALS PANEL ───────────────────────────────────── */}
              {(liveSignals || signalStale) && (
                <div className="border border-zinc-800 rounded-2xl p-4 bg-zinc-900/40 animate-in fade-in duration-500">
@@ -207,7 +216,7 @@ export function IntelligenceSidebar({ interviewId, initialNotes }: { interviewId
              {/* Intelligence Generation Trigger */}
              {!prepData && !isLoadingPrep && (
                 <div className="flex flex-col items-center justify-center text-center py-10 px-4 border border-zinc-800 rounded-3xl bg-zinc-900/30">
-                  <BrainCircuit className="w-10 h-10 text-indigo-500/50 mb-4" />
+                  <BrainCircuit className="w-10 h-10 text-rose-500/50 mb-4" />
                   <h3 className="text-white font-bold mb-2">Initialize AI Copilot</h3>
                   <p className="text-xs text-zinc-500 mb-6 font-medium">Dynamically cross-reference the Job Description against the Candidate's exact Resume footprint to generate targeted probing questions.</p>
                   <Button onClick={loadIntelligence} className="w-full bg-white text-black hover:bg-zinc-200 font-bold shadow-lg">
@@ -219,8 +228,8 @@ export function IntelligenceSidebar({ interviewId, initialNotes }: { interviewId
 
              {isLoadingPrep && (
                <div className="flex flex-col items-center justify-center py-12 gap-4">
-                 <div className="w-8 h-8 rounded-full border-4 border-zinc-800 border-t-indigo-500 animate-spin"></div>
-                 <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest animate-pulse">Running Neural Pipeline...</p>
+                 <div className="w-8 h-8 rounded-full border-4 border-zinc-800 border-t-rose-500 animate-spin"></div>
+                 <p className="text-xs text-rose-400 font-bold uppercase tracking-widest animate-pulse">Running Neural Pipeline...</p>
                </div>
              )}
 
@@ -255,12 +264,12 @@ export function IntelligenceSidebar({ interviewId, initialNotes }: { interviewId
                   <div>
                     <h3 className="text-zinc-500 font-extrabold uppercase tracking-widest text-[10px] mb-3 flex justify-between items-center">
                       Live Recommended Questions
-                      <span className="bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/30">Auto-Generated</span>
+                      <span className="bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded border border-rose-500/30">Auto-Generated</span>
                     </h3>
                     <div className="space-y-4">
                       {prepData.prep?.questions?.map((q: any, i: number) => (
                         <div key={i} className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl">
-                           <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest mb-1.5 block">{q.category}</span>
+                           <span className="text-[10px] font-black uppercase text-rose-500 tracking-widest mb-1.5 block">{q.category}</span>
                            <p className="text-sm text-white font-medium mb-3 leading-snug">{q.question}</p>
                            <p className="text-xs text-zinc-500 font-medium italic border-l-2 border-zinc-700 pl-2">Rationale: {q.rationale}</p>
                         </div>
@@ -283,7 +292,7 @@ export function IntelligenceSidebar({ interviewId, initialNotes }: { interviewId
             </span>
           ) : lastSaved ? (
              <span className="text-xs font-semibold text-green-500/80 flex items-center gap-2">
-              <Save className="w-3 h-3" /> Saved {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <Save className="w-3 h-3" /> Saved {formatTime(lastSaved, { showTimezone: false })}
             </span>
           ) : (
             <span className="text-xs font-medium text-zinc-600 flex items-center gap-2">
@@ -318,6 +327,116 @@ function SignalRow({
         <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
         {value}
       </span>
+    </div>
+  );
+}
+
+// ── InterviewProgress ──────────────────────────────────────────────────────────
+function InterviewProgress() {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
+  const ss = String(elapsed % 60).padStart(2, "0");
+  const isLong = elapsed > 3600; // 1h+
+
+  return (
+    <div className="border border-zinc-800 rounded-2xl p-4 bg-zinc-900/40">
+      <div className="flex items-center justify-between">
+        <h3 className="text-zinc-400 font-extrabold uppercase tracking-widest text-[10px]">Interview Progress</h3>
+        <div className="flex items-center gap-1.5">
+          <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isLong ? "bg-amber-400" : "bg-emerald-400"}`} />
+          <span className={`text-sm font-mono font-black tracking-wider ${isLong ? "text-amber-400" : "text-emerald-400"}`}>
+            {mm}:{ss}
+          </span>
+        </div>
+      </div>
+      {/* Progress bar — assuming ~60 min interview */}
+      <div className="mt-2.5 h-1 rounded-full bg-zinc-800 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-1000 ease-linear"
+          style={{
+            width: `${Math.min((elapsed / 3600) * 100, 100)}%`,
+            background: isLong
+              ? "linear-gradient(90deg, #f59e0b, #ef4444)"
+              : "linear-gradient(90deg, #10b981, #06b6d4)",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── CandidatePulseRing ─────────────────────────────────────────────────────────
+function CandidatePulseRing({ signals }: { signals: LiveSnapshot }) {
+  // Compute composite pulse score (0-100) from live signals
+  const gazeScore = signals.gaze.label === "FOCUSED" ? 100 : signals.gaze.label === "SLIGHTLY_OFF" ? 60 : 20;
+  const postureScore = signals.posture.label === "UPRIGHT" ? 100 : 40;
+  const paceScore = signals.pace.label === "NORMAL" ? 100 : signals.pace.label === "SILENT" ? 10 : 60;
+  const pauseScore = Math.max(0, 100 - signals.pauses * 15);
+
+  const composite = Math.round((gazeScore * 0.3 + postureScore * 0.2 + paceScore * 0.3 + pauseScore * 0.2));
+  const pulseColor = composite >= 75 ? "#10b981" : composite >= 45 ? "#f59e0b" : "#ef4444";
+  const pulseLabel = composite >= 75 ? "Strong" : composite >= 45 ? "Moderate" : "Weak";
+  const pulseTextColor = composite >= 75 ? "text-emerald-400" : composite >= 45 ? "text-amber-400" : "text-red-400";
+
+  return (
+    <div className="border border-zinc-800 rounded-2xl p-4 bg-zinc-900/40 animate-in fade-in duration-500">
+      <h3 className="text-zinc-400 font-extrabold uppercase tracking-widest text-[10px] mb-3">Candidate Pulse</h3>
+      <div className="flex items-center gap-4">
+        {/* Animated ring */}
+        <div className="relative w-16 h-16 shrink-0">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" strokeWidth="5" className="stroke-zinc-800" />
+            <circle cx="50" cy="50" r="40" fill="none" strokeWidth="5"
+              strokeDasharray={`${composite * 2.51} 251`}
+              strokeLinecap="round"
+              style={{ stroke: pulseColor, transition: "stroke-dasharray 0.8s ease-out" }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className={`text-lg font-black ${pulseTextColor}`}>{composite}</span>
+          </div>
+          {/* Pulse animation */}
+          <div
+            className="absolute inset-0 rounded-full animate-ping opacity-20"
+            style={{ borderWidth: 2, borderColor: pulseColor, borderStyle: "solid" }}
+          />
+        </div>
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full`} style={{ backgroundColor: pulseColor }} />
+            <span className={`text-xs font-bold ${pulseTextColor}`}>{pulseLabel}</span>
+          </div>
+          {/* Mini breakdown */}
+          <div className="grid grid-cols-2 gap-1">
+            {[
+              { label: "Gaze", val: gazeScore },
+              { label: "Posture", val: postureScore },
+              { label: "Pace", val: paceScore },
+              { label: "Pauses", val: pauseScore },
+            ].map(d => (
+              <div key={d.label} className="flex items-center gap-1">
+                <span className="text-[8px] text-zinc-600 w-10 shrink-0">{d.label}</span>
+                <div className="flex-1 h-1 rounded-full bg-zinc-800 overflow-hidden">
+                  <div className="h-full rounded-full" style={{
+                    width: `${d.val}%`,
+                    backgroundColor: d.val >= 75 ? "#10b981" : d.val >= 45 ? "#f59e0b" : "#ef4444",
+                    transition: "width 0.5s ease-out",
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

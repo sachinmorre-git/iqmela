@@ -1,6 +1,7 @@
 "use server";
 
 import { Prisma } from "@prisma/client";
+import { formatDate, formatTime, formatDateTime } from "@/lib/locale-utils";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCallerPermissions } from "@/lib/rbac";
@@ -100,7 +101,7 @@ export async function createAvailabilityPollAction(input: {
           subject: `📅 Mark your availability — ${input.roundLabel} for ${candidateName}`,
           previewText: `Pick your available time slots for the ${input.roundLabel} interview. See what the rest of the panel has selected!`,
           heading: `📅 Availability Request`,
-          body: `You've been selected to interview <strong>${candidateName}</strong> for the <strong>${position.title}</strong> position.<br/><br/>Please mark your available time slots so we can find a common time that works for everyone. <strong>You can see what other panelists have selected</strong> to help align on the best windows.<br/><br/>⏰ Deadline: ${deadline.toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}`,
+          body: `You've been selected to interview <strong>${candidateName}</strong> for the <strong>${position.title}</strong> position.<br/><br/>Please mark your available time slots so we can find a common time that works for everyone. <strong>You can see what other panelists have selected</strong> to help align on the best windows.<br/><br/>⏰ Deadline: ${formatDateTime(deadline)}`,
           ctaLabel: "Mark My Availability →",
           ctaUrl: slotPickerUrl,
         });

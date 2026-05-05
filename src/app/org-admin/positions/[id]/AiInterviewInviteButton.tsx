@@ -27,14 +27,14 @@ export function AiInterviewInviteButton({
     const link = `/ai-interview/${sessionId}`;
     return (
       <div className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 border border-violet-200 dark:border-violet-800/30">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 border border-pink-200 dark:border-pink-800/30">
           <Bot className="w-3 h-3" /> AI Interview Assigned
         </span>
         <a
           href={link}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[11px] text-violet-600 dark:text-violet-400 hover:underline font-medium"
+          className="inline-flex items-center gap-1 text-[11px] text-pink-600 dark:text-pink-400 hover:underline font-medium"
         >
           View <ExternalLink className="w-3 h-3" />
         </a>
@@ -57,7 +57,7 @@ export function AiInterviewInviteButton({
             }
           });
         }}
-        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
       >
         {isPending ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />

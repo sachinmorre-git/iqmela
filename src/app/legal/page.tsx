@@ -13,7 +13,7 @@ const docs = [
     description: "Rules governing use of the IQMela platform for all users.",
     updated:     "May 1, 2026",
     badge:       "All Users",
-    badgeColor:  "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+    badgeColor:  "bg-rose-500/20 text-rose-400 border-rose-500/30",
   },
   {
     href:        "/legal/privacy",
@@ -21,7 +21,7 @@ const docs = [
     description: "How we collect, use, store, and protect your personal data. Compliant with India's DPDP Act 2023 and IT Act 2000.",
     updated:     "May 1, 2026",
     badge:       "All Users",
-    badgeColor:  "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+    badgeColor:  "bg-rose-500/20 text-rose-400 border-rose-500/30",
   },
   {
     href:        "/legal/dpa",
@@ -29,7 +29,7 @@ const docs = [
     description: "India DPDP Act 2023 compliant Data Processing Agreement for client organisations using IQMela™ as a data processor.",
     updated:     "May 1, 2026",
     badge:       "Organisations",
-    badgeColor:  "bg-violet-500/20 text-violet-400 border-violet-500/30",
+    badgeColor:  "bg-pink-500/20 text-pink-400 border-pink-500/30",
   },
   {
     href:        "/legal/conduct",
@@ -45,7 +45,7 @@ const docs = [
     description: "Information about the cookies and local storage used on the IQMela platform.",
     updated:     "May 1, 2026",
     badge:       "All Users",
-    badgeColor:  "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+    badgeColor:  "bg-rose-500/20 text-rose-400 border-rose-500/30",
   },
 ];
 
@@ -56,7 +56,7 @@ export default function LegalIndexPage() {
         <h1 className="text-4xl font-black tracking-tight text-white mb-3">Legal Documents</h1>
         <p className="text-zinc-400 text-lg">
           All platform agreements and policies in one place. Questions?{" "}
-          <a href="mailto:legal@iqmela.com" className="text-indigo-400 hover:underline">
+          <a href="mailto:legal@iqmela.com" className="text-rose-400 hover:underline">
             legal@iqmela.com
           </a>
         </p>
@@ -72,7 +72,7 @@ export default function LegalIndexPage() {
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-white font-bold text-lg group-hover:text-indigo-300 transition-colors">
+                  <h2 className="text-white font-bold text-lg group-hover:text-rose-300 transition-colors">
                     {doc.title}
                   </h2>
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${doc.badgeColor}`}>

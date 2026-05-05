@@ -1,0 +1,396 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   IQMela Careers — Premium Animation System
+   Tesla-grade micro-animations, glassmorphism, and scroll-driven reveals.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Gradient Text Animation ─────────────────────────────────────────────── */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gradient-text-animated {
+  background: linear-gradient(
+    135deg,
+    #818cf8 0%,
+    #c084fc 25%,
+    #f472b6 50%,
+    #818cf8 75%,
+    #c084fc 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 6s ease-in-out infinite;
+}
+
+/* ── Fade-In-Up (Scroll Reveal) ──────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered children */
+.reveal-stagger > .reveal:nth-child(1) { transition-delay: 0ms; }
+.reveal-stagger > .reveal:nth-child(2) { transition-delay: 80ms; }
+.reveal-stagger > .reveal:nth-child(3) { transition-delay: 160ms; }
+.reveal-stagger > .reveal:nth-child(4) { transition-delay: 240ms; }
+.reveal-stagger > .reveal:nth-child(5) { transition-delay: 320ms; }
+.reveal-stagger > .reveal:nth-child(6) { transition-delay: 400ms; }
+.reveal-stagger > .reveal:nth-child(7) { transition-delay: 480ms; }
+.reveal-stagger > .reveal:nth-child(8) { transition-delay: 560ms; }
+
+/* ── Hero Entrance Stagger ───────────────────────────────────────────────── */
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.hero-enter-1 { animation: heroFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both; }
+.hero-enter-2 { animation: heroFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both; }
+.hero-enter-3 { animation: heroFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both; }
+.hero-enter-4 { animation: heroFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both; }
+.hero-enter-5 { animation: heroFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both; }
+
+/* ── Shimmer Effect (Buttons) ────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Pulse (Live Indicators / New Badges) ────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes pulseRing {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.badge-new {
+  position: relative;
+}
+
+.badge-new::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #22c55e, #10b981);
+  animation: pulseRing 2s ease-out infinite;
+  z-index: -1;
+}
+
+/* ── Floating Ambient Orbs ───────────────────────────────────────────────── */
+@keyframes float1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -40px) scale(1.05); }
+  50% { transform: translate(-20px, -60px) scale(0.95); }
+  75% { transform: translate(40px, -20px) scale(1.02); }
+}
+
+@keyframes float2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-50px, 30px) scale(1.08); }
+  66% { transform: translate(30px, -50px) scale(0.92); }
+}
+
+@keyframes float3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(40px, 20px) scale(0.96); }
+  50% { transform: translate(-30px, 50px) scale(1.04); }
+  75% { transform: translate(-20px, -30px) scale(1); }
+}
+
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.ambient-orb-1 {
+  width: 400px;
+  height: 400px;
+  background: rgba(99, 102, 241, 0.07);
+  top: -100px;
+  left: 10%;
+  animation: float1 20s ease-in-out infinite;
+}
+
+.ambient-orb-2 {
+  width: 350px;
+  height: 350px;
+  background: rgba(139, 92, 246, 0.05);
+  top: 200px;
+  right: 5%;
+  animation: float2 25s ease-in-out infinite;
+}
+
+.ambient-orb-3 {
+  width: 300px;
+  height: 300px;
+  background: rgba(244, 114, 182, 0.04);
+  bottom: 100px;
+  left: 30%;
+  animation: float3 22s ease-in-out infinite;
+}
+
+/* ── Glassmorphism ───────────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-header {
+  background: rgba(9, 9, 11, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Card Hover System ───────────────────────────────────────────────────── */
+.career-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 28px;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.career-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 0%, rgba(99, 102, 241, 0) 40%, rgba(99, 102, 241, 0.3) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.career-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.2);
+  box-shadow:
+    0 8px 32px rgba(99, 102, 241, 0.08),
+    0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+.career-card:hover::before {
+  opacity: 1;
+}
+
+/* ── Confetti Celebration (Apply Success) ────────────────────────────────── */
+@keyframes confettiDrop {
+  0% {
+    transform: translateY(-20px) rotate(0deg) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--confetti-rotate, 45deg)) scale(1);
+  }
+  100% {
+    transform: translateY(200px) rotate(calc(var(--confetti-rotate, 45deg) + 360deg)) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.confetti-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: confettiDrop 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* ── Scale-In (Success Checkmark) ────────────────────────────────────────── */
+@keyframes scaleIn {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.scale-in {
+  animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Input Focus Glow ────────────────────────────────────────────────────── */
+.input-glow {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.input-glow:focus {
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1),
+              0 0 20px rgba(99, 102, 241, 0.05);
+  outline: none;
+}
+
+/* ── Drag Zone Pulse ─────────────────────────────────────────────────────── */
+@keyframes dragPulse {
+  0%, 100% { border-color: rgba(99, 102, 241, 0.3); }
+  50% { border-color: rgba(99, 102, 241, 0.6); }
+}
+
+.drag-active {
+  animation: dragPulse 1s ease-in-out infinite;
+  background: rgba(99, 102, 241, 0.04) !important;
+}
+
+/* ── Reading Progress Bar ────────────────────────────────────────────────── */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #c084fc);
+  z-index: 100;
+  transition: width 0.1s linear;
+  border-radius: 0 1px 1px 0;
+}
+
+/* ── Sticky Apply Bar ────────────────────────────────────────────────────── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.sticky-apply-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Grid Dot Pattern (Footer) ───────────────────────────────────────────── */
+.dot-pattern {
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.04) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+/* ── Responsive Helpers ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ambient-orb { display: none; }
+
+  .career-card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .career-card:hover {
+    transform: none;
+  }
+}
+
+/* ── Reduced Motion ──────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .gradient-text-animated,
+  .ambient-orb,
+  .btn-shimmer::after,
+  .confetti-piece {
+    animation: none !important;
+  }
+
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .hero-enter-1,
+  .hero-enter-2,
+  .hero-enter-3,
+  .hero-enter-4,
+  .hero-enter-5 {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .career-card:hover {
+    transform: none;
+  }
+}

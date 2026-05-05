@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { formatTime } from "@/lib/locale-utils"
 import {
   Microscope, ChevronDown, ChevronUp, RefreshCw, Loader2,
   CheckCircle2, AlertTriangle, ShieldCheck, TrendingUp, Brain, Zap,
@@ -106,7 +107,7 @@ export function BehaviorReportCard({
     return (
       <div className="mt-4 border border-dashed border-zinc-700 rounded-2xl p-4 flex items-center justify-between bg-zinc-900/20">
         <div className="flex items-center gap-3">
-          <Microscope className="w-5 h-5 text-indigo-400 shrink-0" />
+          <Microscope className="w-5 h-5 text-rose-400 shrink-0" />
           <div>
             <p className="text-sm font-bold text-white">AI Behavioral Report</p>
             <p className="text-xs text-zinc-500">{hasBehaviorReport ? "Report available" : "Generated 3–5 min after session"}</p>
@@ -114,7 +115,7 @@ export function BehaviorReportCard({
         </div>
         <button
           onClick={load}
-          className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg border border-indigo-500/20"
+          className="text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg border border-rose-500/20"
         >
           Load Report
         </button>
@@ -126,7 +127,7 @@ export function BehaviorReportCard({
   if (loadState === "loading") {
     return (
       <div className="mt-4 border border-zinc-800 rounded-2xl p-6 flex items-center justify-center gap-3 bg-zinc-900/20">
-        <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+        <Loader2 className="w-5 h-5 text-rose-400 animate-spin" />
         <span className="text-sm text-zinc-400">Loading report…</span>
       </div>
     );
@@ -135,12 +136,12 @@ export function BehaviorReportCard({
   // ── Pending (still generating) ───────────────────────────────────────────
   if (loadState === "pending") {
     return (
-      <div className="mt-4 border border-indigo-500/20 rounded-2xl p-4 bg-indigo-950/20">
+      <div className="mt-4 border border-rose-500/20 rounded-2xl p-4 bg-rose-950/20">
         <div className="flex items-center gap-3 mb-2">
-          <Loader2 className="w-4 h-4 text-indigo-400 animate-spin shrink-0" />
-          <p className="text-sm font-bold text-indigo-300">Generating AI Analysis…</p>
+          <Loader2 className="w-4 h-4 text-rose-400 animate-spin shrink-0" />
+          <p className="text-sm font-bold text-rose-300">Generating AI Analysis…</p>
         </div>
-        <p className="text-xs text-indigo-400/70 pl-7">This typically takes 3–5 minutes after the session ends. Checking automatically every 60s.</p>
+        <p className="text-xs text-rose-400/70 pl-7">This typically takes 3–5 minutes after the session ends. Checking automatically every 60s.</p>
       </div>
     );
   }
@@ -175,10 +176,10 @@ export function BehaviorReportCard({
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-800/40 transition-colors"
       >
         <div className="flex items-center gap-2.5">
-          <Microscope className="w-4 h-4 text-indigo-400" />
+          <Microscope className="w-4 h-4 text-rose-400" />
           <span className="text-sm font-bold text-white">AI Behavioral Report</span>
           <span className="text-[10px] text-zinc-500 font-medium">
-            {new Date(report.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            {formatTime(new Date(report.generatedAt), { showTimezone: false })}
           </span>
         </div>
         {expanded ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}

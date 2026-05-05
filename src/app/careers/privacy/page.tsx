@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { formatDate } from "@/lib/locale-utils"
 
 export const metadata: Metadata = {
   title: "Candidate Privacy Notice | IQMela Careers",
@@ -26,7 +27,7 @@ export default function CandidatePrivacyPage() {
         Candidate Privacy Notice
       </h1>
       <p style={{ fontSize: "13px", color: "#52525b", marginBottom: "40px" }}>
-        Last updated: {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+        Last updated: {formatDate(new Date(), { style: "long" })}
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>

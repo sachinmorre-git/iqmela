@@ -60,7 +60,7 @@ export function FeatureTabs() {
                 onClick={() => setActive(t.id)}
                 className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
                   active === t.id
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
+                    ? "bg-rose-600 text-white shadow-lg shadow-rose-600/25"
                     : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >
@@ -77,8 +77,8 @@ export function FeatureTabs() {
             {tab.features.map(({ icon: Icon, title, desc }) => (
               <div key={title}
                 className="flex items-start gap-4 p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:-translate-y-0.5 transition-all">
-                <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                  <Icon className="w-4 h-4 text-indigo-400" />
+                <div className="w-9 h-9 rounded-xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <Icon className="w-4 h-4 text-rose-400" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white mb-1">{title}</p>

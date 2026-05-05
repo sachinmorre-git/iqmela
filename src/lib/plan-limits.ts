@@ -179,9 +179,9 @@ export function isFreeTier(tier: OrgPlanTier | null | undefined): boolean {
 export function getTierBadgeClass(tier: OrgPlanTier | null | undefined): string {
   const badges: Record<OrgPlanTier, string> = {
     FREE:        "text-zinc-400 bg-zinc-500/10 border-zinc-500/20",
-    VENDOR_FREE: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
-    PLUS:        "text-teal-400 bg-teal-500/10 border-teal-500/20",
-    ULTRA:       "text-violet-400 bg-violet-500/10 border-violet-500/20",
+    VENDOR_FREE: "text-rose-400 bg-rose-500/10 border-rose-500/20",
+    PLUS:        "text-rose-400 bg-rose-500/10 border-rose-500/20",
+    ULTRA:       "text-pink-400 bg-pink-500/10 border-pink-500/20",
     ENTERPRISE:  "text-amber-400 bg-amber-500/10 border-amber-500/20",
   }
   return badges[tier ?? "FREE"]

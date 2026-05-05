@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IQMela — IQM Monogram Variations</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Inter, sans-serif; background: #F5F5F5; padding: 40px; }
+    h1 { font-size: 28px; font-weight: 800; color: #18181B; margin-bottom: 4px; }
+    .sub { color: #71717A; font-size: 14px; margin-bottom: 48px; }
+    .section { margin-bottom: 56px; }
+    .section h2 {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: #A1A1AA; margin-bottom: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .card {
+      background: white; border-radius: 16px; padding: 32px;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; border: 1px solid #E4E4E7;
+      position: relative; min-height: 280px;
+    }
+    .card.dark { background: #18181B; border-color: #27272A; }
+    .card img { max-width: 100%; max-height: 220px; }
+    .card .label {
+      position: absolute; bottom: 12px; left: 16px;
+      font-size: 11px; font-weight: 600; color: #A1A1AA;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .card.dark .label { color: #52525B; }
+    .colors {
+      display: flex; gap: 8px; margin-top: 12px;
+    }
+    .swatch {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>IQMela — IQM Monogram Variations</h1>
+  <p class="sub">4 color palettes · Icon marks + Vertical lockups · Production SVGs</p>
+
+  <!-- Icon Marks -->
+  <div class="section">
+    <h2>Icon Marks (Monogram Only)</h2>
+    <div class="grid">
+      <div class="card">
+        <img src="iqm-icon-v1-red.svg" alt="V1 Red">
+        <div class="colors">
+          <div class="swatch" style="background:#4285F4" title="I: Blue"></div>
+          <div class="swatch" style="background:#0D9488" title="Q: Teal"></div>
+          <div class="swatch" style="background:#EA4335" title="M: Red"></div>
+        </div>
+        <span class="label">V1 · Bold Red</span>
+      </div>
+      <div class="card">
+        <img src="iqm-icon-v2-gold.svg" alt="V2 Gold">
+        <div class="colors">
+          <div class="swatch" style="background:#4285F4" title="I: Blue"></div>
+          <div class="swatch" style="background:#0D9488" title="Q: Teal"></div>
+          <div class="swatch" style="background:#FBBC04" title="M: Gold"></div>
+        </div>
+        <span class="label">V2 · Google Gold</span>
+      </div>
+      <div class="card">
+        <img src="iqm-icon-v5-orange.svg" alt="V5 Orange">
+        <div class="colors">
+          <div class="swatch" style="background:#3B82F6" title="I: Blue"></div>
+          <div class="swatch" style="background:#10B981" title="Q: Green"></div>
+          <div class="swatch" style="background:#F59E0B" title="M: Orange"></div>
+        </div>
+        <span class="label">V5 · Startup Vibrant</span>
+      </div>
+      <div class="card">
+        <img src="iqm-icon-v6-rounded.svg" alt="V6 Rounded">
+        <div class="colors">
+          <div class="swatch" style="background:#60A5FA" title="I: Soft Blue"></div>
+          <div class="swatch" style="background:#0D9488" title="Q: Teal"></div>
+          <div class="swatch" style="background:#FBBC04" title="M: Amber"></div>
+        </div>
+        <span class="label">V6 · Friendly Rounded</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dark Background -->
+  <div class="section">
+    <h2>On Dark Background</h2>
+    <div class="grid">
+      <div class="card dark">
+        <img src="iqm-icon-v1-red.svg" alt="V1 Dark">
+        <span class="label">V1 · Dark BG</span>
+      </div>
+      <div class="card dark">
+        <img src="iqm-icon-v2-gold.svg" alt="V2 Dark">
+        <span class="label">V2 · Dark BG</span>
+      </div>
+      <div class="card dark">
+        <img src="iqm-icon-v5-orange.svg" alt="V5 Dark">
+        <span class="label">V5 · Dark BG</span>
+      </div>
+      <div class="card dark">
+        <img src="iqm-icon-v6-rounded.svg" alt="V6 Dark">
+        <span class="label">V6 · Dark BG</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Lockups -->
+  <div class="section">
+    <h2>Full Vertical Lockups (Icon + Wordmark)</h2>
+    <div class="grid">
+      <div class="card" style="min-height:360px">
+        <img src="iqm-lockup-v1-red.svg" alt="Lockup V1">
+        <span class="label">V1 Lockup</span>
+      </div>
+      <div class="card" style="min-height:360px">
+        <img src="iqm-lockup-v2-gold.svg" alt="Lockup V2">
+        <span class="label">V2 Lockup</span>
+      </div>
+      <div class="card" style="min-height:360px">
+        <img src="iqm-lockup-v5-orange.svg" alt="Lockup V5">
+        <span class="label">V5 Lockup</span>
+      </div>
+      <div class="card" style="min-height:360px">
+        <img src="iqm-lockup-v6-rounded.svg" alt="Lockup V6">
+        <span class="label">V6 Lockup</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

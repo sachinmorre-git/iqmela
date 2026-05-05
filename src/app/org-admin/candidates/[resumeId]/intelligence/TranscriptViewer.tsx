@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { formatDate } from "@/lib/locale-utils"
 import { FileText, Clock, Loader2, ChevronDown, ChevronUp, User, Mic } from "lucide-react";
 
 interface Utterance {
@@ -31,8 +32,8 @@ function SpeakerBubble({ utt, isCandidate }: { utt: Utterance; isCandidate: bool
       {/* Avatar */}
       <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
         isCandidate
-          ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300"
-          : "bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-300"
+          ? "bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300"
+          : "bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300"
       }`}>
         {isCandidate ? <User className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
       </div>
@@ -41,7 +42,7 @@ function SpeakerBubble({ utt, isCandidate }: { utt: Utterance; isCandidate: bool
       <div className={`max-w-[80%] ${isCandidate ? "" : "items-end flex flex-col"}`}>
         <div className="flex items-center gap-2 mb-1">
           <span className={`text-[9px] font-bold uppercase tracking-wider ${
-            isCandidate ? "text-indigo-500" : "text-teal-500"
+            isCandidate ? "text-rose-500" : "text-rose-500"
           }`}>
             {utt.speaker}
           </span>
@@ -62,8 +63,8 @@ function SpeakerBubble({ utt, isCandidate }: { utt: Utterance; isCandidate: bool
         </div>
         <div className={`rounded-2xl px-4 py-2.5 text-xs leading-relaxed ${
           isCandidate
-            ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-900 dark:text-indigo-100 rounded-tl-sm border border-indigo-100 dark:border-indigo-800/30"
-            : "bg-teal-50 dark:bg-teal-900/20 text-teal-900 dark:text-teal-100 rounded-tr-sm border border-teal-100 dark:border-teal-800/30"
+            ? "bg-rose-50 dark:bg-rose-900/20 text-rose-900 dark:text-rose-100 rounded-tl-sm border border-rose-100 dark:border-rose-800/30"
+            : "bg-rose-50 dark:bg-rose-900/20 text-rose-900 dark:text-rose-100 rounded-tr-sm border border-rose-100 dark:border-rose-800/30"
         }`}>
           {utt.text}
         </div>
@@ -234,7 +235,7 @@ export function TranscriptViewer({
               <div className="bg-gray-50 dark:bg-zinc-800/60 rounded-xl px-3 py-2.5">
                 <p className="text-[9px] uppercase tracking-wide text-gray-400 dark:text-zinc-500">Generated</p>
                 <p className="text-sm font-black text-gray-800 dark:text-white">
-                  {new Date(data.generatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {formatDate(new Date(data.generatedAt))}
                 </p>
               </div>
             </div>
@@ -243,12 +244,12 @@ export function TranscriptViewer({
             {totalWords > 0 && (
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-wide">Candidate talk time</span>
-                  <span className="text-[9px] font-bold text-teal-500 uppercase tracking-wide">Interviewer talk time</span>
+                  <span className="text-[9px] font-bold text-rose-500 uppercase tracking-wide">Candidate talk time</span>
+                  <span className="text-[9px] font-bold text-rose-500 uppercase tracking-wide">Interviewer talk time</span>
                 </div>
                 <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
-                  <div className="bg-indigo-400 dark:bg-indigo-600 rounded-l-full transition-all" style={{ width: `${candidatePct}%` }} />
-                  <div className="bg-teal-400 dark:bg-teal-600 rounded-r-full transition-all flex-1" />
+                  <div className="bg-rose-400 dark:bg-rose-600 rounded-l-full transition-all" style={{ width: `${candidatePct}%` }} />
+                  <div className="bg-rose-400 dark:bg-rose-600 rounded-r-full transition-all flex-1" />
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[9px] text-gray-500 dark:text-zinc-500">{candidatePct}% · {candidateWordCount} words</span>
@@ -275,8 +276,7 @@ export function TranscriptViewer({
 
             {/* Transcript bubbles */}
             <div
-              className="space-y-3 overflow-y-auto pr-1"
-              style={{ maxHeight: "420px" }}
+              className="space-y-3 overflow-y-auto pr-1 max-h-[420px]"
             >
               {filtered.length === 0 ? (
                 <p className="text-center text-xs text-gray-400 py-4">No matches found.</p>

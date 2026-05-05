@@ -15,10 +15,9 @@ const DEFAULT_STAGES: {
   interviewMode: InterviewMode;
   description?: string;
 }[] = [
-  { stageIndex: 0, roundLabel: "AI Screen",       roundType: "AI_SCREEN",      durationMinutes: 30, interviewMode: "AI_AVATAR", description: "Automated AI-led screening interview" },
-  { stageIndex: 1, roundLabel: "Technical",        roundType: "TECHNICAL",      durationMinutes: 45, interviewMode: "HUMAN",     description: "Technical skills assessment" },
-  { stageIndex: 2, roundLabel: "System Design",    roundType: "SYSTEM_DESIGN",  durationMinutes: 60, interviewMode: "HUMAN",     description: "Architecture and system design discussion" },
-  { stageIndex: 3, roundLabel: "Culture Fit",      roundType: "CULTURE_FIT",    durationMinutes: 30, interviewMode: "HUMAN",     description: "Team and culture alignment" },
+  { stageIndex: 0, roundLabel: "AI Screen",       roundType: "AI_SCREEN",  durationMinutes: 30, interviewMode: "AI_AVATAR", description: "Automated AI-led screening interview" },
+  { stageIndex: 1, roundLabel: "Panel Round 1",   roundType: "PANEL",      durationMinutes: 45, interviewMode: "HUMAN",     description: "First panel interview round" },
+  { stageIndex: 2, roundLabel: "Panel Round 2",   roundType: "PANEL",      durationMinutes: 45, interviewMode: "HUMAN",     description: "Second panel interview round" },
 ];
 
 // ── Ensure a plan exists (creates default if missing) ───────────────────────
@@ -77,6 +76,7 @@ export interface StageInput {
   interviewMode: InterviewMode;
   isRequired?: boolean;
   description?: string;
+  assignedPanelJson?: any;
 }
 
 export async function updateInterviewPlanAction(
@@ -112,6 +112,7 @@ export async function updateInterviewPlanAction(
         interviewMode: s.interviewMode,
         isRequired: s.isRequired ?? true,
         description: s.description || null,
+        assignedPanelJson: s.assignedPanelJson || null,
       })),
     });
 
@@ -173,15 +174,11 @@ export async function scheduleRoundAction(input: {
 
     // No round gating — recruiters can schedule any round in any order
 
-    // Resolve candidate user (may not exist yet — OK for scheduling)
+    // Resolve candidate user (may not exist yet — that's fine, we store email/name directly)
     const candidateEmail = resume.overrideEmail || resume.candidateEmail;
     const candidateUser = candidateEmail
       ? await prisma.user.findUnique({ where: { email: candidateEmail } })
       : null;
-
-    if (!candidateUser) {
-      return { success: false, error: `No account found for ${candidateEmail || "unknown"}. Candidate must sign up first.` };
-    }
 
     // Verify interviewers belong to org
     const interviewers = input.interviewerIds.length > 0
@@ -202,7 +199,9 @@ export async function scheduleRoundAction(input: {
         interviewMode: stage.interviewMode,
         roomName: input.externalLink || null,
         notes: input.notes || null,
-        candidateId: candidateUser.id,
+        candidateId: candidateUser?.id || null,
+        candidateEmail: candidateEmail || null,
+        candidateName: candidateName,
         interviewerId: interviewers[0]?.id || null,
         positionId: input.positionId,
         organizationId: perms.orgId,
@@ -272,21 +271,20 @@ export async function skipRoundAction(input: {
     }
 
     // Create a "skipped" interview record
-    const candidateEmail = (await prisma.resume.findUnique({ where: { id: input.resumeId } }))?.candidateEmail;
+    const resume = await prisma.resume.findUnique({ where: { id: input.resumeId } });
+    const candidateEmail = resume?.overrideEmail || resume?.candidateEmail;
     const candidateUser = candidateEmail
       ? await prisma.user.findUnique({ where: { email: candidateEmail } })
       : null;
-
-    if (!candidateUser) {
-      return { success: false, error: "Candidate must have an account to track skipped rounds" };
-    }
 
     await prisma.interview.create({
       data: {
         title: `Round ${input.stageIndex} — Skipped`,
         scheduledAt: new Date(),
         status: "CANCELED",
-        candidateId: candidateUser.id,
+        candidateId: candidateUser?.id || null,
+        candidateEmail: candidateEmail || null,
+        candidateName: resume?.candidateName || "Candidate",
         positionId: input.positionId,
         organizationId: perms.orgId,
         resumeId: input.resumeId,
@@ -295,9 +293,67 @@ export async function skipRoundAction(input: {
       },
     });
 
-    revalidatePath(`/org-admin/positions/${input.positionId}`);
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Failed" };
   }
 }
+
+// ── Fetch available panelists ────────────────────────────────────────────────
+
+export async function getAvailablePanelistsAction(): Promise<{
+  success: boolean;
+  internal: any[];
+  marketplace: any[];
+  error?: string;
+}> {
+  try {
+    const perms = await getCallerPermissions();
+    if (!perms) return { success: false, internal: [], marketplace: [], error: "Unauthorized" };
+
+    // Fetch internal users for this org
+    const internalUsers = await prisma.user.findMany({
+      where: { organizationId: perms.orgId, isDeleted: false },
+      select: { 
+        id: true, 
+        name: true, 
+        email: true,
+        interviewerProfile: {
+          select: { title: true, expertise: true, avatarUrl: true }
+        }
+      },
+    });
+
+    // Fetch marketplace experts
+    const experts = await prisma.interviewerProfile.findMany({
+      where: { source: "MARKETPLACE" },
+      include: { user: { select: { name: true, email: true } } },
+    });
+
+    const internal = internalUsers.map(u => ({
+      id: u.id,
+      name: u.name || "Unknown",
+      email: u.email,
+      avatarUrl: u.interviewerProfile?.avatarUrl || null,
+      source: "INTERNAL" as const,
+      title: u.interviewerProfile?.title || undefined,
+      expertise: u.interviewerProfile?.expertise || undefined,
+    }));
+
+    const marketplace = experts.map(e => ({
+      id: e.userId, // use userId so we can link it
+      name: e.user.name || "Unknown Expert",
+      email: e.user.email,
+      avatarUrl: e.avatarUrl,
+      source: "MARKETPLACE" as const,
+      title: e.title || undefined,
+      expertise: e.expertise || undefined,
+      hourlyRate: e.hourlyRate || undefined,
+    }));
+
+    return { success: true, internal, marketplace };
+  } catch (err) {
+    return { success: false, internal: [], marketplace: [], error: err instanceof Error ? err.message : "Failed" };
+  }
+}
+

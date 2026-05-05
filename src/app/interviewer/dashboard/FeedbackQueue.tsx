@@ -112,7 +112,7 @@ function FeedbackCard({ iv, onSubmit }: { iv: FeedbackIV; onSubmit: (id: string)
                   type="range" min={0} max={10}
                   value={scores[key]}
                   onChange={(e) => setScores((s) => ({ ...s, [key]: +e.target.value }))}
-                  className="w-full h-1.5 rounded-full accent-indigo-500 cursor-pointer bg-zinc-800"
+                  className="w-full h-1.5 rounded-full accent-rose-500 cursor-pointer bg-zinc-800"
                 />
               </div>
             ))}
@@ -151,13 +151,13 @@ function FeedbackCard({ iv, onSubmit }: { iv: FeedbackIV; onSubmit: (id: string)
             onChange={(e) => setSummary(e.target.value)}
             placeholder="Summary for the hiring manager (required)…"
             rows={2}
-            className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-700 resize-none focus:outline-none focus:border-indigo-500 transition-colors"
+            className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-700 resize-none focus:outline-none focus:border-rose-500 transition-colors"
           />
 
           <button
             onClick={handleSubmit}
             disabled={!summary.trim() || overall === 0 || submitting}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all"
           >
             {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</> : <>Submit Feedback</>}
           </button>

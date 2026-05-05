@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { CheckrProvider } from "@/lib/bgv/providers/checkr";
 import { geminiClient, geminiModel } from "@/lib/ai/client";
 import { bgvReportSummaryPrompt } from "@/lib/ai/prompts/interview.prompts";
+import { uploadToR2, isR2Configured } from "@/lib/r2";
 import type { BgvStatus } from "@prisma/client";
 
 const checkrProvider = new CheckrProvider();
@@ -165,10 +166,15 @@ async function handleReportCompleted(
   try {
     const pdfBuffer = await checkrProvider.downloadReport(vendorCheckId, orgApiKey);
     if (pdfBuffer) {
-      // TODO: Upload to R2 when client is configured
-      // reportUrl = `bgv-reports/${bgvCheckId}/checkr-report.pdf`;
-      // await r2Client.putObject({ Key: reportUrl, Body: pdfBuffer });
       reportUrl = `bgv-reports/${bgvCheckId}/checkr-report.pdf`;
+      if (isR2Configured()) {
+        await uploadToR2({
+          key: reportUrl,
+          body: pdfBuffer,
+          contentType: "application/pdf",
+          metadata: { bgvCheckId, source: "checkr_webhook" },
+        });
+      }
     }
   } catch (dlErr) {
     console.warn("[BGV Webhook] Failed to download report PDF:", dlErr);

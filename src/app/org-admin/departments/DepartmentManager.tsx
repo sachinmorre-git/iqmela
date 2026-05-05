@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,7 @@ export function DepartmentManager({ initialDepartments }: { initialDepartments: 
     if (result.success) {
       setDepartments(prev => prev.filter(d => d.id !== id));
     } else {
-      alert(result.error);
+      toast.error(result.error || "Operation failed");
     }
   }
 
@@ -80,7 +81,7 @@ export function DepartmentManager({ initialDepartments }: { initialDepartments: 
       <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-indigo-500" />
+            <Building2 className="w-4 h-4 text-rose-500" />
             Active Departments
           </h3>
         </div>

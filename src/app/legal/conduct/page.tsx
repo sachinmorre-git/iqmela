@@ -120,7 +120,7 @@ export default function ConductPage() {
         <p>
           For questions about what is appropriate conduct, or wish to report a violation, contact
           {" "}{COMPANY_NAME} (operating {PRODUCT_NAME}™):{" "}
-          <a href={`mailto:${LEGAL_EMAIL}`} className="text-indigo-400 hover:underline">
+          <a href={`mailto:${LEGAL_EMAIL}`} className="text-rose-400 hover:underline">
             {LEGAL_EMAIL}
           </a>
         </p>

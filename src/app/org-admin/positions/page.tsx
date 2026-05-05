@@ -65,7 +65,7 @@ export default async function PositionsPage() {
         </div>
         {canManagePositions && (
           <Button
-            className="shrink-0 rounded-xl shadow-md shadow-teal-600/20 bg-teal-600 hover:bg-teal-700 text-white border-transparent hover:-translate-y-0.5 transition-transform"
+            className="shrink-0 rounded-xl shadow-md shadow-rose-600/20 bg-rose-600 hover:bg-rose-700 text-white border-transparent hover:-translate-y-0.5 transition-transform"
             asChild
           >
             <Link href="/org-admin/positions/new">+ Post New Position</Link>
@@ -76,7 +76,7 @@ export default async function PositionsPage() {
       {positions.length === 0 ? (
         /* ── Empty State ─────────────────────────────────────── */
         <div className="rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-sm p-20 flex flex-col items-center text-center gap-5 bg-white dark:bg-zinc-900">
-          <div className="w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-500">
+          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center text-rose-500">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
               <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
@@ -92,7 +92,7 @@ export default async function PositionsPage() {
           </div>
           {canManagePositions && (
             <Button
-              className="rounded-xl bg-teal-600 hover:bg-teal-700 text-white border-transparent shadow-md shadow-teal-600/20 hover:-translate-y-0.5 transition-transform"
+              className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white border-transparent shadow-md shadow-rose-600/20 hover:-translate-y-0.5 transition-transform animate-bounce"
               asChild
             >
               <Link href="/org-admin/positions/new">+ Post New Position</Link>
@@ -101,6 +101,33 @@ export default async function PositionsPage() {
         </div>
       ) : (
         <PositionsTable initialPositions={positions} />
+      )}
+
+      {/* ── Floating FAB — "Post New Position" when empty ─────── */}
+      {positions.length === 0 && canManagePositions && (
+        <>
+          <div className="fixed bottom-8 right-8 z-50 animate-[fadeInUp_0.5s_0.8s_both]">
+            <Link
+              href="/org-admin/positions/new"
+              className="group relative inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-rose-600 to-pink-600 shadow-xl shadow-rose-500/30 hover:shadow-rose-500/50 hover:-translate-y-1 hover:scale-105 transition-all duration-300"
+            >
+              {/* Glow ring */}
+              <div className="absolute -inset-1 rounded-[20px] bg-gradient-to-r from-rose-500 to-pink-500 opacity-30 blur-lg group-hover:opacity-50 transition-opacity animate-pulse" />
+              <span className="relative flex items-center gap-2.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Post New Position
+              </span>
+            </Link>
+          </div>
+          <style>{`
+            @keyframes fadeInUp {
+              from { opacity: 0; transform: translateY(2rem) scale(0.9); }
+              to   { opacity: 1; transform: translateY(0) scale(1); }
+            }
+          `}</style>
+        </>
       )}
     </div>
   )

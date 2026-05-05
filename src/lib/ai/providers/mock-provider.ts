@@ -16,6 +16,15 @@ import type {
 export class MockHiringAiProvider implements HiringAiProvider {
   readonly providerName = "mock";
 
+  constructor() {
+    if (process.env.NODE_ENV === "production") {
+      console.warn(
+        "[MockAI] ⚠️ PRODUCTION WARNING: Mock AI provider is active! " +
+        "All AI scores/rankings are SIMULATED. Configure DEEPSEEK_API_KEY or GEMINI_API_KEY."
+      );
+    }
+  }
+
   async extractResumeJson(rawText: string, fileName?: string): Promise<ExtractedResumeData> {
     console.log(`[MockAI] extractStructuredData — file: ${fileName ?? "unknown"}`);
     await this._delay(600);
@@ -31,9 +40,9 @@ export class MockHiringAiProvider implements HiringAiProvider {
       experienceYears:  5,
       education:        [{ degree: "B.S. Computer Science", institution: "Mock University", year: "2019" }],
       companies:        [{ company: "MockCorp Ltd", role: "Senior Mock Engineer", duration: "2019 – Present" }],
-      validationWarnings: [],
+      validationWarnings: ["⚠️ Mock AI — this data is simulated"],
       extractionConfidence: 0.95,
-      rawOutput: { mock: true, provider: "MockHiringAiProvider" },
+      rawOutput: { _isMock: true, provider: "MockHiringAiProvider" },
     };
   }
 

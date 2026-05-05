@@ -34,7 +34,7 @@ export default async function VendorDashboard() {
       <div className="flex items-start justify-between">
         <div className="max-w-2xl">
           <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
-            <Building2 className="w-8 h-8 text-indigo-600 dark:text-indigo-500" />
+            <Building2 className="w-8 h-8 text-rose-600 dark:text-rose-500" />
             Vendor Hub
           </h2>
           <p className="text-muted-foreground mt-2 text-zinc-500 dark:text-zinc-400">
@@ -59,9 +59,9 @@ export default async function VendorDashboard() {
               href={`/vendor/positions/${position.id}`}
               className="group block"
             >
-              <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 h-full transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-200 dark:hover:border-indigo-900/50">
+              <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 h-full transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-500/10 hover:border-rose-200 dark:hover:border-rose-900/50">
                 <div className="flex justify-between items-start mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400 group-hover:bg-rose-600 group-hover:text-white transition-colors">
                     <FileStack className="w-6 h-6" />
                   </div>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
@@ -69,7 +69,7 @@ export default async function VendorDashboard() {
                   </span>
                 </div>
                 
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 leading-tight group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors line-clamp-2">
                   {position.title}
                 </h3>
                 
@@ -79,7 +79,7 @@ export default async function VendorDashboard() {
                   </p>
                 )}
                 
-                <div className="pt-4 border-t border-gray-100 dark:border-zinc-800 flex items-center text-sm font-semibold text-indigo-600 dark:text-indigo-400 group-hover:gap-2 transition-all">
+                <div className="pt-4 border-t border-gray-100 dark:border-zinc-800 flex items-center text-sm font-semibold text-rose-600 dark:text-rose-400 group-hover:gap-2 transition-all">
                   Open Dropzone 
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-1 transition-all"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>

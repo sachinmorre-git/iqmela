@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { aiInterviewer } from "@/lib/ai-interview";
 import type { TranscriptTurn, QuestionPlanContext, AiQuestionCategory } from "@/lib/ai-interview";
+import { dispatchNotification } from "@/lib/notify";
 
 export async function POST(req: Request) {
   try {
@@ -139,6 +140,31 @@ export async function POST(req: Request) {
           promptVersion: "v1",
         },
       });
+    }
+
+    // ── Notify ONLY the position owner (recruiter who created it) ───
+    // We intentionally do NOT blast all admins/recruiters — that would
+    // be noisy in orgs processing hundreds of AI interviews daily.
+    // The position owner sees the result in their feed; others can check
+    // the Intelligence Hub directly.
+    const candidateName = session.resume?.candidateName || "A candidate";
+    const posTitle = session.resume?.position?.title || session.position?.title || "a position";
+    const positionData = session.positionId
+      ? await prisma.position.findUnique({
+          where: { id: session.positionId },
+          select: { organizationId: true, createdById: true },
+        })
+      : null;
+    if (positionData?.organizationId && positionData.createdById) {
+      dispatchNotification({
+        organizationId: positionData.organizationId,
+        userId: positionData.createdById,
+        type: "AI_INTERVIEW_COMPLETED",
+        title: `AI Interview Complete`,
+        body: `${candidateName} scored ${summary.overallScore}/100 for ${posTitle}`,
+        link: `/org-admin/candidates/${session.resumeId}/intelligence`,
+        sendPush: false, // Bell only — not urgent enough for browser interrupt
+      }).catch(() => {});
     }
 
     return NextResponse.json({ summary });

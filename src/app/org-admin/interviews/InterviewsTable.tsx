@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { InterviewStatus, InterviewMode } from "@prisma/client";
+import { formatDate, formatTime } from "@/lib/locale-utils";
 
 type InterviewData = {
   id: string;
@@ -12,8 +13,10 @@ type InterviewData = {
   scheduledAt: Date;
   durationMinutes: number;
   roomName: string | null;
-  candidate: { id: string; name: string | null; email: string };
-  interviewer: { id: string; name: string | null; email: string };
+  candidate: { id: string; name: string | null; email: string } | null;
+  candidateEmail?: string | null;
+  candidateName?: string | null;
+  interviewer: { id: string; name: string | null; email: string } | null;
   position: { id: string; title: string } | null;
 };
 
@@ -28,8 +31,8 @@ export function InterviewsTable({ interviews }: { interviews: InterviewData[] })
     // Search filter
     if (search.trim() !== "") {
       const q = search.toLowerCase();
-      const candName = i.candidate.name?.toLowerCase() || "";
-      const candEmail = i.candidate.email.toLowerCase();
+      const candName = (i.candidate?.name || i.candidateName || "").toLowerCase();
+      const candEmail = (i.candidate?.email || i.candidateEmail || "").toLowerCase();
       const posTitle = i.position?.title.toLowerCase() || "";
       
       if (!candName.includes(q) && !candEmail.includes(q) && !posTitle.includes(q)) {
@@ -70,7 +73,7 @@ export function InterviewsTable({ interviews }: { interviews: InterviewData[] })
             placeholder="Search candidate or position..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm bg-transparent border border-gray-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-shadow dark:text-white"
+            className="w-full pl-9 pr-4 py-2 text-sm bg-transparent border border-gray-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-shadow dark:text-white"
           />
         </div>
       </div>
@@ -102,15 +105,15 @@ export function InterviewsTable({ interviews }: { interviews: InterviewData[] })
               {filtered.map((interview) => (
                 <tr 
                   key={interview.id} 
-                  className="group transition-colors hover:bg-gray-50/60 dark:hover:bg-zinc-800/40 relative"
+                  className={`group transition-colors hover:bg-gray-50/60 dark:hover:bg-zinc-800/40 relative ${interview.position ? 'cursor-pointer' : ''}`}
                 >
                   <td className="px-6 py-4">
-                    <div className="flex flex-col">
+                    <div className="flex flex-col relative z-10">
                       <span className="font-semibold text-gray-900 dark:text-white truncate max-w-[200px]">
-                        {interview.candidate.name || "Unknown"}
+                        {interview.candidate?.name || interview.candidateName || "Unknown"}
                       </span>
                       <span className="text-xs text-gray-500 truncate max-w-[200px]">
-                        {interview.candidate.email}
+                        {interview.candidate?.email || interview.candidateEmail || "—"}
                       </span>
                     </div>
                   </td>
@@ -118,7 +121,7 @@ export function InterviewsTable({ interviews }: { interviews: InterviewData[] })
                     {interview.position ? (
                       <Link 
                         href={`/org-admin/positions/${interview.position.id}?tab=interviews`}
-                        className="text-teal-600 dark:text-teal-400 font-semibold hover:underline"
+                        className="text-rose-600 dark:text-rose-400 font-semibold hover:underline after:absolute after:inset-0"
                         title={interview.position.title}
                       >
                         <span className="truncate block max-w-[150px]">
@@ -126,21 +129,21 @@ export function InterviewsTable({ interviews }: { interviews: InterviewData[] })
                         </span>
                       </Link>
                     ) : (
-                      <span className="text-gray-400 dark:text-zinc-500">—</span>
+                      <span className="text-gray-400 dark:text-zinc-500 relative z-10">—</span>
                     )}
                   </td>
                   <td className="px-6 py-4">
                     {interview.interviewMode === "AI_AVATAR" ? (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
                         🤖 AI Avatar
                       </span>
                     ) : (
                       <div className="flex flex-col">
                         <span className="font-semibold text-gray-900 dark:text-white truncate max-w-[150px]">
-                          {interview.interviewer.name || "Human"}
+                          {interview.interviewer?.name || "Human"}
                         </span>
                         <span className="text-[10px] text-gray-500 truncate max-w-[150px]">
-                          {interview.interviewer.email}
+                          {interview.interviewer?.email || "—"}
                         </span>
                       </div>
                     )}
@@ -148,10 +151,10 @@ export function InterviewsTable({ interviews }: { interviews: InterviewData[] })
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <span className="text-gray-900 dark:text-gray-200 font-medium">
-                        {interview.scheduledAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {formatDate(interview.scheduledAt)}
                       </span>
                       <span className="text-[11px] text-gray-500">
-                        {interview.scheduledAt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} ({interview.durationMinutes}m)
+                        {formatTime(interview.scheduledAt, { showTimezone: false })} ({interview.durationMinutes}m)
                       </span>
                     </div>
                   </td>

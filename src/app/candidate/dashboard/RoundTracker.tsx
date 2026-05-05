@@ -32,9 +32,9 @@ export function RoundTracker({ completedRounds, currentStageIndex, currentLabel,
                 {/* Dot */}
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all border-2 shrink-0 ${
                   round.type === "done"
-                    ? "bg-indigo-600 border-indigo-600"
+                    ? "bg-rose-600 border-rose-600"
                     : round.type === "current"
-                    ? "bg-zinc-950 border-indigo-500 ring-4 ring-indigo-500/20"
+                    ? "bg-zinc-950 border-rose-500 ring-4 ring-rose-500/20"
                     : "bg-zinc-950 border-zinc-700"
                 }`}>
                   {round.type === "done" ? (
@@ -42,7 +42,7 @@ export function RoundTracker({ completedRounds, currentStageIndex, currentLabel,
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   ) : round.type === "current" ? (
-                    <span className="w-3 h-3 rounded-full bg-indigo-500 animate-pulse" />
+                    <span className="w-3 h-3 rounded-full bg-rose-500 animate-pulse" />
                   ) : (
                     <span className="w-3 h-3 rounded-full bg-zinc-700" />
                   )}
@@ -50,20 +50,20 @@ export function RoundTracker({ completedRounds, currentStageIndex, currentLabel,
 
                 {/* Label */}
                 <p className={`text-[10px] font-bold text-center mt-2 leading-tight max-w-[72px] ${
-                  round.type === "done"    ? "text-indigo-400" :
+                  round.type === "done"    ? "text-rose-400" :
                   round.type === "current" ? "text-white"      : "text-zinc-600"
                 }`}>
                   {round.label}
                 </p>
                 {round.type === "current" && (
-                  <span className="text-[9px] text-indigo-400 font-black mt-0.5 tracking-widest">● NOW</span>
+                  <span className="text-[9px] text-rose-400 font-black mt-0.5 tracking-widest">● NOW</span>
                 )}
               </div>
 
               {/* Connector */}
               {!isLast && (
                 <div className={`h-0.5 flex-1 mx-0.5 mt-4 transition-colors ${
-                  round.type === "done" ? "bg-indigo-600" : "bg-zinc-800"
+                  round.type === "done" ? "bg-rose-600" : "bg-zinc-800"
                 }`} />
               )}
             </div>

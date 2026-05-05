@@ -35,6 +35,7 @@ export function PreJoinClient({
   const [joined, setJoined] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
+  const [isBrowserSupported, setIsBrowserSupported] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -47,6 +48,19 @@ export function PreJoinClient({
   const [selectedVideoId, setSelectedVideoId] = useState<string>("");
   const [selectedAudioInputId, setSelectedAudioInputId] = useState<string>("");
   const [selectedAudioOutputId, setSelectedAudioOutputId] = useState<string>("");
+
+  // Check Browser Support on Mount
+  useEffect(() => {
+    // Basic WebRTC feature detection
+    const isSupported = !!(
+      typeof navigator !== "undefined" &&
+      navigator.mediaDevices &&
+      navigator.mediaDevices.getUserMedia &&
+      typeof window !== "undefined" &&
+      window.RTCPeerConnection
+    );
+    setIsBrowserSupported(isSupported);
+  }, []);
 
   // Initialize Raw Hardware WebRTC Call & Listen for selection changes
   useEffect(() => {
@@ -134,6 +148,54 @@ export function PreJoinClient({
       setIsJoining(false);
     }
   };
+
+  // ── Global Teardown Beacon (LiveKit Room) ──────────────────────────────
+  useEffect(() => {
+    if (!joined || !token) return;
+
+    const performTeardown = () => {
+      try {
+        const payload = JSON.stringify({ interviewId, isInterviewer });
+        navigator.sendBeacon("/api/livekit/beacon-teardown", payload);
+      } catch (err) {
+        console.error("LiveKit teardown beacon failed", err);
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      performTeardown();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      // We don't trigger it purely on React unmount here because they might just be transitioning to the feedback screen 
+      // where we still want the server to keep the recording valid until the webhook fires.
+    };
+  }, [joined, token, interviewId, isInterviewer]);
+
+  // Block unsupported browsers before anything else
+  if (!isBrowserSupported) {
+    return (
+      <div className="flex-1 w-full max-w-2xl mx-auto flex flex-col items-center justify-center p-8 text-center min-h-[60vh] gap-6 animate-in fade-in zoom-in duration-500">
+        <div className="w-20 h-20 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 text-red-500 rounded-full flex items-center justify-center mb-2">
+          <AlertCircle className="w-10 h-10" />
+        </div>
+        <h1 className="text-3xl font-black text-gray-900 dark:text-white">Unsupported Browser</h1>
+        <p className="text-gray-500 dark:text-gray-400 font-medium max-w-lg">
+          Your current browser does not support the necessary audio and video features required for this interview.
+        </p>
+        <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl text-left w-full mt-4">
+          <h3 className="font-bold text-zinc-800 dark:text-zinc-200 mb-3">Please use one of the following:</h3>
+          <ul className="list-disc pl-5 text-sm text-zinc-600 dark:text-zinc-400 space-y-2">
+            <li><strong>Google Chrome</strong> (Latest version)</li>
+            <li><strong>Microsoft Edge</strong> (Latest version)</li>
+            <li><strong>Apple Safari</strong> (Version 15+)</li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
 
   if (joined && token) {
     return (
@@ -264,7 +326,7 @@ export function PreJoinClient({
             <select 
               value={selectedVideoId || (videoDevices[0]?.deviceId || "")}
               onChange={(e) => setSelectedVideoId(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-indigo-500 appearance-none"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-rose-500 appearance-none"
             >
               {videoDevices.map(device => (
                 <option key={device.deviceId} value={device.deviceId}>{device.label || `Camera ${device.deviceId.slice(0, 5)}`}</option>
@@ -280,7 +342,7 @@ export function PreJoinClient({
             <select 
               value={selectedAudioInputId || (audioInputs[0]?.deviceId || "")}
               onChange={(e) => setSelectedAudioInputId(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-indigo-500 appearance-none"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-rose-500 appearance-none"
             >
               {audioInputs.map(device => (
                 <option key={device.deviceId} value={device.deviceId}>{device.label || `Microphone ${device.deviceId.slice(0, 5)}`}</option>
@@ -296,7 +358,7 @@ export function PreJoinClient({
             <select 
               value={selectedAudioOutputId || (audioOutputs[0]?.deviceId || "")}
               onChange={(e) => setSelectedAudioOutputId(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-indigo-500 appearance-none"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-rose-500 appearance-none"
             >
               {audioOutputs.map(device => (
                 <option key={device.deviceId} value={device.deviceId}>{device.label || `Speaker ${device.deviceId.slice(0, 5)}`}</option>
@@ -320,8 +382,8 @@ export function PreJoinClient({
               />
               <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
                 consentChecked
-                  ? "bg-indigo-600 border-indigo-600"
-                  : "border-gray-300 dark:border-zinc-600 group-hover:border-indigo-400"
+                  ? "bg-rose-600 border-rose-600"
+                  : "border-gray-300 dark:border-zinc-600 group-hover:border-rose-400"
               }`}>
                 {consentChecked && (
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -335,16 +397,16 @@ export function PreJoinClient({
               <strong className="text-gray-700 dark:text-zinc-200">(eye gaze patterns, posture, speaking pace, and engagement indicators)</strong>{" "}
               may be collected during the session for interview quality review. These signals are reviewed by hiring staff and do not
               constitute automated hiring decisions. I have read and agree to the{" "}
-              <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline font-medium">Privacy Policy</a>{" "}
+              <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-rose-500 hover:underline font-medium">Privacy Policy</a>{" "}
               and{" "}
-              <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline font-medium">Terms of Service</a>.
+              <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-rose-500 hover:underline font-medium">Terms of Service</a>.
             </span>
           </label>
 
           {/* Privacy note */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
-            <ShieldCheck className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-            <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium leading-snug">
+          <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 dark:bg-rose-900/10 rounded-xl border border-rose-100 dark:border-rose-900/30">
+            <ShieldCheck className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+            <p className="text-[10px] text-rose-600 dark:text-rose-400 font-medium leading-snug">
               Recordings are encrypted, stored securely, and automatically deleted after 90 days.
             </p>
           </div>
@@ -353,7 +415,7 @@ export function PreJoinClient({
             size="lg"
             onClick={handleJoin}
             disabled={isJoining || !!permissionError || !consentChecked}
-            className="w-full h-14 text-lg font-bold rounded-xl shadow-lg border-transparent shadow-indigo-600/20 bg-indigo-600 hover:bg-indigo-700 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed"
+            className="w-full h-14 text-lg font-bold rounded-xl shadow-lg border-transparent shadow-rose-600/20 bg-rose-600 hover:bg-rose-700 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed"
           >
             {isJoining ? (
               <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />

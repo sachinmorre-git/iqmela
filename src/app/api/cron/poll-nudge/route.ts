@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { emailService } from "@/lib/email";
 import { isBusinessHour } from "@/lib/poll-utils";
+import { formatDateTime } from "@/lib/locale-utils"
 
 /**
  * Vercel Cron Job — runs every hour on the hour.
@@ -45,6 +46,24 @@ export async function GET(req: NextRequest) {
         const positionTitle = poll.position.title;
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+        // Resolve the interview room link for this poll
+        let interviewJoinUrl: string | undefined;
+        try {
+          const interview = await prisma.interview.findFirst({
+            where: {
+              positionId: poll.positionId,
+              resumeId: poll.resumeId,
+              stageIndex: poll.stageIndex,
+              status: "SCHEDULED",
+            },
+            select: { id: true },
+            orderBy: { createdAt: "desc" },
+          });
+          if (interview) {
+            interviewJoinUrl = `${baseUrl}/interview/${interview.id}/live`;
+          }
+        } catch { /* non-fatal — fallback to dashboard link */ }
+
         let subject = "";
         let heading = "";
         let body = "";
@@ -54,34 +73,39 @@ export async function GET(req: NextRequest) {
         if (email.type === "SLOT_CONFIRMED") {
           const slot = poll.confirmedSlot as Record<string, string> | null;
           const dateStr = slot
-            ? new Date(`${slot.date}T${slot.startTime}:00Z`).toLocaleString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-              })
+            ? formatDateTime(new Date(`${slot.date}T${slot.startTime}:00Z`))
             : "TBD";
           subject = `✅ Interview Confirmed — ${poll.roundLabel} for ${candidateName}`;
           heading = "🎉 Interview Time Confirmed!";
-          body = `The <strong>${poll.roundLabel}</strong> interview for <strong>${candidateName}</strong> (${positionTitle}) has been confirmed.\n\n📅 <strong>${dateStr}</strong>\n⏱ Duration: ${poll.durationMinutes} minutes\n\nPlease add this to your calendar.`;
-          ctaLabel = "View Dashboard";
-          ctaUrl = `${baseUrl}/org-admin`;
+          body = `The <strong>${poll.roundLabel}</strong> interview for <strong>${candidateName}</strong> (${positionTitle}) has been confirmed.\n\n📅 <strong>${dateStr}</strong>\n⏱ Duration: ${poll.durationMinutes} minutes\n\n🌐 <strong>Browser:</strong> Please use Chrome, Edge, or Safari (latest version) on a desktop/laptop.\n\nPlease add this to your calendar and join on time.`;
+          ctaLabel = interviewJoinUrl ? "Join Interview Room →" : "View Dashboard";
+          ctaUrl = interviewJoinUrl || `${baseUrl}/org-admin`;
         } else if (email.type === "INTERVIEW_DAY_OF") {
           subject = `📅 Interview Today — ${poll.roundLabel} with ${candidateName}`;
           heading = "📅 Interview Day Reminder";
           const slot = poll.confirmedSlot as Record<string, string> | null;
           const timeStr = slot ? `${slot.startTime}` : "";
-          body = `This is your day-of reminder for the <strong>${poll.roundLabel}</strong> interview with <strong>${candidateName}</strong> for <strong>${positionTitle}</strong>.\n\n⏰ Interview time: <strong>${timeStr}</strong>\n⏱ Duration: ${poll.durationMinutes} minutes\n\nBe prepared and have a great interview!`;
+          body = `This is your day-of reminder for the <strong>${poll.roundLabel}</strong> interview with <strong>${candidateName}</strong> for <strong>${positionTitle}</strong>.\n\n⏰ Interview time: <strong>${timeStr}</strong>\n⏱ Duration: ${poll.durationMinutes} minutes\n\n🌐 <strong>Browser:</strong> Please use Chrome, Edge, or Safari.\n\nBe prepared and have a great interview!`;
+          if (interviewJoinUrl) {
+            ctaLabel = "Join Interview Room →";
+            ctaUrl = interviewJoinUrl;
+          }
         } else if (email.type === "INTERVIEW_ONE_HOUR") {
           subject = `⏰ 1 Hour Reminder — ${poll.roundLabel} with ${candidateName}`;
           heading = "⏰ Your Interview Starts in 1 Hour";
-          body = `The <strong>${poll.roundLabel}</strong> interview with <strong>${candidateName}</strong> begins in <strong>1 hour</strong>.\n\nPosition: ${positionTitle}\nDuration: ${poll.durationMinutes} minutes\n\nPlease get ready and join on time.`;
+          body = `The <strong>${poll.roundLabel}</strong> interview with <strong>${candidateName}</strong> begins in <strong>1 hour</strong>.\n\nPosition: ${positionTitle}\nDuration: ${poll.durationMinutes} minutes\n\n🌐 Use Chrome, Edge, or Safari on a desktop. Please get ready and join on time.`;
+          if (interviewJoinUrl) {
+            ctaLabel = "Join Interview Room →";
+            ctaUrl = interviewJoinUrl;
+          }
         } else if (email.type === "INTERVIEW_FIFTEEN") {
           subject = `🔔 15 Min Reminder — ${poll.roundLabel} with ${candidateName}`;
           heading = "🔔 Starting in 15 Minutes!";
           body = `The <strong>${poll.roundLabel}</strong> interview with <strong>${candidateName}</strong> begins in <strong>15 minutes</strong>.\n\nJoin now and ensure your audio/video are ready.`;
+          if (interviewJoinUrl) {
+            ctaLabel = "Join Now →";
+            ctaUrl = interviewJoinUrl;
+          }
         }
 
         if (subject) {
@@ -165,14 +189,7 @@ export async function GET(req: NextRequest) {
           const totalCount = allResponses.length;
 
           const slotUrl = `${baseUrl}/schedule/availability/${pr.token}`;
-          const deadlineStr = poll.deadline.toLocaleString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          });
+          const deadlineStr = formatDateTime(poll.deadline);
 
           await emailService.sendGenericEmail({
             to: user.email,

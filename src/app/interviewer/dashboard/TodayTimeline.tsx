@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Zap, Video } from "lucide-react";
+import { formatDate } from "@/lib/locale-utils"
 
 interface TodayIV {
   id:              string;
@@ -45,7 +46,7 @@ function BlockCard({ iv, now }: { iv: TodayIV; now: number }) {
         isLive ? "bg-emerald-900/60 border-emerald-500/40" :
         isSoon ? "bg-amber-900/40 border-amber-500/30 animate-pulse" :
         isPast ? "bg-zinc-900/40 border-zinc-800 opacity-50" :
-                 "bg-indigo-900/30 border-indigo-500/20 hover:border-indigo-500/40"
+                 "bg-rose-900/30 border-rose-500/20 hover:border-rose-500/40"
       }`}
       style={{ top: `${top}%`, height: `${height}%`, minHeight: "44px" }}
     >
@@ -91,8 +92,8 @@ export function TodayTimeline({ interviews, upcomingCount }: Props) {
     <div className="border border-zinc-800 rounded-2xl bg-zinc-900/40 p-6">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-            <Video className="w-4 h-4 text-indigo-400" />
+          <div className="w-8 h-8 rounded-xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center">
+            <Video className="w-4 h-4 text-rose-400" />
           </div>
           <div>
             <h2 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Today&apos;s Schedule</h2>
@@ -103,7 +104,7 @@ export function TodayTimeline({ interviews, upcomingCount }: Props) {
           </div>
         </div>
         <p className="text-xs font-bold text-zinc-500">
-          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+          {formatDate(new Date(), { style: "full" })}
         </p>
       </div>
 

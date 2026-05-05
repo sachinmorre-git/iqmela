@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!--
+    IQMela Logo — Q + Checkmark Icon Mark
+    Design: Bold geometric Q with tail morphing into a checkmark
+    Color: Teal #0D9488
+    Usage: Favicon, app icon, standalone mark
+  -->
+
+  <!-- Q body — thick ring -->
+  <circle cx="240" cy="232" r="160" fill="#0D9488"/>
+  <circle cx="240" cy="232" r="88" fill="white"/>
+
+  <!-- Checkmark tail — emerges from bottom-right of Q -->
+  <path
+    d="M 296 312
+       L 340 356
+       L 420 260"
+    stroke="#0D9488"
+    stroke-width="56"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+
+  <!-- Cover the gap where tail meets ring — seamless blend -->
+  <circle cx="296" cy="312" r="28" fill="#0D9488"/>
+</svg>

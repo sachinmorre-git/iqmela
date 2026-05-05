@@ -75,13 +75,13 @@ export function PreCheckShell({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-indigo-950 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-rose-950 flex items-center justify-center p-6">
       <div className="w-full max-w-xl">
 
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-500/20">
-            <Bot className="w-8 h-8 text-indigo-400" />
+          <div className="w-16 h-16 bg-rose-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-500/20">
+            <Bot className="w-8 h-8 text-rose-400" />
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             AI Interview
@@ -107,7 +107,7 @@ export function PreCheckShell({
               ].map(({ icon: Icon, label, sub }) => (
                 <div key={label} className="flex items-center gap-4">
                   <div className="w-10 h-10 bg-zinc-800 rounded-xl flex items-center justify-center shrink-0">
-                    <Icon className="w-5 h-5 text-indigo-400" />
+                    <Icon className="w-5 h-5 text-rose-400" />
                   </div>
                   <div>
                     <p className="text-white font-semibold text-sm">{label}</p>
@@ -118,7 +118,7 @@ export function PreCheckShell({
             </div>
             <button
               onClick={() => setStep("devices")}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
             >
               Continue <ChevronRight className="w-4 h-4" />
             </button>
@@ -173,7 +173,7 @@ export function PreCheckShell({
 
             <button
               onClick={() => cameraRequired ? setStep("camera") : setStep("ready")}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
             >
               {cameraRequired ? "Next: Camera" : "I'm Ready"} <ChevronRight className="w-4 h-4" />
             </button>
@@ -192,7 +192,7 @@ export function PreCheckShell({
             />
             <button
               onClick={() => setStep("ready")}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
             >
               Continue <ChevronRight className="w-4 h-4" />
             </button>
@@ -221,7 +221,7 @@ export function PreCheckShell({
             <button
               onClick={startInterview}
               disabled={isPending}
-              className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold rounded-2xl transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 text-lg disabled:opacity-60"
+              className="w-full py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-extrabold rounded-2xl transition-all shadow-lg shadow-rose-600/30 flex items-center justify-center gap-2 text-lg disabled:opacity-60"
             >
               {isPending ? (
                 <>

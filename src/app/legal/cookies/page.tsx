@@ -95,7 +95,7 @@ export default function CookiesPage() {
           Since we only use strictly necessary cookies, a cookie consent banner is not required under most
           data protection regulations. If you are in a jurisdiction that requires consent for all cookies,
           contact us at{" "}
-          <a href={`mailto:${LEGAL_VERSIONS.LEGAL_EMAIL}`} className="text-indigo-400 hover:underline">
+          <a href={`mailto:${LEGAL_VERSIONS.LEGAL_EMAIL}`} className="text-rose-400 hover:underline">
             {LEGAL_VERSIONS.LEGAL_EMAIL}
           </a>
           .
