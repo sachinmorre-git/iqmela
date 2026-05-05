@@ -1202,6 +1202,7 @@ model TeamInvite {
   id             String       @id @default(cuid())
   organizationId String
   email          String
+  name           String?
   roles          Role[]
   departmentIds  String[]
   status         InviteStatus @default(DRAFT)

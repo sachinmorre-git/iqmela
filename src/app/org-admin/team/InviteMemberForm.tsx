@@ -61,6 +61,7 @@ const PILL_COLORS: Record<string, { active: string; inactive: string }> = {
 type InviteRow = {
   id: string;
   email: string;
+  name: string;
   roles: string[];
   deptIds: string[];
   status: "idle" | "sending" | "sent" | "error";
@@ -71,6 +72,7 @@ function createRow(): InviteRow {
   return {
     id: crypto.randomUUID(),
     email: "",
+    name: "",
     roles: [],
     deptIds: [],
     status: "idle",
@@ -159,12 +161,13 @@ export function InviteMemberForm({
       if (isCurrentEmpty && currentRow) {
         // Use the current empty row for the first email
         updated = updated.map((r) =>
-          r.id === rowId ? { ...r, email: newEmails[0] } : r
+          r.id === rowId ? { ...r, email: newEmails[0], name: "" } : r
         );
         // Add new rows for the rest
         const additionalRows = newEmails.slice(1).map((email) => ({
           ...createRow(),
           email,
+          name: "",
         }));
         updated = [...updated, ...additionalRows];
       } else {
@@ -172,6 +175,7 @@ export function InviteMemberForm({
         const additionalRows = newEmails.map((email) => ({
           ...createRow(),
           email,
+          name: "",
         }));
         updated = [...updated, ...additionalRows];
       }
@@ -187,6 +191,7 @@ export function InviteMemberForm({
 
     const formData = new FormData();
     formData.set("email", row.email);
+    formData.set("name", row.name);
     row.roles.forEach((role) => formData.set(`role_${role}`, "on"));
     row.deptIds.forEach((id) => formData.set(`dept_${id}`, "on"));
 
@@ -231,10 +236,10 @@ export function InviteMemberForm({
           >
             {/* Main Row: Email + Roles + Send */}
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-              {/* Email */}
-              <div className="flex items-center gap-3 w-full lg:w-auto lg:min-w-[280px]">
+              {/* Email & Name */}
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 w-full lg:w-auto lg:min-w-[400px]">
                 <div
-                  className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 ${
+                  className={`w-9 h-9 shrink-0 rounded-full hidden lg:flex items-center justify-center text-sm font-bold transition-all duration-200 ${
                     row.status === "sent"
                       ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600"
                       : isValidEmail(row.email)
@@ -245,9 +250,17 @@ export function InviteMemberForm({
                   {row.status === "sent" ? (
                     <CheckCircle2 className="w-4 h-4" />
                   ) : (
-                    row.email ? row.email.charAt(0).toUpperCase() : "?"
+                    row.name ? row.name.charAt(0).toUpperCase() : row.email ? row.email.charAt(0).toUpperCase() : "?"
                   )}
                 </div>
+                <Input
+                  type="text"
+                  placeholder="Full Name (optional)"
+                  value={row.name}
+                  onChange={(e) => updateRow(row.id, { name: e.target.value, status: "idle", message: "" })}
+                  disabled={row.status === "sent" || row.status === "sending"}
+                  className="w-full lg:w-40 shrink-0 bg-gray-50 dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 text-sm py-2"
+                />
                 <Input
                   type="email"
                   placeholder="colleague@company.com — or paste multiple"
@@ -255,7 +268,7 @@ export function InviteMemberForm({
                   onChange={(e) => updateRow(row.id, { email: e.target.value, status: "idle", message: "" })}
                   onPaste={(e) => handlePaste(row.id, e as React.ClipboardEvent<HTMLInputElement>)}
                   disabled={row.status === "sent" || row.status === "sending"}
-                  className="flex-1 bg-gray-50 dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 text-sm py-2"
+                  className="w-full flex-1 bg-gray-50 dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 text-sm py-2"
                 />
               </div>
 

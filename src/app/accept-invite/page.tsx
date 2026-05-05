@@ -95,21 +95,29 @@ export default async function AcceptInvitePage(props: { searchParams: Promise<{ 
       create: {
         id: userId,
         email: invite.email,
+        name: invite.name,
       }
     });
 
     // 3. Connect roles and departments
+    const userUpdateData: any = {
+      organizationId: invite.organizationId,
+      roles: {
+        set: invite.roles
+      },
+      departments: {
+        connect: invite.departmentIds.map((id: string) => ({ id }))
+      }
+    };
+    
+    // Only overwrite name if we actually collected one in the invite
+    if (invite.name) {
+      userUpdateData.name = invite.name;
+    }
+
     await prisma.user.update({
       where: { id: userId },
-      data: {
-        organizationId: invite.organizationId,
-        roles: {
-          set: invite.roles // Overwrite or append based on your logic, setting here.
-        },
-        departments: {
-          connect: invite.departmentIds.map(id => ({ id }))
-        }
-      }
+      data: userUpdateData
     });
 
     // 4. Mark invite as accepted

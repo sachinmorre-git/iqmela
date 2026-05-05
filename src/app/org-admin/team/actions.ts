@@ -17,6 +17,7 @@ export async function sendTeamInvite(formData: FormData) {
     const orgId = perms.orgId;
 
     const email = formData.get("email")?.toString();
+    const name = formData.get("name")?.toString() || null;
     if (!email) throw new Error("Email is required");
 
     // Extract multiple roles
@@ -143,7 +144,7 @@ export async function sendTeamInvite(formData: FormData) {
         create: {
           id: existingClerkUser.id,
           email,
-          name: [existingClerkUser.firstName, existingClerkUser.lastName].filter(Boolean).join(" ") || null,
+          name: [existingClerkUser.firstName, existingClerkUser.lastName].filter(Boolean).join(" ") || name,
           organizationId: orgId,
           roles: roles as any[],
           departments: { connect: departmentIds.map(id => ({ id })) },
@@ -155,6 +156,7 @@ export async function sendTeamInvite(formData: FormData) {
         data: {
           organizationId: orgId,
           email,
+          name,
           roles: roles as any[],
           departmentIds,
           invitedById: userId,
@@ -184,6 +186,7 @@ export async function sendTeamInvite(formData: FormData) {
       data: {
         organizationId: orgId,
         email,
+        name,
         roles: roles as any[],
         departmentIds,
         invitedById: userId,

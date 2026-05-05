@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSidebar } from "./layout/ResizableSidebarLayout";
 
 interface SidebarNavItemProps {
   href: string;
@@ -51,6 +52,7 @@ export function SidebarNavItem({
 }: SidebarNavItemProps) {
   const pathname = usePathname();
   const isActive = pathname === href || pathname.startsWith(href + "/");
+  const { isCollapsed } = useSidebar();
 
   // ── Dark variant (System Admin) ────────────────────────────────────────
   if (variant === "dark") {
@@ -59,7 +61,8 @@ export function SidebarNavItem({
     return (
       <Link
         href={href}
-        className={`px-4 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center gap-3 relative group ${
+        title={isCollapsed ? label : undefined}
+        className={`px-4 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center ${isCollapsed ? "justify-center" : "gap-3"} relative group ${
           isActive
             ? `${accent.bg} ${accent.text} font-semibold border border-white/5`
             : `text-zinc-400 ${hoverClass || `hover:${accent.bg} hover:${accent.text}`} hover:translate-x-0.5`
@@ -70,8 +73,8 @@ export function SidebarNavItem({
           <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full ${accent.bar} shadow-sm ${accent.glow}`} />
         )}
         <span className="shrink-0 flex items-center justify-center">{icon}</span>
-        <span className="truncate">{label}</span>
-        {badge && <span className="ml-auto">{badge}</span>}
+        {!isCollapsed && <span className="truncate">{label}</span>}
+        {!isCollapsed && badge && <span className="ml-auto">{badge}</span>}
       </Link>
     );
   }
@@ -80,7 +83,8 @@ export function SidebarNavItem({
   return (
     <Link
       href={href}
-      className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 relative group ${
+      title={isCollapsed ? label : undefined}
+      className={`px-4 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center ${isCollapsed ? "justify-center" : "gap-3"} relative group ${
         isActive
           ? "bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 font-semibold shadow-sm border border-rose-100 dark:border-rose-800/40"
           : `text-gray-600 dark:text-gray-400 ${hoverClass || "hover:bg-gray-100 dark:hover:bg-zinc-800/80"} hover:translate-x-0.5`
@@ -91,13 +95,17 @@ export function SidebarNavItem({
         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-rose-500 dark:bg-rose-400 shadow-sm shadow-rose-500/50" />
       )}
       <span className="shrink-0 flex items-center justify-center">{icon}</span>
-      <span className="truncate">{label}</span>
-      {badge && <span className="ml-auto">{badge}</span>}
+      {!isCollapsed && <span className="truncate">{label}</span>}
+      {!isCollapsed && badge && <span className="ml-auto">{badge}</span>}
     </Link>
   );
 }
 
 export function SidebarSection({ title, className }: { title: string; className?: string }) {
+  const { isCollapsed } = useSidebar();
+  if (isCollapsed) {
+    return <div className={`my-2 border-t border-gray-200 dark:border-zinc-800 mx-4 ${className || ""}`} />;
+  }
   return (
     <div className={`mt-4 mb-1 px-4 ${className || ""}`}>
       <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-600">
