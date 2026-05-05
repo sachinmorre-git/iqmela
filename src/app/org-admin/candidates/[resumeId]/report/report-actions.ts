@@ -42,7 +42,7 @@ export type ConsolidatedReport = {
     candidateName: string
     candidateEmail: string
     pipelineStatus: string
-    currentStage: number
+    pipelineStageIdx: number
   }
   position: {
     id: string
@@ -90,7 +90,7 @@ export async function fetchConsolidatedReportAction(
         candidateName: true,
         candidateEmail: true,
         pipelineStatus: true,
-        currentStage: true,
+        pipelineStageIdx: true,
         organizationId: true,
         position: { select: { id: true, title: true, department: true } },
       },
@@ -227,7 +227,7 @@ export async function fetchConsolidatedReportAction(
           candidateName: resume.candidateName || resume.candidateEmail || "Unknown",
           candidateEmail: resume.candidateEmail || "",
           pipelineStatus: resume.pipelineStatus,
-          currentStage: resume.currentStage,
+          pipelineStageIdx: resume.pipelineStageIdx,
         },
         position: {
           id: resume.position.id,
