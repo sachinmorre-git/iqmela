@@ -120,22 +120,28 @@ export async function fetchConsolidatedReportAction(
     })
 
     // Fetch AI sessions
-    const aiSessions = await prisma.aiInterviewSession.findMany({
+    const aiSessionsRaw = await prisma.aiInterviewSession.findMany({
       where: { resumeId, positionId },
       select: {
         id: true,
-        stageIndex: true,
         overallScore: true,
         recommendation: true,
-        executiveSummary: true,
-        questionCount: true,
+        finalScoreJson: true,
+        questionSetJson: true,
       },
     })
 
     // Build rounds
     const rounds: RoundSummary[] = stages.map((stage) => {
       const interview = interviews.find((iv) => iv.stageIndex === stage.stageIndex)
-      const aiSession = aiSessions.find((s) => s.stageIndex === stage.stageIndex)
+      
+      const sessionRaw = aiSessionsRaw[0]
+      const aiSession = stage.roundType === "AI_SCREEN" && sessionRaw ? {
+        overallScore: sessionRaw.overallScore,
+        recommendation: sessionRaw.recommendation,
+        executiveSummary: (sessionRaw.finalScoreJson as any)?.summary || null,
+        questionCount: Array.isArray(sessionRaw.questionSetJson) ? sessionRaw.questionSetJson.length : 0,
+      } : null
 
       const panelistScores = (interview?.panelistFeedbacks ?? []).map((pf) => ({
         interviewerName: pf.interviewer?.name || pf.interviewer?.email || "Interviewer",
