@@ -82,6 +82,9 @@ export async function updatePosition(formData: FormData) {
           roundLabel: string;
           roundType: string;
           durationMinutes: number;
+          isRequired?: boolean;
+          description?: string | null;
+          assignedPanelJson?: any;
         }[];
         if (Array.isArray(stages)) {
           // Find existing plan
