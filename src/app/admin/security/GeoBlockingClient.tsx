@@ -115,7 +115,7 @@ export default function GeoBlockingClient() {
     startTransition(async () => {
       const result = await addDefaultGeoBlocks();
       if ("error" in result) {
-        setError(result.error ?? "Failed");
+        setError(String((result as any).error) || "Failed");
       } else {
         setSuccess(`${result.count} sanctioned nations added to blocklist`);
         setTimeout(() => setSuccess(null), 4000);
