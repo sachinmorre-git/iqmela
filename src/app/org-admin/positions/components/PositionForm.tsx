@@ -95,7 +95,7 @@ export default function PositionForm({
   const setField = (key: keyof JdFields, val: string) =>
     setFields(prev => ({ ...prev, [key]: val }))
   
-  const setSetting = (key: keyof typeof settings, val: number | boolean) =>
+  const setSetting = (key: keyof typeof settings, val: number | boolean | string) =>
     setSettings(prev => ({ ...prev, [key]: val }))
 
   // ── File processing ──────────────────────────────────────────────────────
