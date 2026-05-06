@@ -225,53 +225,7 @@ export function SmartNudges({ nudges }: SmartNudgesProps) {
         })}
       </div>
 
-      {/* ── Floating Action Button ──────────────────────────────────── */}
-      {fabNudge && (
-        <div
-          className={`fixed bottom-8 right-8 z-50 transition-all duration-500 ${
-            fabVisible && !isDragging
-              ? "opacity-100 translate-y-0 scale-100"
-              : fabVisible && isDragging
-              ? "opacity-100 transition-none"
-              : "opacity-0 translate-y-8 scale-90"
-          }`}
-          style={{ transform: fabVisible ? `translate3d(${position.x}px, ${position.y}px, 0)` : undefined, touchAction: 'none' }}
-        >
-          <button
-            type="button"
-            onClick={(e) => handleFabClick(e, fabNudge)}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            disabled={runningId === fabNudge.id && isPending}
-            className={`group relative inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r ${getTheme(fabNudge.accentFrom).fab} shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:scale-100 ${
-              isDragging ? "cursor-grabbing" : "cursor-pointer hover:-translate-y-1 hover:scale-105"
-            }`}
-          >
-            {/* Glow ring */}
-            <div className={`absolute -inset-1 rounded-[20px] bg-gradient-to-r ${getTheme(fabNudge.accentFrom).fabGlow} opacity-30 blur-lg group-hover:opacity-50 transition-opacity animate-pulse`} />
 
-            <span className="relative flex items-center gap-2.5">
-              {runningId === fabNudge.id && isPending ? (
-                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                fabNudge.icon
-              )}
-              {runningId === fabNudge.id && isPending ? "Running…" : fabNudge.actionLabel}
-            </span>
-
-            {fabNudge.badge != null && fabNudge.badge > 0 && (
-              <span className="relative inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-white/20 backdrop-blur-sm text-[11px] font-black tabular-nums">
-                {fabNudge.badge}
-              </span>
-            )}
-          </button>
-        </div>
-      )}
 
       {/* Animations */}
       <style>{`

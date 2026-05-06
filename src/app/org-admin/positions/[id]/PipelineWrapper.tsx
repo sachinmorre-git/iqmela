@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { CandidatePipelineBar, type StageState } from "./CandidatePipelineBar";
 import { ScheduleDrawer } from "./ScheduleDrawer";
 import { OfferWorkspaceDrawer } from "./OfferWorkspaceDrawer";
@@ -59,6 +60,7 @@ export function PipelineWrapper({
   const [drawerStage, setDrawerStage] = useState<StageState | null>(null);
   const [isOfferDrawerOpen, setIsOfferDrawerOpen] = useState(false);
   const [isBgvDrawerOpen, setIsBgvDrawerOpen] = useState(false);
+  const router = useRouter();
 
   // Build previous rounds for the drawer context
   const previousRounds = stages
@@ -122,7 +124,9 @@ export function PipelineWrapper({
         resumeId={resumeId}
         positionId={positionId}
         onStageClick={(s) => {
-          if (s.status !== "SKIPPED") {
+          if (s.status === "COMPLETED") {
+            router.push(`/org-admin/candidates/${resumeId}/intelligence?focus=${s.stage.stageIndex}`);
+          } else if (s.status !== "SKIPPED") {
             setDrawerStage(s);
           }
         }}
