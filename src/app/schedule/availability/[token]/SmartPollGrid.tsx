@@ -384,10 +384,10 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       </div>
 
       {/* ── Shared Transparency Grid ─────────────────────────────────────── */}
-      <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-md">
         <div className="min-w-[480px]">
           {/* Day headers */}
-          <div className="grid border-b border-gray-100 dark:border-zinc-800 bg-gradient-to-r from-gray-50 to-white dark:from-zinc-900 dark:to-zinc-800" style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}>
+          <div className="grid border-b-2 border-rose-100 dark:border-rose-900/40 bg-gradient-to-r from-rose-50 via-white to-rose-50 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-800" style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}>
             <div className="p-2" />
             {weekDays.map((d) => {
               const iso = dateToISO(d);
@@ -409,7 +409,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
           {TIME_SLOTS_LABELS.map((time, timeIdx) => (
             <div
               key={time}
-              className={`grid ${timeIdx % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-gray-50 dark:bg-zinc-800"} border-b border-gray-100 dark:border-zinc-800`}
+              className={`grid ${timeIdx % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-rose-50/30 dark:bg-zinc-800/60"} border-b border-gray-100 dark:border-zinc-800 hover:bg-rose-50/50 dark:hover:bg-zinc-800 transition-colors`}
               style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}
             >
               {/* Time label — only on the hour */}
@@ -442,16 +442,16 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
                     disabled={!inRange || isExpiredOrCanceled}
                     onClick={() => inRange && toggleSlot(iso, time)}
                     className={`
-                      relative h-9 border-l border-gray-100 dark:border-zinc-800 transition-all duration-150 group p-[2px]
-                      ${!inRange ? "bg-gray-50/50 dark:bg-zinc-950/50 cursor-not-allowed" : "cursor-pointer"}
-                      ${inRange && !isSelected ? "hover:bg-gray-50 dark:hover:bg-zinc-800/40" : ""}
+                      relative h-10 border-l border-gray-100 dark:border-zinc-800 transition-all duration-200 group p-[3px]
+                      ${!inRange ? "bg-gray-100/50 dark:bg-zinc-950/50 cursor-not-allowed opacity-40" : "cursor-pointer"}
+                      ${inRange && !isSelected ? "hover:bg-rose-50 dark:hover:bg-zinc-800/60" : ""}
                     `}
                   >
                     <div className={`
-                      w-full h-full rounded-md flex items-center justify-center relative overflow-hidden transition-all duration-200
-                      ${isSelected ? `${myColor?.light} ring-1 ring-inset ${myColor?.ring} shadow-sm` : ""}
-                      ${hot && !isSelected ? "bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800" : ""}
-                      ${!isSelected && !hot ? "bg-gray-50 dark:bg-zinc-800/40 border border-gray-200 dark:border-zinc-700 hover:border-rose-300 dark:hover:border-rose-600" : ""}
+                      w-full h-full rounded-lg flex items-center justify-center relative overflow-hidden transition-all duration-200
+                      ${isSelected ? `${myColor?.light} ring-2 ring-inset ${myColor?.ring} shadow-md scale-[1.02]` : ""}
+                      ${hot && !isSelected ? "bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-800/20 ring-1 ring-amber-300 dark:ring-amber-700" : ""}
+                      ${!isSelected && !hot && inRange ? "bg-white dark:bg-zinc-800 ring-1 ring-gray-200 dark:ring-zinc-700 hover:ring-rose-300 dark:hover:ring-rose-600 hover:shadow-sm" : ""}
                     `}>
                       {/* Hot slot glow */}
                       {hot && (
@@ -508,30 +508,33 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
         </div>
       </div>
 
-      {/* ── Legend ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 text-[10px] text-gray-400 dark:text-zinc-500 flex-wrap">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800" />
-          <span>Click to select</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-rose-500 ring-1 ring-rose-300" />
-          <span>Your selection</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-pink-500" />
-          <span>Panel member</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Flame className="w-3 h-3 text-amber-500" />
-          <span>All available = hot slot</span>
-        </div>
-      </div>
-
       </div>
 
       {/* ── Right Column: Command Center ─────────────────────────────────── */}
-      <div className="w-full shrink-0 space-y-6 lg:sticky lg:top-24" style={{ maxWidth: '320px' }}>
+      <div className="w-full shrink-0 space-y-5 lg:sticky lg:top-24" style={{ maxWidth: '320px' }}>
+
+      {/* ── Legend (moved from below calendar) ─────────────────────────── */}
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
+        <p className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Legend</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          <div className="flex items-center gap-2">
+            <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800" />
+            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Click to select</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3.5 h-3.5 rounded-full bg-rose-500 ring-2 ring-rose-200" />
+            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Your selection</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3.5 h-3.5 rounded-full bg-pink-400" />
+            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Panel member</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Flame className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Hot slot</span>
+          </div>
+        </div>
+      </div>
       {/* ── Panel Progress ──────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
