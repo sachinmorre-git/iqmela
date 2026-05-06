@@ -1454,8 +1454,13 @@ function ActivePollSummary({ poll }: { poll: any }) {
       return;
     }
     const formatted = slots.map(s => {
-      const start = new Date(s.start);
-      return `${start.toLocaleDateString()} at ${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      if (s.date && s.startTime && s.endTime) {
+        const d = new Date(s.date);
+        // We add timezone offset to fix off-by-one errors from "2026-04-21" UTC parsed strings
+        const localDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+        return `${localDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}: ${s.startTime} - ${s.endTime}`;
+      }
+      return JSON.stringify(s);
     }).join('\n');
     alert(`Available Slots:\n\n${formatted}`);
   };
