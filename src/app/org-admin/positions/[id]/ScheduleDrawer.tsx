@@ -64,7 +64,7 @@ export function ScheduleDrawer({
   onAdvanceToStage,
 }: ScheduleDrawerProps) {
   const [isPending, startTransition] = useTransition();
-  const [mode, setMode] = useState<ScheduleMode>("quick");
+  const [mode, setMode] = useState<ScheduleMode>("poll");
   const [selectedInterviewerIds, setSelectedInterviewerIds] = useState<string[]>([]);
   const [scheduledAt, setScheduledAt] = useState("");
   const [duration, setDuration] = useState(stage?.stage.durationMinutes ?? 45);
@@ -870,14 +870,6 @@ export function ScheduleDrawer({
                   className="px-5 py-2 rounded-xl text-sm font-bold bg-pink-600 text-white hover:bg-pink-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
                   {isPending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending…</> : <>📨 Request Availability</>}
                 </button>
-                <CoachMark
-                  id="schedule-smart-poll"
-                  show={mode === "poll"}
-                  preset="button-tap"
-                  message="Send poll to candidates so they can pick their slots"
-                  buttonLabel="Request Availability"
-                  accentColor="rose"
-                />
               </div>
             )}
           </div>
