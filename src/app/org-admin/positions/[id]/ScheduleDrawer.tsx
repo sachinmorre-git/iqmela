@@ -1302,7 +1302,7 @@ function SmartPollConfigurator({
           <CoachMark
             id="schedule-drawer-grid"
             show={selectedDays.size === 0}
-            preset="grid-select"
+            preset="grid-drag"
             message="Click & drag across days to select them"
           />
           {/* Day header */}

@@ -100,6 +100,49 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   PRESET: grid-drag
+   Cursor clicks a cell and drags across to select multiple
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cm-gd-cursor {
+  animation: cm-gd-cursor 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes cm-gd-cursor {
+  0%   { transform: translate(-12px, -12px); opacity: 0; }
+  10%  { transform: translate(32px, 20px); opacity: 1; }
+  15%  { transform: translate(32px, 20px); }
+  18%  { transform: translate(32px, 24px); } /* press */
+  40%  { transform: translate(208px, 24px); } /* drag right */
+  45%  { transform: translate(208px, 20px); } /* release */
+  75%  { opacity: 1; transform: translate(208px, 20px); }
+  85%  { opacity: 0; }
+  100% { opacity: 0; transform: translate(208px, 20px); }
+}
+
+.cm-gd-c1 { animation: cm-gd-c1 5.5s ease-out infinite; }
+.cm-gd-c2 { animation: cm-gd-c2 5.5s ease-out infinite; }
+.cm-gd-c3 { animation: cm-gd-c3 5.5s ease-out infinite; }
+
+@keyframes cm-gd-c1 {
+  0%, 18%   { opacity: 0; transform: scale(0.9); }
+  22%       { opacity: 1; transform: scale(1.05); }
+  26%, 80%  { opacity: 1; transform: scale(1); }
+  90%, 100% { opacity: 0; transform: scale(1); }
+}
+@keyframes cm-gd-c2 {
+  0%, 28%   { opacity: 0; transform: scale(0.9); }
+  32%       { opacity: 1; transform: scale(1.05); }
+  36%, 80%  { opacity: 1; transform: scale(1); }
+  90%, 100% { opacity: 0; transform: scale(1); }
+}
+@keyframes cm-gd-c3 {
+  0%, 38%   { opacity: 0; transform: scale(0.9); }
+  42%       { opacity: 1; transform: scale(1.05); }
+  46%, 80%  { opacity: 1; transform: scale(1); }
+  90%, 100% { opacity: 0; transform: scale(1); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PRESET: button-tap
    Cursor glides to a mock button, taps it, button pulses with glow ring
    ═══════════════════════════════════════════════════════════════════════════ */
