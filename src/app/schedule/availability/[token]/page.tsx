@@ -119,12 +119,12 @@ export default async function AvailabilityPage({ params }: Props) {
             const urgent = wdLeft <= 1;
             const warning = wdLeft <= 2;
             return (
-              <div className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${
-                urgent ? "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400"
-                : warning ? "bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
-                : "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
+              <div className={`shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap ${
+                urgent ? "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-sm shadow-red-200"
+                : warning ? "bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-sm shadow-amber-200"
+                : "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-200"
               }`}>
-                <span>{wdLeft <= 0 ? "⚠️ Deadline passed" : `⏳ ${wdLeft}d left`}</span>
+                <span>{wdLeft <= 0 ? "⚠️ Deadline passed" : `⏳ ${wdLeft} weekday${wdLeft !== 1 ? "s" : ""} remaining`}</span>
               </div>
             );
           })()}
