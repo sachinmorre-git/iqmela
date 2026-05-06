@@ -508,26 +508,39 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       {/* ── Right Column: Command Center ─────────────────────────────────── */}
       <div className="w-full shrink-0 space-y-5 lg:sticky lg:top-24" style={{ maxWidth: '320px' }}>
 
-      {/* ── Legend (moved from below calendar) ─────────────────────────── */}
+      {/* ── Legend ─────────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
         <p className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Legend</p>
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="space-y-2">
+          {/* Interactive cues */}
           <div className="flex items-center gap-2">
             <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800" />
-            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Click to select</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3.5 h-3.5 rounded-full bg-rose-500 ring-2 ring-rose-200" />
-            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Your selection</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3.5 h-3.5 rounded-full bg-pink-400" />
-            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Panel member</span>
+            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Available — click to select</span>
           </div>
           <div className="flex items-center gap-2">
             <Flame className="w-3.5 h-3.5 text-amber-500" />
-            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Hot slot</span>
+            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Hot slot — everyone agrees</span>
           </div>
+
+          {/* Divider */}
+          <div className="border-t border-gray-100 dark:border-zinc-800 my-1" />
+          <p className="text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Panelists</p>
+
+          {/* Each participant with their actual color */}
+          {participants.map((p) => {
+            const color = colorMap.current.get(p.userId) ?? PARTICIPANT_COLORS[0];
+            return (
+              <div key={p.userId} className="flex items-center gap-2">
+                <div
+                  className="w-3.5 h-3.5 rounded-full shrink-0"
+                  style={{ backgroundColor: color.dot }}
+                />
+                <span className="text-[11px] text-gray-600 dark:text-zinc-400 truncate">
+                  {p.name.split(" ")[0]}{p.isMe ? " (You)" : ""}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
       {/* ── Panel Progress ──────────────────────────────────────────────── */}
