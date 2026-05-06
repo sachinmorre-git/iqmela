@@ -19,6 +19,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { DepartmentDropdown } from "./DepartmentDropdown";
+import { CoachMark } from "@/components/ui/CoachMark";
 
 type Department = {
   id: string;
@@ -207,7 +208,7 @@ export function InviteMemberForm({
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-sm mb-8">
+    <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-sm mb-8 relative">
       {/* Header */}
       <div className="px-6 py-5 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -384,6 +385,15 @@ export function InviteMemberForm({
           </Button>
         )}
       </div>
+      {/* Coach mark for first-time users */}
+      <CoachMark
+        id="team-invite-form"
+        show={rows.length === 1 && !rows[0].email}
+        preset="form-fill"
+        message="Invite your team — type an email, pick a role, send"
+        placeholderText="colleague@company.com"
+        accentColor="rose"
+      />
     </div>
   );
 }

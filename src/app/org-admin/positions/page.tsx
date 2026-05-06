@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { PositionsTable } from "./PositionsTable"
 import { getCallerPermissions } from "@/lib/rbac"
+import { CoachMarkZone } from "@/components/ui/CoachMarkZone"
 
 export const metadata = {
   title: "Positions | Org Admin | IQMela",
@@ -75,6 +76,14 @@ export default async function PositionsPage() {
 
       {positions.length === 0 ? (
         /* ── Empty State ─────────────────────────────────────── */
+        <CoachMarkZone
+          id="positions-empty"
+          show={true}
+          preset="button-tap"
+          buttonLabel="+ Post New Position"
+          message="Create your first position to start hiring"
+          accentColor="rose"
+        >
         <div className="rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-sm p-20 flex flex-col items-center text-center gap-5 bg-white dark:bg-zinc-900">
           <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center text-rose-500">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -99,6 +108,7 @@ export default async function PositionsPage() {
             </Button>
           )}
         </div>
+        </CoachMarkZone>
       ) : (
         <PositionsTable initialPositions={positions} />
       )}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { CheckCircle, Clock, Flame, AlertTriangle, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { formatDate, formatTime } from "@/lib/locale-utils"
+import { CoachMark } from "@/components/ui/CoachMark";
 import { toast as sonnerToast } from "sonner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -506,109 +507,15 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
             </div>
           ))}
         </div>
-
-        {/* ── Coach Mark: cursor journey with 5 random selections ────── */}
-        {mySelections.size === 0 && !submitted && !isExpiredOrCanceled && (
-          <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
-            <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/50 to-white/70 dark:from-zinc-900/70 dark:via-zinc-900/50 dark:to-zinc-900/70 rounded-2xl" />
-
-            <div className="relative animate-cm-fadein">
-              {/* 2×3 mock grid */}
-              <div className="grid grid-cols-3 gap-2">
-                {/* Row 1: cell1, cell2, cell3 */}
-                {["cm-c1","cm-c2","cm-c3","cm-c4","cm-c5","cm-c6"].map((cls) => (
-                  <div key={cls} className="w-20 h-10 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 relative overflow-hidden">
-                    {cls !== "cm-c3" && (
-                      <div className={`absolute inset-0 bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center animate-${cls}`}>
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Travelling cursor */}
-              <div className="absolute top-0 left-0 animate-cm-cursor" style={{ width: 0, height: 0 }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }}>
-                  <path d="M5 3l14 8-6.5 1.5L11 19z" fill="#111827" stroke="#fff" strokeWidth="1" />
-                </svg>
-              </div>
-
-              <div className="mt-4 bg-gray-900/90 dark:bg-white/90 text-white dark:text-gray-900 text-[13px] font-semibold px-5 py-2.5 rounded-2xl shadow-xl text-center backdrop-blur-sm">
-                Click your available time slots
-              </div>
-            </div>
-          </div>
-        )}
+        {/* ── Coach Mark ──────────────────────────────────────────────── */}
+        <CoachMark
+          id="availability-grid"
+          show={mySelections.size === 0 && !submitted && !isExpiredOrCanceled}
+          preset="grid-select"
+          message="Click your available time slots"
+          accentColor="rose"
+        />
       </div>
-
-      {/* Coach mark animations — cursor zigzags: cell2→cell5→cell1→cell6→cell4 */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes cm-fadein {
-          0% { opacity: 0; transform: scale(0.95) translateY(8px); }
-          100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        @keyframes cm-cursor {
-          0%   { transform: translate(-10px, -10px); opacity: 0; }
-          5%   { transform: translate(128px, 20px); opacity: 1; }
-          8%   { transform: translate(128px, 24px); }
-          10%  { transform: translate(128px, 20px); }
-          18%  { transform: translate(128px, 62px); }
-          20%  { transform: translate(128px, 66px); }
-          22%  { transform: translate(128px, 62px); }
-          32%  { transform: translate(40px, 20px); }
-          34%  { transform: translate(40px, 24px); }
-          36%  { transform: translate(40px, 20px); }
-          46%  { transform: translate(216px, 62px); }
-          48%  { transform: translate(216px, 66px); }
-          50%  { transform: translate(216px, 62px); }
-          60%  { transform: translate(40px, 62px); }
-          62%  { transform: translate(40px, 66px); }
-          64%  { transform: translate(40px, 62px); }
-          78%  { opacity: 1; }
-          86%  { opacity: 0; }
-          100% { opacity: 0; transform: translate(40px, 62px); }
-        }
-        @keyframes cm-c2 {
-          0%, 8%    { opacity: 0; transform: scale(0.5); }
-          11%       { opacity: 1; transform: scale(1.08); }
-          14%, 82%  { opacity: 1; transform: scale(1); }
-          88%, 100% { opacity: 0; }
-        }
-        @keyframes cm-c5 {
-          0%, 20%   { opacity: 0; transform: scale(0.5); }
-          23%       { opacity: 1; transform: scale(1.08); }
-          26%, 82%  { opacity: 1; transform: scale(1); }
-          88%, 100% { opacity: 0; }
-        }
-        @keyframes cm-c1 {
-          0%, 34%   { opacity: 0; transform: scale(0.5); }
-          37%       { opacity: 1; transform: scale(1.08); }
-          40%, 82%  { opacity: 1; transform: scale(1); }
-          88%, 100% { opacity: 0; }
-        }
-        @keyframes cm-c6 {
-          0%, 48%   { opacity: 0; transform: scale(0.5); }
-          51%       { opacity: 1; transform: scale(1.08); }
-          54%, 82%  { opacity: 1; transform: scale(1); }
-          88%, 100% { opacity: 0; }
-        }
-        @keyframes cm-c4 {
-          0%, 62%   { opacity: 0; transform: scale(0.5); }
-          65%       { opacity: 1; transform: scale(1.08); }
-          68%, 82%  { opacity: 1; transform: scale(1); }
-          88%, 100% { opacity: 0; }
-        }
-        @keyframes cm-c3 { 0%, 100% { opacity: 0; } }
-        .animate-cm-fadein { animation: cm-fadein 0.5s ease-out both; }
-        .animate-cm-cursor { animation: cm-cursor 6s cubic-bezier(0.4,0,0.2,1) infinite; }
-        .animate-cm-c1 { animation: cm-c1 6s ease-out infinite; }
-        .animate-cm-c2 { animation: cm-c2 6s ease-out infinite; }
-        .animate-cm-c3 { animation: cm-c3 6s ease-out infinite; }
-        .animate-cm-c4 { animation: cm-c4 6s ease-out infinite; }
-        .animate-cm-c5 { animation: cm-c5 6s ease-out infinite; }
-        .animate-cm-c6 { animation: cm-c6 6s ease-out infinite; }
-      ` }} />
 
       </div>
 

@@ -6,6 +6,7 @@ import Link from "next/link"
 import { getCallerPermissions } from "@/lib/rbac"
 import { formatDateTime } from "@/lib/locale-utils"
 import { Share2, ArrowRight } from "lucide-react"
+import { CoachMarkZone } from "@/components/ui/CoachMarkZone"
 
 export const metadata = {
   title: 'Dashboard | IQMela',
@@ -313,6 +314,14 @@ export default async function OrgAdminDashboard() {
       </div>
 
       {/* KPI Stats Grid — Hiring Pipeline */}
+      <CoachMarkZone
+        id="dashboard-first-position"
+        show={openPositions === 0}
+        preset="button-tap"
+        buttonLabel="+ Post New Position"
+        message="Start by creating your first open position"
+        accentColor="rose"
+      >
       <div>
         <p className="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-3">
           Hiring Pipeline
@@ -355,6 +364,7 @@ export default async function OrgAdminDashboard() {
           </Card>
         </div>
       </div>
+      </CoachMarkZone>
 
       {/* Step 228 — AI Interview KPIs */}
       <div>
