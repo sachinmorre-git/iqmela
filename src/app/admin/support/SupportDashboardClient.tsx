@@ -102,7 +102,9 @@ export function SupportDashboardClient({ initialTickets }: { initialTickets: Tic
                 <tr key={ticket.id} className="hover:bg-zinc-800/30 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-bold text-white group-hover:text-blue-400 transition-colors">{ticket.ticketNumber}</span>
+                      <Link href={`/admin/support/${ticket.id}`} className="font-bold text-white group-hover:text-blue-400 transition-colors hover:underline">
+                        {ticket.ticketNumber}
+                      </Link>
                       <span className="text-xs text-zinc-400 max-w-[200px] truncate">{ticket.subject}</span>
                     </div>
                   </td>
