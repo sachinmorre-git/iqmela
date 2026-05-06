@@ -130,7 +130,7 @@ function GridSelectPreset({ accentColor }: { accentColor: string }) {
 
 // ── Preset: Grid Drag ─────────────────────────────────────────────────────────
 
-function GridDragPreset({ accentColor, buttonLabel }: { accentColor: string; buttonLabel: string }) {
+function GridDragPreset({ accentColor, onGotIt }: { accentColor: string; onGotIt: () => void }) {
   const gradient = ACCENT_GRADIENTS[accentColor as keyof typeof ACCENT_GRADIENTS] || ACCENT_GRADIENTS.rose;
   const bg = ACCENT_BG[accentColor as keyof typeof ACCENT_BG] || ACCENT_BG.rose;
   const cellIds = [
@@ -155,13 +155,13 @@ function GridDragPreset({ accentColor, buttonLabel }: { accentColor: string; but
         ))}
       </div>
 
-      {/* Mock button */}
+      {/* Mock button acting as actual dismiss button */}
       <button
         type="button"
-        tabIndex={-1}
-        className={`${bg} text-white text-[10px] font-bold px-4 py-2 rounded-lg shadow-sm cm-gd-btn cursor-default flex items-center gap-1.5`}
+        onClick={onGotIt}
+        className={`${bg} text-white text-[12px] font-bold px-6 py-2 rounded-xl shadow-md cm-gd-btn cursor-pointer pointer-events-auto hover:opacity-90 transition-opacity flex items-center gap-2`}
       >
-        <span className="text-[11px]">📨</span> {buttonLabel}
+        <span>👍</span> Got It
       </button>
 
       {/* Travelling cursor */}
@@ -244,6 +244,17 @@ export function CoachMark({
   const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
 
+  const handleManualDismiss = useCallback(() => {
+    if (exiting) return;
+    setExiting(true);
+    markCoachMarkSeen(id);
+    const timer = setTimeout(() => {
+      setVisible(false);
+      setExiting(false);
+      onDismiss?.();
+    }, 350);
+  }, [id, onDismiss, exiting]);
+
   // Check persistence + external show prop
   useEffect(() => {
     if (show && !hasSeenCoachMark(id)) {
@@ -280,7 +291,7 @@ export function CoachMark({
       <div className="relative flex flex-col items-center gap-5">
         {/* Preset animation */}
         {preset === "grid-select" && <GridSelectPreset accentColor={accentColor} />}
-        {preset === "grid-drag" && <GridDragPreset accentColor={accentColor} buttonLabel={buttonLabel} />}
+        {preset === "grid-drag" && <GridDragPreset accentColor={accentColor} onGotIt={handleManualDismiss} />}
         {preset === "button-tap" && <ButtonTapPreset accentColor={accentColor} buttonLabel={buttonLabel} />}
         {preset === "form-fill" && <FormFillPreset accentColor={accentColor} placeholderText={placeholderText} />}
 
