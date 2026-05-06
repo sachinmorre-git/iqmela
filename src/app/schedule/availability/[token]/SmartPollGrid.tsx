@@ -319,9 +319,9 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
   }
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 items-start">
+    <div className="flex flex-col lg:flex-row gap-8 items-start">
       {/* ── Left Column: Calendar ───────────────────────────────────────── */}
-      <div className="flex-1 w-full min-w-0 space-y-6">
+      <div className="flex-1 w-full min-w-[50%] space-y-6">
       {/* ── Deadline Banner ─────────────────────────────────────────────── */}
       <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border
         ${weekdaysLeft <= 1
@@ -409,7 +409,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
           {TIME_SLOTS_LABELS.map((time, timeIdx) => (
             <div
               key={time}
-              className={`grid ${timeIdx % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-gray-50/40 dark:bg-zinc-800/20"} border-b border-gray-100 dark:border-zinc-800`}
+              className={`grid ${timeIdx % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-gray-50 dark:bg-zinc-800"} border-b border-gray-100 dark:border-zinc-800`}
               style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}
             >
               {/* Time label — only on the hour */}
@@ -528,7 +528,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       </div>
 
       {/* ── Right Column: Command Center ─────────────────────────────────── */}
-      <div className="w-full md:w-[320px] shrink-0 space-y-6 md:sticky md:top-24">
+      <div className="w-full shrink-0 space-y-6 lg:sticky lg:top-24" style={{ maxWidth: '320px' }}>
       {/* ── Panel Progress ──────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
