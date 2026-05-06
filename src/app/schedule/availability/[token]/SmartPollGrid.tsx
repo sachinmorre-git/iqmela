@@ -322,22 +322,6 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
     <div className="flex flex-col lg:flex-row gap-8 items-start">
       {/* ── Left Column: Calendar ───────────────────────────────────────── */}
       <div className="flex-1 w-full min-w-[50%] space-y-6">
-      {/* ── Deadline Banner ─────────────────────────────────────────────── */}
-      <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border
-        ${weekdaysLeft <= 1
-          ? "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400"
-          : weekdaysLeft <= 2
-          ? "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
-          : "bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-zinc-400"
-        }`}
-      >
-        <Clock className="w-3.5 h-3.5 shrink-0" />
-        <span>
-          {weekdaysLeft <= 0
-            ? "⚠️ Deadline passed"
-            : `⏳ ${weekdaysLeft} weekday${weekdaysLeft !== 1 ? "s" : ""} remaining to respond`}
-        </span>
-      </div>
 
       {/* ── AI Best Overlaps (if any) ────────────────────────────────────── */}
       {poll.commonSlots.length > 0 && (

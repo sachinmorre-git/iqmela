@@ -110,6 +110,24 @@ export default async function AvailabilityPage({ params }: Props) {
               {poll.position.title} · ⏱ {poll.durationMinutes} min · 📅 {formatDate(new Date(poll.dateRangeStart + "T00:00:00"))} → {formatDate(new Date(poll.dateRangeEnd + "T00:00:00"))} · 🕘 9AM–5PM · {submittedCount}/{participants.length} responded
             </p>
           </div>
+          {(() => {
+            const now = new Date();
+            const end = new Date(poll.deadline);
+            let wdLeft = 0;
+            const d = new Date(now);
+            while (d < end) { d.setDate(d.getDate() + 1); const dow = d.getDay(); if (dow >= 1 && dow <= 5) wdLeft++; }
+            const urgent = wdLeft <= 1;
+            const warning = wdLeft <= 2;
+            return (
+              <div className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${
+                urgent ? "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                : warning ? "bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
+                : "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
+              }`}>
+                <span>{wdLeft <= 0 ? "⚠️ Deadline passed" : `⏳ ${wdLeft}d left`}</span>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
