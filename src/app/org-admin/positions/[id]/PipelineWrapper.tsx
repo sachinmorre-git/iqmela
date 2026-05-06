@@ -124,10 +124,7 @@ export function PipelineWrapper({
         resumeId={resumeId}
         positionId={positionId}
         onStageClick={(s) => {
-          if (s.status === "COMPLETED") {
-            const focusVal = s.stage.roundType === "AI_SCREEN" ? "ai-screen" : s.interviewId;
-            router.push(`/org-admin/candidates/${resumeId}/intelligence?focus=${focusVal}`);
-          } else if (s.status !== "SKIPPED") {
+          if (s.status !== "SKIPPED") {
             setDrawerStage(s);
           }
         }}
