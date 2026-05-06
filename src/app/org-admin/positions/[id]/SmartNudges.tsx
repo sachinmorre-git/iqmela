@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { bulkProcessAllAction } from "./actions";
 
@@ -77,6 +77,46 @@ export function SmartNudges({ nudges }: SmartNudgesProps) {
   const [isPending, startTransition] = useTransition();
   const [runningId, setRunningId] = useState<string | null>(null);
   const [fabVisible, setFabVisible] = useState(false);
+
+  // Dragging State for FAB
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const dragStartMouse = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    
+    setIsDragging(true);
+    dragStartMouse.current = { x: e.clientX, y: e.clientY };
+    dragStartPos.current = { ...position };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartMouse.current.x;
+    const dy = e.clientY - dragStartMouse.current.y;
+    setPosition({
+      x: dragStartPos.current.x + dx,
+      y: dragStartPos.current.y + dy,
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
+  const handleFabClick = (e: React.MouseEvent, nudge: NudgeItem) => {
+    const dx = Math.abs(position.x - dragStartPos.current.x);
+    const dy = Math.abs(position.y - dragStartPos.current.y);
+    if (dx > 5 || dy > 5) {
+      return; // It was a drag, not a click
+    }
+    handleAction(nudge);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setFabVisible(true), 800);
@@ -189,16 +229,25 @@ export function SmartNudges({ nudges }: SmartNudgesProps) {
       {fabNudge && (
         <div
           className={`fixed bottom-8 right-8 z-50 transition-all duration-500 ${
-            fabVisible
+            fabVisible && !isDragging
               ? "opacity-100 translate-y-0 scale-100"
+              : fabVisible && isDragging
+              ? "opacity-100 transition-none"
               : "opacity-0 translate-y-8 scale-90"
           }`}
+          style={{ transform: fabVisible ? `translate3d(${position.x}px, ${position.y}px, 0)` : undefined, touchAction: 'none' }}
         >
           <button
             type="button"
-            onClick={() => handleAction(fabNudge)}
+            onClick={(e) => handleFabClick(e, fabNudge)}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
             disabled={runningId === fabNudge.id && isPending}
-            className={`group relative inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r ${getTheme(fabNudge.accentFrom).fab} shadow-xl hover:-translate-y-1 hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:scale-100`}
+            className={`group relative inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r ${getTheme(fabNudge.accentFrom).fab} shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:scale-100 ${
+              isDragging ? "cursor-grabbing" : "cursor-pointer hover:-translate-y-1 hover:scale-105"
+            }`}
           >
             {/* Glow ring */}
             <div className={`absolute -inset-1 rounded-[20px] bg-gradient-to-r ${getTheme(fabNudge.accentFrom).fabGlow} opacity-30 blur-lg group-hover:opacity-50 transition-opacity animate-pulse`} />
