@@ -1429,6 +1429,7 @@ function SmartPollConfigurator({
 
 function ActivePollSummary({ poll }: { poll: any }) {
   const [isNudging, setIsNudging] = useState<string | null>(null);
+  const [viewingSlotsFor, setViewingSlotsFor] = useState<{name: string, slots: any[]} | null>(null);
 
   if (!poll) return null;
 
@@ -1448,21 +1449,12 @@ function ActivePollSummary({ poll }: { poll: any }) {
     }
   };
 
-  const handleViewSlots = (slots: any[]) => {
+  const handleViewSlots = (name: string, slots: any[]) => {
     if (!slots || slots.length === 0) {
       toast.info("No slots provided yet");
       return;
     }
-    const formatted = slots.map(s => {
-      if (s.date && s.startTime && s.endTime) {
-        const d = new Date(s.date);
-        // We add timezone offset to fix off-by-one errors from "2026-04-21" UTC parsed strings
-        const localDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
-        return `${localDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}: ${s.startTime} - ${s.endTime}`;
-      }
-      return JSON.stringify(s);
-    }).join('\n');
-    alert(`Available Slots:\n\n${formatted}`);
+    setViewingSlotsFor({ name, slots });
   };
 
   const responses = poll.responses || [];
@@ -1473,7 +1465,7 @@ function ActivePollSummary({ poll }: { poll: any }) {
   const colors = ["bg-rose-500", "bg-blue-500", "bg-amber-500", "bg-emerald-500", "bg-purple-500"];
 
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 relative">
       {/* Status Header */}
       <div className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/10 dark:to-rose-900/10 rounded-2xl p-5 border border-pink-100 dark:border-pink-800/30 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
@@ -1544,7 +1536,7 @@ function ActivePollSummary({ poll }: { poll: any }) {
                 {hasResponded ? (
                   <button 
                     type="button" 
-                    onClick={() => handleViewSlots(p.slots)}
+                    onClick={() => handleViewSlots(p.name, p.slots)}
                     className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 transition-colors rounded-lg border border-emerald-100 dark:border-emerald-800/30"
                   >
                     <Calendar className="w-3.5 h-3.5" />
@@ -1580,6 +1572,50 @@ function ActivePollSummary({ poll }: { poll: any }) {
             <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1 leading-relaxed">
               The AI has successfully found common windows for the panel.
             </p>
+          </div>
+        </div>
+      )}
+
+      {viewingSlotsFor && (
+        <div className="absolute inset-0 z-50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-zinc-800 flex flex-col p-5 shadow-2xl animate-in fade-in zoom-in-95">
+          <div className="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-zinc-800 pb-3 shrink-0">
+            <div>
+              <h4 className="font-bold text-gray-900 dark:text-white text-base">Availability Slots</h4>
+              <p className="text-xs text-gray-500 dark:text-zinc-400">Provided by <span className="font-semibold text-gray-700 dark:text-zinc-300">{viewingSlotsFor.name}</span></p>
+            </div>
+            <button 
+              onClick={() => setViewingSlotsFor(null)}
+              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 flex items-center justify-center text-gray-500 transition-colors shrink-0"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto pr-1 space-y-2 pb-4 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-zinc-700">
+            {viewingSlotsFor.slots.map((s, idx) => {
+              if (!s.date || !s.startTime || !s.endTime) return null;
+              const d = new Date(s.date);
+              const localDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+              return (
+                <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 flex flex-col items-center justify-center shadow-sm shrink-0">
+                      <span className="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-400 leading-none">{localDate.toLocaleDateString(undefined, { weekday: 'short' })}</span>
+                      <span className="text-sm font-black text-gray-900 dark:text-white leading-none mt-0.5">{localDate.getDate()}</span>
+                    </div>
+                    <span className="text-sm font-bold text-gray-700 dark:text-zinc-300">
+                      {localDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 shadow-sm shrink-0">
+                    <CalendarClock className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="text-xs font-bold font-mono text-gray-900 dark:text-white tracking-tight mt-0.5">
+                      {s.startTime} <span className="text-gray-400 font-sans px-0.5">-</span> {s.endTime}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
