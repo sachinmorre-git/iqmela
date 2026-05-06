@@ -1071,7 +1071,12 @@ export function AiInterviewShell({
               <span className="text-xl">⚠️</span>
             </div>
             <div>
-              <p className="text-sm font-black text-red-400 tracking-wide uppercase">Proctoring Alert</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-black text-red-400 tracking-wide uppercase">Proctoring Alert</p>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300">
+                  {tabSwitchCount + pasteCount} Violations
+                </span>
+              </div>
               <p className="text-xs text-red-200/80 mt-0.5">{activeViolation.message}</p>
               <p className="text-[9px] text-red-400/60 mt-1 uppercase tracking-widest font-bold">This action has been noted in your interview report.</p>
             </div>
