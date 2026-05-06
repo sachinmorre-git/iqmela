@@ -151,6 +151,9 @@ export function CandidateJourneyTracker({ stages }: { stages: JourneyStage[] }) 
 
                   {/* Popover Arrow */}
                   <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-white" />
+                  
+                  {/* Invisible Bridge to prevent hover gap dropoff */}
+                  <div className="absolute top-full left-0 w-full h-4 bg-transparent" />
                 </div>
               </div>
             );
