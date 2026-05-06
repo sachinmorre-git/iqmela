@@ -133,17 +133,21 @@ function GridSelectPreset({ accentColor }: { accentColor: string }) {
 function GridDragPreset({ accentColor, buttonLabel }: { accentColor: string; buttonLabel: string }) {
   const gradient = ACCENT_GRADIENTS[accentColor as keyof typeof ACCENT_GRADIENTS] || ACCENT_GRADIENTS.rose;
   const bg = ACCENT_BG[accentColor as keyof typeof ACCENT_BG] || ACCENT_BG.rose;
-  const cellIds = ["cm-gd-c1", "cm-gd-c2", "cm-gd-c3", "cm-gd-c4", "cm-gd-c5", "cm-gd-c6"];
+  const cellIds = [
+    "cm-gd-c1", "cm-gd-c2", "cm-gd-c3", "cm-gd-c4", "cm-gd-c5",
+    "cm-gd-c6", "cm-gd-c7", "cm-gd-c8", "cm-gd-c9", "cm-gd-c10"
+  ];
 
   return (
     <div className="relative flex flex-col items-center gap-4 pt-2">
-      {/* 3x2 mock grid */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* 5x2 mock grid */}
+      <div className="grid grid-cols-5 gap-1.5">
         {cellIds.map((cls) => (
           <div
             key={cls}
-            className="w-14 h-8 rounded-lg border border-gray-200/80 dark:border-zinc-700/80 bg-white/90 dark:bg-zinc-800/90 relative overflow-hidden shadow-sm"
+            className={`w-10 h-8 rounded-md border border-gray-200/80 dark:border-zinc-700/80 bg-white/90 dark:bg-zinc-800/90 relative overflow-hidden shadow-sm ${cls === 'cm-gd-c2' || cls === 'cm-gd-c4' || cls === 'cm-gd-c5' ? 'opacity-50' : ''}`}
           >
+            {/* The CheckSVG will be styled by CSS for the selected ones */}
             <div className={`absolute inset-0 bg-gradient-to-br ${gradient} flex items-center justify-center ${cls}`}>
               <CheckSVG />
             </div>
