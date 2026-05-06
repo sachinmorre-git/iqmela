@@ -326,7 +326,7 @@ export function HelpBeacon() {
     <>
       {/* Draggable Container */}
       <div
-        className="fixed bottom-6 right-6 z-[9999]"
+        className="fixed bottom-6 left-6 z-[9999]"
         style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)`, touchAction: 'none' }}
       >
         {/* Floating Action Button */}
@@ -367,7 +367,7 @@ export function HelpBeacon() {
         )}
 
           {/* Tooltip */}
-          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 dark:bg-zinc-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
+          <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-gray-900 dark:bg-zinc-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
             {issueCount > 0 ? "Issues detected — Report" : "Need help?"}
           </span>
         </button>
@@ -385,7 +385,7 @@ export function HelpBeacon() {
 
           {/* Panel */}
           <div
-            className="fixed bottom-24 right-6 z-[9999] w-[380px] max-h-[520px] rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 shadow-2xl shadow-rose-500/10 overflow-hidden flex flex-col"
+            className="fixed bottom-24 left-6 z-[9999] w-[380px] max-h-[520px] rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 shadow-2xl shadow-rose-500/10 overflow-hidden flex flex-col"
             style={{ animation: "slideUp 250ms ease-out" }}
           >
             {submitted ? (
