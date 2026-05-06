@@ -811,7 +811,7 @@ export function ScheduleDrawer({
 
         {/* Footer — hidden when CompletedRoundView or BgvDrawerView is active */}
         {!success && !(isCompleted && !isAI && stage?.interviewId) && !isBGV && (
-          <div className="px-6 py-4 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-end gap-3">
+          <div className="px-6 py-4 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => { setIsEditing(false); onClose(); }}
