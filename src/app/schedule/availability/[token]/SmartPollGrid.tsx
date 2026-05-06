@@ -319,9 +319,9 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
       {/* ── Left Column: Calendar ───────────────────────────────────────── */}
-      <div className="lg:col-span-8 space-y-6">
+      <div className="md:col-span-8 space-y-6">
       {/* ── Deadline Banner ─────────────────────────────────────────────── */}
       <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border
         ${weekdaysLeft <= 1
@@ -387,7 +387,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
         <div className="min-w-[480px]">
           {/* Day headers */}
-          <div className="grid border-b border-gray-100 dark:border-zinc-800" style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}>
+          <div className="grid border-b border-gray-100 dark:border-zinc-800 bg-gradient-to-r from-gray-50 to-white dark:from-zinc-900 dark:to-zinc-800" style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}>
             <div className="p-2" />
             {weekDays.map((d) => {
               const iso = dateToISO(d);
@@ -409,7 +409,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
           {TIME_SLOTS_LABELS.map((time, timeIdx) => (
             <div
               key={time}
-              className={`grid ${timeIdx % 2 === 0 ? "border-b border-gray-100 dark:border-zinc-800" : "border-b border-gray-100 dark:border-zinc-800"}`}
+              className={`grid ${timeIdx % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-gray-50/40 dark:bg-zinc-800/20"} border-b border-gray-100 dark:border-zinc-800`}
               style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}
             >
               {/* Time label — only on the hour */}
@@ -449,7 +449,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
                   >
                     <div className={`
                       w-full h-full rounded-md flex items-center justify-center relative overflow-hidden transition-all duration-200
-                      ${isSelected ? `bg-rose-50 dark:bg-rose-900/40 ring-1 ring-inset ${myColor?.ring}` : ""}
+                      ${isSelected ? `${myColor?.light} ring-1 ring-inset ${myColor?.ring} shadow-sm` : ""}
                       ${hot && !isSelected ? "bg-amber-50 dark:bg-amber-900/20" : ""}
                     `}>
                       {/* Hot slot glow */}
@@ -530,7 +530,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       </div>
 
       {/* ── Right Column: Command Center ─────────────────────────────────── */}
-      <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
+      <div className="md:col-span-4 space-y-6 md:sticky md:top-24">
       {/* ── Panel Progress ──────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
