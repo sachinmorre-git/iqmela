@@ -267,7 +267,7 @@ export function ScheduleDrawer({
       <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
 
       {/* Drawer */}
-      <div className="fixed top-0 right-0 z-50 h-full w-full max-w-4xl bg-white dark:bg-zinc-900 border-l border-gray-200 dark:border-zinc-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+      <div className="fixed top-0 right-0 z-50 h-full w-full max-w-5xl bg-white dark:bg-zinc-900 border-l border-gray-200 dark:border-zinc-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
           <div>
@@ -1305,7 +1305,7 @@ function SmartPollConfigurator({
           {/* Day header */}
           <div className="grid grid-cols-5 gap-1">
             {["Mon","Tue","Wed","Thu","Fri"].map(d => (
-              <div key={d} className="text-center text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase">
+              <div key={d} className="text-center text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase">
                 {d}
               </div>
             ))}
@@ -1315,8 +1315,8 @@ function SmartPollConfigurator({
           {weeks.map((week, wi) => {
             const weekLabel = formatDate(week[0]);
             return (
-              <div key={wi} className="flex items-center gap-1.5">
-                <span className="text-[8px] text-gray-300 dark:text-zinc-700 w-9 shrink-0 text-right leading-none">
+              <div key={wi} className="flex items-center gap-2">
+                <span className="text-[10px] text-gray-400 dark:text-zinc-500 w-12 shrink-0 text-right leading-tight">
                   {weekLabel}
                 </span>
                 <div className="grid grid-cols-5 gap-1 flex-1">
@@ -1337,7 +1337,7 @@ function SmartPollConfigurator({
                         // Prevent losing drag state when pointer briefly leaves grid
                         onMouseUp={() => { isDragging.current = false; }}
                         className={`
-                          relative h-8 rounded-lg text-xs font-bold transition-all duration-100
+                          relative h-10 rounded-xl text-sm font-bold transition-all duration-100
                           ${isPast
                             ? "opacity-20 cursor-not-allowed bg-gray-100 dark:bg-zinc-800 text-gray-400"
                             : isSel
