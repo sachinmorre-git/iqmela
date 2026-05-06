@@ -917,7 +917,7 @@ function InterviewerListItem({
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{interviewer.name || interviewer.email}</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{interviewer.name || interviewer.email}</p>
               <span className={`px-1 py-0.5 text-[7px] font-bold uppercase rounded ${
                 interviewer.source === "INTERNAL"
                   ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400"
@@ -926,13 +926,13 @@ function InterviewerListItem({
                 {interviewer.source === "INTERNAL" ? "INT" : "MKT"}
               </span>
             </div>
-            <p className="text-[10px] text-gray-400 truncate">
+            <p className="text-xs text-gray-500 dark:text-zinc-400 truncate">
               {interviewer.title || interviewer.email}
               {interviewer.hourlyRate != null && <span className="ml-1">· ${interviewer.hourlyRate}/hr</span>}
             </p>
           </div>
-          <span className={`text-[10px] font-bold shrink-0 ${
-            matchScore >= 85 ? "text-emerald-600" : matchScore >= 70 ? "text-amber-600" : "text-gray-400"
+          <span className={`text-xs font-bold shrink-0 ${
+            matchScore >= 85 ? "text-emerald-600 dark:text-emerald-400" : matchScore >= 70 ? "text-amber-600 dark:text-amber-400" : "text-gray-600 dark:text-gray-400"
           }`}>
             {matchScore}%
           </span>
