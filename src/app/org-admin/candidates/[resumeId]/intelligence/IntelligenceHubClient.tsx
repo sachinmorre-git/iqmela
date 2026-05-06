@@ -53,12 +53,14 @@ export function IntelligenceHubClient({
   canOffer,
   userRoles,
   embeddedMode = false,
+  focusedRoundId,
 }: {
   resume: ResumeData;
   canReject: boolean;
   canOffer: boolean;
   userRoles: string[];
   embeddedMode?: boolean;
+  focusedRoundId?: string;
 }) {
   // ── Auto-expand the latest (highest stageIndex) round on mount ────────
   const latestInterviewId = useMemo(() => {
@@ -117,6 +119,7 @@ export function IntelligenceHubClient({
         )}
 
         {/* ── Candidate Identity Header ─────────────────────────────────── */}
+        {!focusedRoundId && (
         <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-gray-100 dark:border-zinc-800 shadow-sm overflow-hidden">
           <div className="p-6 md:p-8">
             <div className="flex flex-col md:flex-row md:items-center gap-6">
@@ -254,9 +257,10 @@ export function IntelligenceHubClient({
             </div>
           </div>
         </div>
+        )}
 
         {/* ── Advanced AI Fit Card ─────────────────────────────────────── */}
-        {(resume.matchScore !== null || resume.aiInterviewFocusJson || resume.aiRedFlagsJson) && (
+        {(!focusedRoundId && (resume.matchScore !== null || resume.aiInterviewFocusJson || resume.aiRedFlagsJson)) && (
           <details className="group bg-white dark:bg-zinc-900 border border-rose-100 dark:border-rose-900/60 shadow-sm rounded-3xl overflow-hidden">
             <summary className="cursor-pointer bg-gradient-to-r from-rose-50/50 to-rose-50/50 dark:from-rose-900/10 dark:to-rose-900/10 border-b border-transparent group-open:border-rose-100 dark:group-open:border-rose-900/20 px-6 py-4 select-none hover:bg-rose-50/80 transition-colors list-none [&::-webkit-details-marker]:hidden flex items-center justify-between">
                <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -275,7 +279,7 @@ export function IntelligenceHubClient({
         )}
 
         {/* ── AI Screen Report ── */}
-        {latestAiSession && (
+        {(latestAiSession && (!focusedRoundId || focusedRoundId === "ai-screen")) && (
           <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-rose-100 dark:border-zinc-800 shadow-xl shadow-rose-500/5 overflow-hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-6 py-5 border-b border-rose-100/50 dark:border-zinc-800 bg-gradient-to-br from-rose-500 to-pink-600">
               <div className="flex items-center gap-4">
@@ -433,7 +437,7 @@ export function IntelligenceHubClient({
         )}
 
         {/* ── Cross-Round Score Trend ── */}
-        {resume.interviews?.length > 1 && (() => {
+        {(!focusedRoundId && resume.interviews?.length > 1) && (() => {
           const roundScores = (resume.interviews as any[])
             .filter((iv: any) => iv.panelistFeedbacks?.length > 0)
             .map((iv: any) => {
@@ -517,7 +521,7 @@ export function IntelligenceHubClient({
         })()}
 
         {/* ── Round Cards ── */}
-        {resume.interviews?.map((interview: any) => {
+        {resume.interviews?.filter((iv: any) => !focusedRoundId || focusedRoundId === iv.id).map((interview: any) => {
           const feedbacks: any[] = interview.panelistFeedbacks ?? [];
           const panelists = interview.panelists ?? [];
           const stageFeedbacks = feedbacks;

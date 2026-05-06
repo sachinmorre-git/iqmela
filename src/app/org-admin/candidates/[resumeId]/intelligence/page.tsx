@@ -9,8 +9,16 @@ export async function generateMetadata({ params }: { params: Promise<{ resumeId:
   return { title: `${resume?.candidateName ?? "Candidate"} — Intelligence Hub | IQMela` };
 }
 
-export default async function CandidateIntelligencePage({ params }: { params: Promise<{ resumeId: string }> }) {
+export default async function CandidateIntelligencePage({ 
+  params,
+  searchParams
+}: { 
+  params: Promise<{ resumeId: string }>;
+  searchParams?: Promise<{ focus?: string }>;
+}) {
   const { resumeId } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const focusedRoundId = sp.focus;
   const perms = await getCallerPermissions();
   if (!perms) redirect("/select-role");
 
@@ -66,6 +74,7 @@ export default async function CandidateIntelligencePage({ params }: { params: Pr
       canReject={isHiringManager}
       canOffer={isHiringManager}
       userRoles={perms.roles ?? []}
+      focusedRoundId={focusedRoundId}
     />
   );
 }

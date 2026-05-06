@@ -157,7 +157,7 @@ export default async function ResumeDetailPage({
         state: aiScreenState,
         score: aiSession?.overallScore || undefined,
         label: aiSession?.recommendation?.replace(/_/g, " ") || undefined,
-        reportLink: aiSession ? `/org-admin/candidates/${resume.id}/intelligence` : undefined,
+        reportLink: aiSession ? `/org-admin/candidates/${resume.id}/intelligence?focus=ai-screen` : undefined,
       });
       return;
     }
@@ -189,6 +189,9 @@ export default async function ResumeDetailPage({
       state,
       score,
       label,
+      reportLink: actualInterview && (actualInterview.status === "COMPLETED" || (actualInterview.panelistFeedbacks && actualInterview.panelistFeedbacks.length > 0))
+        ? `/org-admin/candidates/${resume.id}/intelligence?focus=${actualInterview.id}`
+        : undefined,
     });
   });
 
