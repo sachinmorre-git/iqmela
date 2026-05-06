@@ -46,12 +46,14 @@ interface Props {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PARTICIPANT_COLORS = [
-  { bg: "bg-rose-500",   ring: "ring-rose-400",   dot: "#f43f5e", light: "bg-rose-100 dark:bg-rose-900/30",   text: "text-rose-700 dark:text-rose-400" },
-  { bg: "bg-pink-500",   ring: "ring-pink-400",   dot: "#ec4899", light: "bg-pink-100 dark:bg-pink-900/30",   text: "text-pink-700 dark:text-pink-400" },
-  { bg: "bg-amber-500",  ring: "ring-amber-400",  dot: "#f59e0b", light: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-400" },
-  { bg: "bg-violet-500", ring: "ring-violet-400", dot: "#8b5cf6", light: "bg-violet-100 dark:bg-violet-900/30", text: "text-violet-700 dark:text-violet-400" },
-  { bg: "bg-sky-500",    ring: "ring-sky-400",    dot: "#0ea5e9", light: "bg-sky-100 dark:bg-sky-900/30",     text: "text-sky-700 dark:text-sky-400" },
-  { bg: "bg-emerald-500",ring: "ring-emerald-400",dot: "#10b981", light: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400" },
+  { bg: "bg-rose-500",    ring: "ring-rose-400",    dot: "#f43f5e", light: "bg-rose-100 dark:bg-rose-900/30",     text: "text-rose-700 dark:text-rose-400" },
+  { bg: "bg-blue-500",    ring: "ring-blue-400",    dot: "#3b82f6", light: "bg-blue-100 dark:bg-blue-900/30",     text: "text-blue-700 dark:text-blue-400" },
+  { bg: "bg-amber-500",   ring: "ring-amber-400",   dot: "#f59e0b", light: "bg-amber-100 dark:bg-amber-900/30",   text: "text-amber-700 dark:text-amber-400" },
+  { bg: "bg-violet-500",  ring: "ring-violet-400",  dot: "#8b5cf6", light: "bg-violet-100 dark:bg-violet-900/30", text: "text-violet-700 dark:text-violet-400" },
+  { bg: "bg-emerald-500", ring: "ring-emerald-400", dot: "#10b981", light: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400" },
+  { bg: "bg-cyan-500",    ring: "ring-cyan-400",    dot: "#06b6d4", light: "bg-cyan-100 dark:bg-cyan-900/30",     text: "text-cyan-700 dark:text-cyan-400" },
+  { bg: "bg-orange-500",  ring: "ring-orange-400",  dot: "#f97316", light: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-700 dark:text-orange-400" },
+  { bg: "bg-indigo-500",  ring: "ring-indigo-400",  dot: "#6366f1", light: "bg-indigo-100 dark:bg-indigo-900/30", text: "text-indigo-700 dark:text-indigo-400" },
 ];
 
 // Business hours: 9am – 5pm in 30-min slots
