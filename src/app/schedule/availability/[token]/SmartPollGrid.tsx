@@ -450,8 +450,8 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
                     <div className={`
                       w-full h-full rounded-lg flex items-center justify-center relative overflow-hidden transition-all duration-200
                       ${isSelected ? `${myColor?.light} ring-2 ring-inset ${myColor?.ring} shadow-md scale-[1.02]` : ""}
-                      ${hot && !isSelected ? "bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-800/20 ring-1 ring-amber-300 dark:ring-amber-700" : ""}
-                      ${!isSelected && !hot && inRange ? "bg-white dark:bg-zinc-800 ring-1 ring-gray-200 dark:ring-zinc-700 hover:ring-rose-300 dark:hover:ring-rose-600 hover:shadow-sm" : ""}
+                      ${hot && !isSelected ? "bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-800/20 border border-amber-200/60 dark:border-amber-700/40" : ""}
+                      ${!isSelected && !hot && inRange ? "bg-gray-50/80 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-700/40 hover:border-rose-200 dark:hover:border-rose-600 hover:bg-rose-50/50" : ""}
                     `}>
                       {/* Hot slot glow */}
                       {hot && (

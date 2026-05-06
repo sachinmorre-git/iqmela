@@ -96,9 +96,9 @@ export default async function AvailabilityPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-rose-50/20 dark:from-zinc-950 dark:via-zinc-900 dark:to-rose-950/10">
-      {/* ── Sticky Header ─────────────────────────────────────────────────── */}
+      {/* ── Sticky Header ───────────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-zinc-900/80 border-b border-gray-100 dark:border-zinc-800">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-500 to-cyan-500 flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm">
             IQ
           </div>
@@ -107,38 +107,14 @@ export default async function AvailabilityPage({ params }: Props) {
               📅 {poll.roundLabel} — {candidateName}
             </h1>
             <p className="text-[10px] text-gray-400 dark:text-zinc-500 truncate">
-              {poll.position.title} · {poll.durationMinutes} min · {submittedCount}/{participants.length} responded
+              {poll.position.title} · ⏱ {poll.durationMinutes} min · 📅 {formatDate(new Date(poll.dateRangeStart + "T00:00:00"))} → {formatDate(new Date(poll.dateRangeEnd + "T00:00:00"))} · 🕘 9AM–5PM · {submittedCount}/{participants.length} responded
             </p>
           </div>
         </div>
       </div>
 
       {/* ── Main Content ──────────────────────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Context card */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
-          <p className="text-sm text-gray-600 dark:text-zinc-400 leading-relaxed">
-            You've been selected to interview{" "}
-            <strong className="text-gray-900 dark:text-white">{candidateName}</strong> for the{" "}
-            <strong className="text-gray-900 dark:text-white">{poll.roundLabel}</strong> round.{" "}
-            <span className="text-gray-500 dark:text-zinc-500">
-              Select your available slots below. The grid shows what everyone else has picked — aim for the 🔥 hot slots where your team already agrees.
-            </span>
-          </p>
-          <div className="flex flex-wrap gap-3 mt-3">
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 dark:text-zinc-400 bg-gray-50 dark:bg-zinc-800 px-2.5 py-1 rounded-lg">
-              ⏱ {poll.durationMinutes} min interview
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 dark:text-zinc-400 bg-gray-50 dark:bg-zinc-800 px-2.5 py-1 rounded-lg">
-              📅 {formatDate(new Date(poll.dateRangeStart + "T00:00:00"))}
-              {" → "}
-              {formatDate(new Date(poll.dateRangeEnd + "T00:00:00"))}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 dark:text-zinc-400 bg-gray-50 dark:bg-zinc-800 px-2.5 py-1 rounded-lg">
-              🕘 9AM – 5PM slots
-            </span>
-          </div>
-        </div>
+      <div className="max-w-6xl mx-auto px-4 py-4 space-y-4">
 
         {/* Already submitted banner */}
         {iAlreadySubmitted && (
