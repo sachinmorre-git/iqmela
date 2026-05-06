@@ -1296,9 +1296,15 @@ function SmartPollConfigurator({
         {/* 4-week grid — drag + select */}
         {/* Prevent default drag behaviour so browser doesn't interfere */}
         <div
-          className="space-y-1.5 select-none"
+          className="space-y-1.5 select-none relative"
           onDragStart={(e) => e.preventDefault()}
         >
+          <CoachMark
+            id="schedule-drawer-grid"
+            show={selectedDays.size === 0}
+            preset="grid-select"
+            message="Click & drag across days to select them"
+          />
           {/* Day header */}
           <div className="grid grid-cols-5 gap-1">
             {["Mon","Tue","Wed","Thu","Fri"].map(d => (
