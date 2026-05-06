@@ -1106,14 +1106,6 @@ export function AiInterviewShell({
                     {isResuming ? "Resume Interview" : "Begin Interview"}
                     {childCamState === "denied" && <span className="text-xs ml-2 border border-zinc-600 px-2 py-0.5 rounded-full">Camera Blocked</span>}
                   </button>
-                  <CoachMark
-                    id="ai-interview-start"
-                    show={phase === "ready" && childCamState !== "denied"}
-                    preset="button-tap"
-                    message="Click here when you are ready to begin"
-                    buttonLabel="Begin"
-                    accentColor="rose"
-                  />
                 </div>
                 {childCamState === "denied" && (
                   <p className="text-xs font-bold text-amber-500 text-center animate-in fade-in">
