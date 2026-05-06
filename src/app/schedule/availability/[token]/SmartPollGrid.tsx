@@ -455,51 +455,53 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
                     disabled={!inRange || isExpiredOrCanceled}
                     onClick={() => inRange && toggleSlot(iso, time)}
                     className={`
-                      relative h-7 border-l border-gray-100 dark:border-zinc-800 transition-all duration-150 group
+                      relative h-9 border-l border-gray-100 dark:border-zinc-800 transition-all duration-150 group p-[2px]
                       ${!inRange ? "bg-gray-50/50 dark:bg-zinc-950/50 cursor-not-allowed" : "cursor-pointer"}
-                      ${isSelected
-                        ? `ring-2 ring-inset ${myColor?.ring} bg-rose-50 dark:bg-rose-900/30`
-                        : inRange ? "hover:bg-gray-50 dark:hover:bg-zinc-800/40" : ""
-                      }
-                      ${hot ? "animate-pulse-subtle" : ""}
+                      ${inRange && !isSelected ? "hover:bg-gray-50 dark:hover:bg-zinc-800/40" : ""}
                     `}
                   >
-                    {/* Hot slot glow */}
-                    {hot && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 to-orange-400/10 dark:from-amber-500/10 dark:to-orange-500/5 rounded-sm" />
-                    )}
-
-                    {/* Hot slot badge */}
-                    {hot && (
-                      <div className="absolute top-0.5 right-0.5 z-10">
-                        <Flame className="w-2.5 h-2.5 text-amber-500 drop-shadow" />
-                      </div>
-                    )}
-
-                    {/* Participant color dots & Blank Dot */}
-                    <div className="absolute inset-0 flex items-center justify-center gap-[3px] px-1">
-                      {/* Blank dot for unselected state (helps user understand it's clickable) */}
-                      {!isSelected && inRange && othersInCell.length === 0 && (
-                        <div className="w-2.5 h-2.5 rounded-full border border-gray-200 dark:border-zinc-700 bg-white/50 dark:bg-zinc-800/50 group-hover:border-rose-300 dark:group-hover:border-rose-600 transition-colors" />
+                    <div className={`
+                      w-full h-full rounded-md flex items-center justify-center relative overflow-hidden transition-all duration-200
+                      ${isSelected ? `bg-rose-50 dark:bg-rose-900/40 ring-1 ring-inset ${myColor?.ring}` : ""}
+                      ${hot && !isSelected ? "bg-amber-50 dark:bg-amber-900/20" : ""}
+                    `}>
+                      {/* Hot slot glow */}
+                      {hot && (
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 to-orange-400/10 dark:from-amber-500/10 dark:to-orange-500/5 rounded-sm" />
                       )}
 
-                      {othersInCell.slice(0, 4).map((p) => {
-                        const c = colorMap.current.get(p.userId);
-                        return (
+                      {/* Hot slot badge */}
+                      {hot && (
+                        <div className="absolute top-0 right-0.5 z-10">
+                          <Flame className="w-2.5 h-2.5 text-amber-500 drop-shadow" />
+                        </div>
+                      )}
+
+                      {/* Participant color dots & Blank Dot */}
+                      <div className="absolute inset-0 flex items-center justify-center gap-[3px] px-1">
+                        {/* Blank dot for unselected state (helps user understand it's clickable) */}
+                        {!isSelected && inRange && othersInCell.length === 0 && (
+                          <div className="w-2.5 h-2.5 rounded-full border border-gray-200 dark:border-zinc-700 bg-white/50 dark:bg-zinc-800/50 group-hover:border-rose-300 dark:group-hover:border-rose-600 transition-colors" />
+                        )}
+
+                        {othersInCell.slice(0, 4).map((p) => {
+                          const c = colorMap.current.get(p.userId);
+                          return (
+                            <div
+                              key={p.userId}
+                              className="w-2 h-2 rounded-full shrink-0 opacity-80"
+                              style={{ backgroundColor: c?.dot }}
+                              title={p.name}
+                            />
+                          );
+                        })}
+                        {isSelected && (
                           <div
-                            key={p.userId}
-                            className="w-2 h-2 rounded-full shrink-0 opacity-80"
-                            style={{ backgroundColor: c?.dot }}
-                            title={p.name}
+                            className="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-white dark:ring-zinc-900"
+                            style={{ backgroundColor: myColor?.dot }}
                           />
-                        );
-                      })}
-                      {isSelected && (
-                        <div
-                          className="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-white dark:ring-zinc-900"
-                          style={{ backgroundColor: myColor?.dot }}
-                        />
-                      )}
+                        )}
+                      </div>
                     </div>
 
                     {/* Hover tooltip showing who selected */}
