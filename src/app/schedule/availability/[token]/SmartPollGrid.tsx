@@ -389,7 +389,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       </div>
 
       {/* ── Shared Transparency Grid ─────────────────────────────────────── */}
-      <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-md">
+      <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-md relative">
         <div className="min-w-[480px]">
           {/* Day headers */}
           <div className="grid border-b-2 border-rose-100 dark:border-rose-900/40 bg-gradient-to-r from-rose-50 via-white to-rose-50 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-800" style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}>
@@ -506,7 +506,53 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
             </div>
           ))}
         </div>
+
+        {/* ── Coach Mark: Gesture Hint (only when no slots selected) ──── */}
+        {mySelections.size === 0 && !submitted && !isExpiredOrCanceled && (
+          <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+            {/* Light scrim */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-white/30 dark:from-zinc-900/60 dark:to-zinc-900/30 rounded-2xl" />
+
+            {/* Animated content */}
+            <div className="relative flex flex-col items-center gap-4 animate-fade-in">
+              {/* Tap ripple effect */}
+              <div className="relative w-12 h-12">
+                <div className="absolute inset-0 rounded-full bg-rose-400/20 animate-coach-ring" />
+                <div className="absolute inset-1 rounded-full bg-rose-400/10 animate-coach-ring" style={{ animationDelay: '0.3s' }} />
+                {/* Hand pointer emoji */}
+                <div className="absolute inset-0 flex items-center justify-center animate-coach-tap">
+                  <span className="text-2xl select-none" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>👆</span>
+                </div>
+              </div>
+
+              {/* Glassmorphism tooltip */}
+              <div className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-md text-gray-800 dark:text-zinc-200 text-[13px] font-semibold px-5 py-2.5 rounded-2xl shadow-lg border border-white/50 dark:border-zinc-700/50">
+                Click the slots when you&apos;re available
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Coach mark CSS animations */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes coach-tap {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        @keyframes coach-ring {
+          0% { transform: scale(0.8); opacity: 0.6; }
+          50% { transform: scale(1.4); opacity: 0; }
+          100% { transform: scale(0.8); opacity: 0; }
+        }
+        @keyframes coach-fade-in {
+          0% { opacity: 0; transform: translateY(12px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-coach-tap { animation: coach-tap 1.8s ease-in-out infinite; }
+        .animate-coach-ring { animation: coach-ring 2s ease-out infinite; }
+        .animate-fade-in { animation: coach-fade-in 0.6s ease-out both; }
+      ` }} />
 
       </div>
 
