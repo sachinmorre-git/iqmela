@@ -335,6 +335,14 @@ export async function getPollStatusAction(
     commonSlots: TimeSlot[];
     confirmedSlot: TimeSlot | null;
     deadline: string;
+    responses: {
+      userId: string;
+      name: string;
+      email: string;
+      submittedAt: string | null;
+      slots: TimeSlot[];
+      lastNudgedAt: string | null;
+    }[];
   } | null;
 }> {
   try {
@@ -346,10 +354,35 @@ export async function getPollStatusAction(
         status: { not: "CANCELED" },
       },
       orderBy: { createdAt: "desc" },
-      include: { responses: true },
+      include: {
+        responses: {
+          include: {
+            profile: { include: { user: true } },
+          },
+        },
+      },
     });
 
     if (!poll) return { poll: null };
+
+    // Fetch users for responses if profile is not attached
+    const userIds = poll.responses.map(r => r.userId);
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, email: true },
+    });
+
+    const detailedResponses = poll.responses.map((r) => {
+      const user = users.find(u => u.id === r.userId);
+      return {
+        userId: r.userId,
+        name: user?.name || user?.email || "Unknown",
+        email: user?.email || "",
+        submittedAt: r.submittedAt ? r.submittedAt.toISOString() : null,
+        slots: (r.slotsJson as unknown as TimeSlot[]) || [],
+        lastNudgedAt: r.lastNudgedAt ? r.lastNudgedAt.toISOString() : null,
+      };
+    });
 
     return {
       poll: {
@@ -360,6 +393,7 @@ export async function getPollStatusAction(
         commonSlots: (poll.commonSlotsJson as unknown as TimeSlot[]) || [],
         confirmedSlot: (poll.confirmedSlot as unknown as TimeSlot) || null,
         deadline: poll.deadline.toISOString(),
+        responses: detailedResponses,
       },
     };
   } catch (err) {
