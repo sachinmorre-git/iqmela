@@ -46,12 +46,12 @@ interface Props {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PARTICIPANT_COLORS = [
-  { bg: "bg-rose-500",   ring: "ring-rose-400",   dot: "#14b8a6", light: "bg-rose-100 dark:bg-rose-900/30",   text: "text-rose-700 dark:text-rose-400" },
-  { bg: "bg-pink-500", ring: "ring-pink-400",  dot: "#8b5cf6", light: "bg-pink-100 dark:bg-pink-900/30", text: "text-pink-700 dark:text-pink-400" },
-  { bg: "bg-amber-500",  ring: "ring-amber-400",   dot: "#f59e0b", light: "bg-amber-100 dark:bg-amber-900/30",  text: "text-amber-700 dark:text-amber-400" },
-  { bg: "bg-rose-500",   ring: "ring-rose-400",    dot: "#f43f5e", light: "bg-rose-100 dark:bg-rose-900/30",   text: "text-rose-700 dark:text-rose-400" },
-  { bg: "bg-sky-500",    ring: "ring-sky-400",     dot: "#0ea5e9", light: "bg-sky-100 dark:bg-sky-900/30",     text: "text-sky-700 dark:text-sky-400" },
-  { bg: "bg-emerald-500",ring: "ring-emerald-400", dot: "#10b981", light: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400" },
+  { bg: "bg-rose-500",   ring: "ring-rose-400",   dot: "#f43f5e", light: "bg-rose-100 dark:bg-rose-900/30",   text: "text-rose-700 dark:text-rose-400" },
+  { bg: "bg-pink-500",   ring: "ring-pink-400",   dot: "#ec4899", light: "bg-pink-100 dark:bg-pink-900/30",   text: "text-pink-700 dark:text-pink-400" },
+  { bg: "bg-amber-500",  ring: "ring-amber-400",  dot: "#f59e0b", light: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-400" },
+  { bg: "bg-violet-500", ring: "ring-violet-400", dot: "#8b5cf6", light: "bg-violet-100 dark:bg-violet-900/30", text: "text-violet-700 dark:text-violet-400" },
+  { bg: "bg-sky-500",    ring: "ring-sky-400",    dot: "#0ea5e9", light: "bg-sky-100 dark:bg-sky-900/30",     text: "text-sky-700 dark:text-sky-400" },
+  { bg: "bg-emerald-500",ring: "ring-emerald-400",dot: "#10b981", light: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400" },
 ];
 
 // Business hours: 9am – 5pm in 30-min slots
@@ -422,7 +422,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
           {TIME_SLOTS_LABELS.map((time, timeIdx) => (
             <div
               key={time}
-              className={`grid ${timeIdx % 2 === 0 ? "" : "border-b border-dashed border-gray-50 dark:border-zinc-800/50"}`}
+              className={`grid ${timeIdx % 2 === 0 ? "border-b border-gray-100 dark:border-zinc-800" : "border-b border-gray-100 dark:border-zinc-800"}`}
               style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}
             >
               {/* Time label — only on the hour */}
@@ -476,8 +476,13 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
                       </div>
                     )}
 
-                    {/* Participant color dots */}
+                    {/* Participant color dots & Blank Dot */}
                     <div className="absolute inset-0 flex items-center justify-center gap-[3px] px-1">
+                      {/* Blank dot for unselected state (helps user understand it's clickable) */}
+                      {!isSelected && inRange && othersInCell.length === 0 && (
+                        <div className="w-2.5 h-2.5 rounded-full border border-gray-200 dark:border-zinc-700 bg-white/50 dark:bg-zinc-800/50 group-hover:border-rose-300 dark:group-hover:border-rose-600 transition-colors" />
+                      )}
+
                       {othersInCell.slice(0, 4).map((p) => {
                         const c = colorMap.current.get(p.userId);
                         return (
@@ -515,6 +520,10 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
 
       {/* ── Legend ──────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4 text-[10px] text-gray-400 dark:text-zinc-500 flex-wrap">
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded-full border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800" />
+          <span>Click to select</span>
+        </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-rose-500 ring-1 ring-rose-300" />
           <span>Your selection</span>
