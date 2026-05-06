@@ -106,7 +106,7 @@ export default async function AvailabilityPage({ params }: Props) {
             <h1 className="text-sm font-bold text-gray-900 dark:text-white truncate">
               📅 {poll.roundLabel} — {candidateName}
             </h1>
-            <p className="text-[10px] text-gray-400 dark:text-zinc-500 truncate">
+            <p className="text-[11px] text-gray-400 dark:text-zinc-500">
               {poll.position.title} · ⏱ {poll.durationMinutes} min · 📅 {formatDate(new Date(poll.dateRangeStart + "T00:00:00"))} → {formatDate(new Date(poll.dateRangeEnd + "T00:00:00"))} · 🕘 9AM–5PM · {submittedCount}/{participants.length} responded
             </p>
           </div>
