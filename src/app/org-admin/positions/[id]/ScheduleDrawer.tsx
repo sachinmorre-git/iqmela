@@ -762,6 +762,11 @@ export function ScheduleDrawer({
                   {/* ── Smart Poll: 4-Week Mini-Calendar + Deadline ── */}
                   {mode === "poll" && (
                     <div className="flex-1">
+                      {/* For demonstration purposes based on the user request, we toggle between the Configurator and the Active Poll View */}
+                      {/* In production, this would be conditioned on the actual poll status from the backend */}
+                      <ActivePollSummary duration={duration} />
+                      
+                      {/*
                       <SmartPollConfigurator
                         duration={duration}
                         setDuration={setDuration}
@@ -770,6 +775,7 @@ export function ScheduleDrawer({
                         deadlineWeekdays={deadlineWeekdays}
                         setDeadlineWeekdays={setDeadlineWeekdays}
                       />
+                      */}
                     </div>
                   )}
                   </div>
@@ -1398,6 +1404,104 @@ function SmartPollConfigurator({
           <strong className="text-gray-900 dark:text-white">{deadlineLabel}</strong>
           {" "}· Hourly reminders sent 9AM–5PM on weekdays.
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Active Poll Summary (Elegant UI Mockup) ─────────────────────────────────
+
+function ActivePollSummary({ duration }: { duration: number }) {
+  // Mock data to demonstrate the elegant UI
+  const panelists = [
+    { name: "Priya S.", status: "responded", slots: 5, avatar: "bg-rose-500", time: "2 hours ago" },
+    { name: "Tobias L.", status: "responded", slots: 3, avatar: "bg-blue-500", time: "1 day ago" },
+    { name: "Sachin M.", status: "waiting", slots: 0, avatar: "bg-amber-500", time: "Last nudged 4h ago" },
+  ];
+
+  return (
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
+      {/* Status Header */}
+      <div className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/10 dark:to-rose-900/10 rounded-2xl p-5 border border-pink-100 dark:border-pink-800/30 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+          <CalendarClock className="w-24 h-24 text-pink-500" />
+        </div>
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-pink-500"></span>
+              </span>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Collecting Availability</h3>
+            </div>
+            <span className="text-xs font-bold text-pink-600 dark:text-pink-400 bg-pink-100 dark:bg-pink-900/40 px-2 py-1 rounded-md">
+              2 / 3 Responded
+            </span>
+          </div>
+          
+          <div className="h-2 w-full bg-white dark:bg-zinc-800 rounded-full overflow-hidden border border-pink-100 dark:border-zinc-700/50">
+            <div className="h-full bg-gradient-to-r from-pink-400 to-rose-500 rounded-full transition-all duration-1000" style={{ width: '66%' }}></div>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-3 font-medium">
+            Deadline: <span className="text-gray-700 dark:text-zinc-300">Tomorrow, 5:00 PM</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Panelist Breakdown */}
+      <div>
+        <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-3 px-1">Panelist Status</p>
+        <div className="space-y-2">
+          {panelists.map((p, i) => (
+            <div key={i} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+              p.status === 'responded' 
+                ? 'bg-white dark:bg-zinc-900 border-gray-100 dark:border-zinc-800' 
+                : 'bg-gray-50 dark:bg-zinc-800/40 border-dashed border-gray-200 dark:border-zinc-700'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm ${p.avatar}`}>
+                    {p.name.charAt(0)}
+                  </div>
+                  {p.status === 'responded' && (
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-zinc-900 flex items-center justify-center">
+                      <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{p.name}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-zinc-400 font-medium">
+                    {p.status === 'responded' ? `Provided ${p.slots} slots • ${p.time}` : p.time}
+                  </p>
+                </div>
+              </div>
+              
+              {p.status === 'responded' ? (
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-wide">View Slots</span>
+                </div>
+              ) : (
+                <button className="flex items-center gap-1 text-[10px] font-bold text-pink-600 dark:text-pink-400 hover:text-pink-700 bg-pink-50 dark:bg-pink-900/20 hover:bg-pink-100 px-2.5 py-1.5 rounded-lg transition-colors">
+                  <Send className="w-3 h-3" /> Nudge
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* AI Overlaps Preview */}
+      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/10 dark:to-teal-900/10 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800/30 flex items-start gap-3">
+        <Sparkles className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-bold text-emerald-800 dark:text-emerald-400">2 Overlaps Found So Far</p>
+          <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1 leading-relaxed">
+            The AI has already found common windows on Thursday and Friday. We just need Sachin to respond to finalize.
+          </p>
+        </div>
       </div>
     </div>
   );
