@@ -56,11 +56,25 @@ const PARTICIPANT_COLORS = [
   { bg: "bg-indigo-500",  ring: "ring-indigo-400",  dot: "#6366f1", light: "bg-indigo-100 dark:bg-indigo-900/30", text: "text-indigo-700 dark:text-indigo-400" },
 ];
 
-// Business hours: 9am – 5pm in 30-min slots
-const TIME_SLOTS_LABELS: string[] = [];
-for (let h = 9; h < 17; h++) {
-  TIME_SLOTS_LABELS.push(`${h.toString().padStart(2, "0")}:00`);
-  TIME_SLOTS_LABELS.push(`${h.toString().padStart(2, "0")}:30`);
+// Build time slot labels dynamically based on interview duration
+function buildTimeSlots(durationMinutes: number): string[] {
+  const labels: string[] = [];
+  const startMin = 9 * 60; // 9:00 AM
+  const endMin = 17 * 60;  // 5:00 PM
+  for (let m = startMin; m + durationMinutes <= endMin; m += durationMinutes) {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    labels.push(`${h.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`);
+  }
+  return labels;
+}
+
+function formatTimeLabel(time: string): string {
+  const h = parseInt(time.split(":")[0]);
+  const m = parseInt(time.split(":")[1]);
+  const suffix = h >= 12 ? "PM" : "AM";
+  const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return m === 0 ? `${h12}${suffix}` : `${h12}:${m.toString().padStart(2, "0")}${suffix}`;
 }
 
 function getWeekDays(weekStart: Date): Date[] {
@@ -218,7 +232,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
         const [d, t] = k.split("|");
         const h = parseInt(t.split(":")[0]);
         const m = parseInt(t.split(":")[1]);
-        const endMin = h * 60 + m + 30;
+        const endMin = h * 60 + m + poll.durationMinutes;
         const endH = Math.floor(endMin / 60).toString().padStart(2, "0");
         const endM = (endMin % 60).toString().padStart(2, "0");
         return { date: d, startTime: t, endTime: `${endH}:${endM}` };
@@ -240,7 +254,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       const slots: TimeSlot[] = [...mySelections].map((key) => {
         const [date, startTime] = key.split("|");
         const [h, m] = startTime.split(":").map(Number);
-        const endMin = h * 60 + m + 30;
+        const endMin = h * 60 + m + poll.durationMinutes;
         return {
           date,
           startTime,
@@ -297,7 +311,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
               const slots = [...mySelections].map((key) => {
                 const [date, startTime] = key.split("|");
                 const [h, m] = startTime.split(":").map(Number);
-                const endMin = h * 60 + m + 30;
+                const endMin = h * 60 + m + poll.durationMinutes;
                 return {
                   date,
                   startTime,
@@ -392,23 +406,18 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
           </div>
 
           {/* Time rows */}
-          {TIME_SLOTS_LABELS.map((time, timeIdx) => (
+          {/* Time rows */}
+          {buildTimeSlots(poll.durationMinutes).map((time, timeIdx) => (
             <div
               key={time}
               className={`grid ${timeIdx % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-rose-50/30 dark:bg-zinc-800/60"} border-b border-gray-100 dark:border-zinc-800 hover:bg-rose-50/50 dark:hover:bg-zinc-800 transition-colors`}
               style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}
             >
-              {/* Time label — only on the hour */}
+              {/* Time label */}
               <div className="px-2 py-1 flex items-center justify-end">
-                {time.endsWith(":00") && (
-                  <span className="text-[9px] font-bold text-gray-400 dark:text-zinc-600 leading-none">
-                    {parseInt(time) > 12
-                      ? `${parseInt(time) - 12}PM`
-                      : parseInt(time) === 12
-                      ? "12PM"
-                      : `${parseInt(time)}AM`}
-                  </span>
-                )}
+                <span className="text-[9px] font-bold text-gray-400 dark:text-zinc-600 leading-none">
+                  {formatTimeLabel(time)}
+                </span>
               </div>
 
               {/* Day cells */}
