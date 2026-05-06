@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Bot, CheckCircle, Clock, ChevronRight } from "lucide-react";
 import { StartNewSessionForm } from "./StartNewSessionForm";
 import type { Metadata } from "next";
-import { formatDate } from "@/lib/locale-utils"
+import { formatDate, formatTime } from "@/lib/locale-utils"
 
 export const metadata: Metadata = {
   title: "AI Interviews | IQMela",
@@ -115,7 +115,7 @@ export default async function CandidateAiInterviewPage() {
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {session._count.turns} question{session._count.turns !== 1 ? "s" : ""} ·{" "}
-                      {formatDate(new Date(session.createdAt))}
+                      {formatDate(new Date(session.createdAt))} at {formatTime(new Date(session.createdAt))}
                     </p>
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
                       <StatusBadge status={session.status} />
