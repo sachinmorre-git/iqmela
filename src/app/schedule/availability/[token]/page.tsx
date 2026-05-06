@@ -119,7 +119,7 @@ export default async function AvailabilityPage({ params }: Props) {
             const urgent = wdLeft <= 1;
             const warning = wdLeft <= 2;
             return (
-              <span className={`shrink-0 text-sm font-bold whitespace-nowrap ${
+              <span className={`shrink-0 text-2xl font-bold whitespace-nowrap ${
                 urgent ? "text-red-600 dark:text-red-400"
                 : warning ? "text-amber-600 dark:text-amber-400"
                 : "text-rose-600 dark:text-rose-400"
