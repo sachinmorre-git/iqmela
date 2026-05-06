@@ -121,33 +121,36 @@ export async function POST(
       data: {
         slotsJson: body.slots as unknown as Prisma.InputJsonValue,
         overrideMinSlots: body.overrideMinSlots ?? false,
-        ...(body.isFinal ? { submittedAt: new Date() } : {}),
+        submittedAt: body.isFinal ? new Date() : null,
       },
     });
 
-    // If this is the final submit, check if all panelists have responded
-    if (body.isFinal) {
-      const allResponses = await prisma.availabilityResponse.findMany({
-        where: { pollId: poll.id },
+    const allResponses = await prisma.availabilityResponse.findMany({
+      where: { pollId: poll.id },
+    });
+    const allSubmitted = allResponses.every((r) => r.submittedAt != null);
+
+    if (allSubmitted) {
+      const commonSlots = rankCommonSlots(
+        computeSlotIntersection(
+          allResponses.map((r) => (r.slotsJson as unknown as TimeSlot[]) || []),
+          poll.durationMinutes
+        )
+      );
+
+      await prisma.availabilityPoll.update({
+        where: { id: poll.id },
+        data: {
+          commonSlotsJson: commonSlots as unknown as Prisma.InputJsonValue,
+          status: commonSlots.length > 0 ? "READY" : "POLLING",
+        },
       });
-      const allSubmitted = allResponses.every((r) => r.submittedAt != null);
-
-      if (allSubmitted) {
-        const commonSlots = rankCommonSlots(
-          computeSlotIntersection(
-            allResponses.map((r) => (r.slotsJson as unknown as TimeSlot[]) || []),
-            poll.durationMinutes
-          )
-        );
-
-        await prisma.availabilityPoll.update({
-          where: { id: poll.id },
-          data: {
-            commonSlotsJson: commonSlots as unknown as Prisma.InputJsonValue,
-            status: commonSlots.length > 0 ? "READY" : "POLLING",
-          },
-        });
-      }
+    } else if (poll.status === "READY") {
+      // Revert to POLLING if someone un-submitted to edit
+      await prisma.availabilityPoll.update({
+        where: { id: poll.id },
+        data: { status: "POLLING" },
+      });
     }
 
     return NextResponse.json({ success: true });

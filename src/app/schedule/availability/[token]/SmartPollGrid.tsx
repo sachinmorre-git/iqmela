@@ -286,6 +286,34 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
           <Clock className="w-3.5 h-3.5" />
           <span>{submittedCount} of {participants.length} panelists have responded</span>
         </div>
+
+        {!isExpiredOrCanceled && poll.status !== "CONFIRMED" && (
+          <button
+            type="button"
+            onClick={() => {
+              setSubmitted(false);
+              const slots = [...mySelections].map((key) => {
+                const [date, startTime] = key.split("|");
+                const [h, m] = startTime.split(":").map(Number);
+                const endMin = h * 60 + m + 30;
+                return {
+                  date,
+                  startTime,
+                  endTime: `${Math.floor(endMin / 60).toString().padStart(2, "0")}:${(endMin % 60).toString().padStart(2, "0")}`,
+                };
+              });
+              // Fire an auto-save to immediately clear the 'submittedAt' on the backend
+              fetch(`/api/poll/${token}/slots`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ slots, overrideMinSlots, isFinal: false }),
+              }).catch(() => {});
+            }}
+            className="mt-4 px-6 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-bold text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-all shadow-sm"
+          >
+            Edit My Availability
+          </button>
+        )}
       </div>
     );
   }
