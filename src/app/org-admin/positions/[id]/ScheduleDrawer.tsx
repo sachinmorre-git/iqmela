@@ -502,27 +502,24 @@ export function ScheduleDrawer({
                               key={m.interviewer.userId}
                               type="button"
                               onClick={() => toggleInterviewer(m.interviewer.userId)}
-                              className={`flex flex-col items-center gap-1 p-2 rounded-xl border min-w-[68px] transition-all shrink-0 ${
+                              className={`flex flex-col items-center gap-1 p-1.5 rounded-[10px] border min-w-[60px] transition-all shrink-0 ${
                                 isSelected
                                   ? "border-rose-400 bg-rose-50 dark:bg-rose-900/30 dark:border-rose-700 shadow-sm"
                                   : "border-gray-200 dark:border-zinc-700 hover:border-rose-300 hover:bg-gray-50 dark:hover:bg-zinc-800"
                               }`}
                             >
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
                                 isSelected
-                                  ? "bg-rose-500 text-white"
-                                  : "bg-gradient-to-br from-gray-200 to-gray-300 dark:from-zinc-600 dark:to-zinc-700 text-gray-700 dark:text-zinc-200"
+                                  ? "bg-rose-500 text-white shadow-md shadow-rose-500/20"
+                                  : "bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 shadow-inner " + (
+                                      m.matchScore >= 85 ? "text-emerald-600 dark:text-emerald-400"
+                                    : m.matchScore >= 70 ? "text-amber-600 dark:text-amber-400"
+                                    : "text-gray-500 dark:text-gray-400"
+                                  )
                               }`}>
-                                {isSelected ? "✓" : initials}
+                                {isSelected ? "✓" : `${m.matchScore}%`}
                               </div>
-                              <span className={`text-[10px] font-bold ${
-                                m.matchScore >= 85 ? "text-emerald-600 dark:text-emerald-400"
-                                  : m.matchScore >= 70 ? "text-amber-600 dark:text-amber-400"
-                                  : "text-gray-500"
-                              }`}>
-                                {m.matchScore}%
-                              </span>
-                              <span className="text-[9px] text-gray-500 dark:text-zinc-400 truncate max-w-[60px]">
+                              <span className="text-xs font-semibold text-gray-700 dark:text-zinc-300 truncate max-w-[56px] mt-0.5">
                                 {(m.interviewer.name || m.interviewer.email).split(" ")[0]}
                               </span>
                               <span className={`px-1 py-0.5 text-[7px] font-bold uppercase rounded ${
