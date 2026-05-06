@@ -33,6 +33,12 @@ export function HelpBeacon() {
     category: "TECHNICAL" as IssueCategory,
   });
 
+  // Dragging State
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const dragStartMouse = useRef({ x: 0, y: 0 });
+
   const pathname = usePathname();
   const clickMapRef = useRef<Map<string, { count: number; lastTime: number }>>(new Map());
   const errorCountRef = useRef(0);
@@ -233,6 +239,43 @@ export function HelpBeacon() {
     }
   }, [detectedIssues, pathname, buildContext]);
 
+  // ── Drag Handlers ───────────────────────────────────────────────────────
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    
+    setIsDragging(true);
+    dragStartMouse.current = { x: e.clientX, y: e.clientY };
+    dragStartPos.current = { ...position };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartMouse.current.x;
+    const dy = e.clientY - dragStartMouse.current.y;
+    setPosition({
+      x: dragStartPos.current.x + dx,
+      y: dragStartPos.current.y + dy,
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
+  // Modify handleOpen to prevent opening if we just dragged significantly
+  const handleClick = (e: React.MouseEvent) => {
+    const dx = Math.abs(position.x - dragStartPos.current.x);
+    const dy = Math.abs(position.y - dragStartPos.current.y);
+    if (dx > 5 || dy > 5) {
+      // It was a drag, not a click
+      return;
+    }
+    handleOpen();
+  };
+
   // ── Submit ──────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -284,12 +327,19 @@ export function HelpBeacon() {
       {/* Floating Action Button */}
       <button
         type="button"
-        onClick={handleOpen}
-        className={`fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full shadow-2xl transition-all duration-300 cursor-pointer group ${
+        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)`, touchAction: 'none' }}
+        className={`fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full shadow-2xl transition-all duration-300 group ${
+          isDragging ? "cursor-grabbing transition-none" : "cursor-pointer"
+        } ${
           issueCount > 0
             ? "bg-gradient-to-br from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 shadow-rose-500/30"
             : "bg-gradient-to-br from-rose-500 to-indigo-600 hover:from-rose-400 hover:to-indigo-500 shadow-rose-500/20"
-        } ${showPulse ? "animate-bounce" : "hover:scale-110"}`}
+        } ${showPulse && !isDragging ? "animate-bounce" : !isDragging ? "hover:scale-110" : ""}`}
         title={issueCount > 0 ? `${issueCount} issue(s) detected — click to report` : "Need help? Report an issue"}
       >
         {/* Icon */}
