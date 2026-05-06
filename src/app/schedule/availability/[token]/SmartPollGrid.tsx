@@ -373,10 +373,10 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
           <ChevronLeft className="w-4 h-4" />
         </button>
         <div className="text-center">
-          <p className="text-sm font-bold text-gray-900 dark:text-white">
+          <p className="text-base font-bold text-gray-900 dark:text-white">
             Week of {formatDate(currentWeekStart)}
           </p>
-          <p className="text-[10px] text-gray-400 dark:text-zinc-500">
+          <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
             {weekOffset + 1} of {maxWeekOffset + 1} weeks
           </p>
         </div>
@@ -393,17 +393,17 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-md relative">
         <div className="min-w-[480px]">
           {/* Day headers */}
-          <div className="grid border-b-2 border-rose-100 dark:border-rose-900/40 bg-gradient-to-r from-rose-50 via-white to-rose-50 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-800" style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}>
+          <div className="grid border-b-2 border-gray-300 dark:border-zinc-700 bg-gradient-to-r from-gray-50 via-white to-gray-50 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-800" style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}>
             <div className="p-2" />
             {weekDays.map((d) => {
               const iso = dateToISO(d);
               const inRange = iso >= poll.dateRangeStart && iso <= poll.dateRangeEnd;
               return (
-                <div key={iso} className={`p-2 text-center border-l border-gray-100 dark:border-zinc-800 ${!inRange ? "opacity-30" : ""}`}>
-                  <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase">
+                <div key={iso} className={`p-2 text-center border-l border-gray-200 dark:border-zinc-700 ${!inRange ? "opacity-30" : ""}`}>
+                  <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
                     {formatDate(d)}
                   </p>
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">
+                  <p className="text-base font-bold text-gray-900 dark:text-white mt-0.5">
                     {d.getDate()}
                   </p>
                 </div>
@@ -416,12 +416,12 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
           {buildTimeSlots(poll.durationMinutes).map((time, timeIdx) => (
             <div
               key={time}
-              className={`grid ${timeIdx % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-rose-50/30 dark:bg-zinc-800/60"} border-b border-gray-100 dark:border-zinc-800 hover:bg-rose-50/50 dark:hover:bg-zinc-800 transition-colors`}
+              className={`grid ${timeIdx % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-rose-50/30 dark:bg-zinc-800/60"} border-b border-gray-200 dark:border-zinc-700 hover:bg-rose-50/50 dark:hover:bg-zinc-800 transition-colors`}
               style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}
             >
               {/* Time label */}
               <div className="px-2 py-1 flex items-center justify-end">
-                <span className="text-[9px] font-bold text-gray-400 dark:text-zinc-600 leading-none">
+                <span className="text-xs font-bold text-gray-500 dark:text-zinc-400 leading-none">
                   {formatTimeLabel(time)}
                 </span>
               </div>
@@ -443,7 +443,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
                     disabled={!inRange || isExpiredOrCanceled}
                     onClick={() => inRange && toggleSlot(iso, time)}
                     className={`
-                      relative h-10 border-l border-gray-100 dark:border-zinc-800 transition-all duration-200 group p-[3px]
+                      relative h-10 border-l border-gray-200 dark:border-zinc-700 transition-all duration-200 group p-[3px]
                       ${!inRange ? "bg-gray-100/50 dark:bg-zinc-950/50 cursor-not-allowed opacity-40" : "cursor-pointer"}
                       ${inRange && !isSelected ? "hover:bg-rose-50 dark:hover:bg-zinc-800/60" : ""}
                     `}
@@ -452,7 +452,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
                       w-full h-full rounded-lg flex items-center justify-center relative overflow-hidden transition-all duration-200
                       ${isSelected ? `${myColor?.light} ring-2 ring-inset ${myColor?.ring} shadow-md scale-[1.02]` : ""}
                       ${hot && !isSelected ? "bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-800/20 border border-amber-200/60 dark:border-amber-700/40" : ""}
-                      ${!isSelected && !hot && inRange ? "bg-gray-50/80 dark:bg-zinc-800/40 border border-gray-100 dark:border-zinc-700/40 hover:border-rose-200 dark:hover:border-rose-600 hover:bg-rose-50/50" : ""}
+                      ${!isSelected && !hot && inRange ? "bg-gray-50/80 dark:bg-zinc-800/40 border border-gray-200 dark:border-zinc-600/60 hover:border-rose-300 dark:hover:border-rose-500 hover:bg-rose-50/50" : ""}
                     `}>
                       {/* Hot slot glow */}
                       {hot && (
@@ -524,21 +524,21 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
 
       {/* ── Legend ─────────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
-        <p className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Legend</p>
+        <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Legend</p>
         <div className="space-y-2">
           {/* Interactive cues */}
           <div className="flex items-center gap-2">
-            <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800" />
-            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Available — click to select</span>
+            <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800" />
+            <span className="text-sm text-gray-600 dark:text-zinc-400">Available — click to select</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Flame className="w-3.5 h-3.5 text-amber-500" />
-            <span className="text-[11px] text-gray-500 dark:text-zinc-400">Hot slot — everyone agrees</span>
+          <div className="flex items-center gap-2 mt-2">
+            <Flame className="w-4 h-4 text-amber-500" />
+            <span className="text-sm text-gray-600 dark:text-zinc-400">Hot slot — everyone agrees</span>
           </div>
 
           {/* Divider */}
-          <div className="border-t border-gray-100 dark:border-zinc-800 my-1" />
-          <p className="text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Panelists</p>
+          <div className="border-t border-gray-100 dark:border-zinc-800 my-2" />
+          <p className="text-xs font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mt-2 mb-1">Panelists</p>
 
           {/* Each participant with their actual color */}
           {participants.map((p) => {
@@ -546,10 +546,10 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
             return (
               <div key={p.userId} className="flex items-center gap-2">
                 <div
-                  className="w-3.5 h-3.5 rounded-full shrink-0"
+                  className="w-4 h-4 rounded-full shrink-0"
                   style={{ backgroundColor: color.dot }}
                 />
-                <span className="text-[11px] text-gray-600 dark:text-zinc-400 truncate">
+                <span className="text-sm text-gray-700 dark:text-zinc-300 font-medium truncate">
                   {p.name.split(" ")[0]}{p.isMe ? " (You)" : ""}
                 </span>
               </div>
@@ -560,8 +560,8 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       {/* ── Panel Progress ──────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Panel Progress</p>
-          <span className="text-xs text-gray-500 dark:text-zinc-400">
+          <p className="text-sm font-bold text-gray-600 dark:text-zinc-400 uppercase tracking-wider">Panel Progress</p>
+          <span className="text-sm text-gray-600 dark:text-zinc-400 font-medium">
             {submittedCount} of {participants.length} responded
             {lastUpdate && <span className="ml-1 opacity-50">· {lastUpdate}</span>}
           </span>
@@ -583,7 +583,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
                     </div>
                   )}
                 </div>
-                <span className={`text-xs font-semibold ${p.hasSubmitted ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-zinc-400"}`}>
+                <span className={`text-sm font-semibold ${p.hasSubmitted ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-zinc-400"}`}>
                   {p.name.split(" ")[0]}{p.isMe ? " (You)" : ""}
                 </span>
               </div>
@@ -604,8 +604,8 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-gray-900 dark:text-white">Your Selection</p>
-            <p className={`text-xs mt-0.5 font-semibold transition-colors ${
+            <p className="text-lg font-bold text-gray-900 dark:text-white">Your Selection</p>
+            <p className={`text-sm mt-1 font-semibold transition-colors ${
               myCount === 0 ? "text-gray-400 dark:text-zinc-500"
               : myCount < minRequired ? "text-amber-600 dark:text-amber-400"
               : "text-emerald-600 dark:text-emerald-400"
@@ -619,7 +619,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
                 : `✅ You're set! Submit when ready.`}
             </p>
           </div>
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold border-4 transition-all duration-300 ${
+          <div className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold border-4 transition-all duration-300 ${
             meetsMin
               ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
               : "border-amber-300 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
@@ -647,9 +647,9 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
               type="checkbox"
               checked={overrideMinSlots}
               onChange={(e) => setOverrideMinSlots(e.target.checked)}
-              className="mt-0.5 w-3.5 h-3.5 accent-amber-500 rounded"
+              className="mt-0.5 w-4 h-4 accent-amber-500 rounded"
             />
-            <span className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed group-hover:text-gray-700 dark:group-hover:text-zinc-300">
+            <span className="text-sm text-gray-600 dark:text-zinc-400 font-medium leading-relaxed group-hover:text-gray-800 dark:group-hover:text-zinc-300">
               I have fewer than {minRequired} available slots in this window
             </span>
           </label>
@@ -659,7 +659,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
         {overrideMinSlots && !meetsMin && (
           <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl">
             <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+            <p className="text-sm text-amber-700 dark:text-amber-400 leading-relaxed font-medium">
               Submitting with fewer than {minRequired} slots may reduce overlap. The recruiter will be notified.
             </p>
           </div>

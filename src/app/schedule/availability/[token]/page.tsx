@@ -103,10 +103,10 @@ export default async function AvailabilityPage({ params }: Props) {
             IQ
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
               📅 {poll.roundLabel} — {candidateName}
             </h1>
-            <p className="text-[11px] text-gray-400 dark:text-zinc-500">
+            <p className="text-sm text-gray-500 dark:text-zinc-400 font-medium mt-1">
               {poll.position.title} · ⏱ {poll.durationMinutes} min · 📅 {formatDate(new Date(poll.dateRangeStart + "T00:00:00"))} → {formatDate(new Date(poll.dateRangeEnd + "T00:00:00"))} · 🕘 9AM–5PM · {submittedCount}/{participants.length} responded
             </p>
           </div>
