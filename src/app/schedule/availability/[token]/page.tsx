@@ -114,7 +114,7 @@ export default async function AvailabilityPage({ params }: Props) {
       </div>
 
       {/* ── Main Content ──────────────────────────────────────────────────── */}
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Context card */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
           <p className="text-sm text-gray-600 dark:text-zinc-400 leading-relaxed">

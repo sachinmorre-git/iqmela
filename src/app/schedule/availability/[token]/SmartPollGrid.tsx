@@ -319,50 +319,9 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
   }
 
   return (
-    <div className="space-y-5">
-      {/* ── Panel Progress ──────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Panel Progress</p>
-          <span className="text-xs text-gray-500 dark:text-zinc-400">
-            {submittedCount} of {participants.length} responded
-            {lastUpdate && <span className="ml-1 opacity-50">· {lastUpdate}</span>}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {participants.map((p) => {
-            const color = colorMap.current.get(p.userId) ?? PARTICIPANT_COLORS[0];
-            return (
-              <div key={p.userId} className="flex items-center gap-1.5">
-                <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 relative
-                    ${color.bg} ${p.isMe ? `ring-2 ${color.ring} ring-offset-1 ring-offset-white dark:ring-offset-zinc-900` : ""}
-                  `}
-                >
-                  {p.name[0]?.toUpperCase()}
-                  {p.hasSubmitted && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-zinc-900 flex items-center justify-center">
-                      <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                    </div>
-                  )}
-                </div>
-                <span className={`text-xs font-semibold ${p.hasSubmitted ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-zinc-400"}`}>
-                  {p.name.split(" ")[0]}{p.isMe ? " (You)" : ""}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Progress bar */}
-        <div className="mt-3 h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-rose-400 to-rose-500 rounded-full transition-all duration-500"
-            style={{ width: `${(submittedCount / participants.length) * 100}%` }}
-          />
-        </div>
-      </div>
-
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* ── Left Column: Calendar ───────────────────────────────────────── */}
+      <div className="lg:col-span-8 space-y-6">
       {/* ── Deadline Banner ─────────────────────────────────────────────── */}
       <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border
         ${weekdaysLeft <= 1
@@ -568,6 +527,53 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
         </div>
       </div>
 
+      </div>
+
+      {/* ── Right Column: Command Center ─────────────────────────────────── */}
+      <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
+      {/* ── Panel Progress ──────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Panel Progress</p>
+          <span className="text-xs text-gray-500 dark:text-zinc-400">
+            {submittedCount} of {participants.length} responded
+            {lastUpdate && <span className="ml-1 opacity-50">· {lastUpdate}</span>}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {participants.map((p) => {
+            const color = colorMap.current.get(p.userId) ?? PARTICIPANT_COLORS[0];
+            return (
+              <div key={p.userId} className="flex items-center gap-1.5">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 relative
+                    ${color.bg} ${p.isMe ? `ring-2 ${color.ring} ring-offset-1 ring-offset-white dark:ring-offset-zinc-900` : ""}
+                  `}
+                >
+                  {p.name[0]?.toUpperCase()}
+                  {p.hasSubmitted && (
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-zinc-900 flex items-center justify-center">
+                      <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                  )}
+                </div>
+                <span className={`text-xs font-semibold ${p.hasSubmitted ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-zinc-400"}`}>
+                  {p.name.split(" ")[0]}{p.isMe ? " (You)" : ""}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Progress bar */}
+        <div className="mt-3 h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-rose-400 to-rose-500 rounded-full transition-all duration-500"
+            style={{ width: `${(submittedCount / participants.length) * 100}%` }}
+          />
+        </div>
+      </div>
+
       {/* ── My Progress ──────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
@@ -666,6 +672,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
             </>
           )}
         </button>
+      </div>
       </div>
     </div>
   );
