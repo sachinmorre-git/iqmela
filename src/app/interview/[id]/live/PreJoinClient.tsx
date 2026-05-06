@@ -395,8 +395,13 @@ export function PreJoinClient({
             <span className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed">
               I understand this interview session may be <strong className="text-gray-700 dark:text-zinc-200">recorded</strong> and that AI behavioral signals{" "}
               <strong className="text-gray-700 dark:text-zinc-200">(eye gaze patterns, posture, speaking pace, and engagement indicators)</strong>{" "}
-              may be collected during the session for interview quality review. These signals are reviewed by hiring staff and do not
-              constitute automated hiring decisions. I have read and agree to the{" "}
+              may be collected during the session for interview quality review. 
+              <br/><br/>
+              <strong className="text-red-500 dark:text-red-400">Security & Proctoring:</strong> I acknowledge that this is a strict proctored session. 
+              Context-switching, leaving the browser tab, using secondary applications, attempting to copy/paste, opening developer tools, or exiting fullscreen mode 
+              will be actively monitored and logged as security violations to my report.
+              <br/><br/>
+              These signals are reviewed by hiring staff and do not constitute automated hiring decisions. I have read and agree to the{" "}
               <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-rose-500 hover:underline font-medium">Privacy Policy</a>{" "}
               and{" "}
               <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-rose-500 hover:underline font-medium">Terms of Service</a>.

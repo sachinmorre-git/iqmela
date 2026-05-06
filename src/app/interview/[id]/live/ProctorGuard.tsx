@@ -18,6 +18,7 @@ export function ProctorGuard({
   const reportQueue      = useRef(false);
   const fullscreenEscRef = useRef(0); // track escape count
   const [fsWarning, setFsWarning] = useState(false);
+  const [activeViolation, setActiveViolation] = useState<{type: string, message: string} | null>(null);
 
   // ── Request fullscreen on mount (candidate only) ───────────────────────────
   useEffect(() => {
@@ -140,6 +141,10 @@ export function ProctorGuard({
 
     // Unlock debounce queue after physical network delay
     setTimeout(() => { reportQueue.current = false; }, 2000);
+
+    // Actively warn the candidate
+    setActiveViolation({ type, message });
+    setTimeout(() => setActiveViolation(null), 5000);
   };
 
   return (
@@ -153,6 +158,20 @@ export function ProctorGuard({
           <div>
             <p className="text-sm font-bold text-amber-300">Fullscreen Required</p>
             <p className="text-xs text-amber-200/80">Please stay in fullscreen mode during the interview. Returning you now…</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Active Violation Warning Toast ──────────────────────────────── */}
+      {activeViolation && !fsWarning && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 bg-red-950/90 backdrop-blur-md border border-red-500/50 text-white px-6 py-4 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+            <span className="text-xl">⚠️</span>
+          </div>
+          <div>
+            <p className="text-sm font-black text-red-400 tracking-wide uppercase">Security Violation Recorded</p>
+            <p className="text-xs text-red-200/80 mt-0.5">{activeViolation.message}</p>
+            <p className="text-[9px] text-red-400/60 mt-1 uppercase tracking-widest font-bold">This has been logged to your report.</p>
           </div>
         </div>
       )}

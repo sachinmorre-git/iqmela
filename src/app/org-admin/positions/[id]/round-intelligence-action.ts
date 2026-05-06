@@ -186,12 +186,38 @@ export async function fetchRoundIntelligenceAction(
         include: {
           position: { select: { organizationId: true } },
           resume: { select: { candidateName: true, candidateEmail: true } },
-          turns: { select: { id: true } }
+          turns: { select: { id: true, suspiciousFlags: true } }
         }
       });
       if (!aiSessionById) return { success: false, error: "Interview not found." };
       if (perms.orgId && aiSessionById.position?.organizationId !== perms.orgId) return { success: false, error: "Forbidden: org mismatch." };
+      
       const scoreJson = aiSessionById.finalScoreJson as Record<string, unknown> | null;
+      
+      // Extract AI Security Violations
+      const allSuspiciousFlags = aiSessionById.turns.flatMap(t => (Array.isArray(t.suspiciousFlags) ? t.suspiciousFlags : []));
+      const deduplicatedFlags = Array.from(new Set(allSuspiciousFlags));
+      
+      const aiBehaviorFlags = deduplicatedFlags.map(flag => {
+         const strFlag = String(flag);
+         return {
+           type: strFlag,
+           severity: strFlag.includes('ABUSE') ? 'CRITICAL' : (strFlag.includes('TAB') || strFlag.includes('PASTE')) ? 'HIGH' : 'WARNING',
+           description: strFlag.replace(/_/g, ' '),
+           timestamp: aiSessionById.createdAt.toISOString()
+         };
+      });
+
+      const syntheticBehaviorReport = deduplicatedFlags.length > 0 ? {
+        integrityScore: Math.max(0, 100 - deduplicatedFlags.length * 15),
+        confidenceScore: null,
+        composureScore: null,
+        engagementScore: null,
+        answerQualityAvg: null,
+        behaviorFlags: aiBehaviorFlags,
+        topStrengths: null,
+        perAnswerScores: null
+      } : null;
       return { success: true, data: {
         interview: {
           id: aiSessionById.id,
@@ -205,7 +231,7 @@ export async function fetchRoundIntelligenceAction(
         },
         leadFeedback: null,
         panelistScores: [],
-        behaviorReport: null,
+        behaviorReport: syntheticBehaviorReport as any,
         aiSession: {
           overallScore: aiSessionById.overallScore,
           recommendation: aiSessionById.recommendation,

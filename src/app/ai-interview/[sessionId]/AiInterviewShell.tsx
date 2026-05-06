@@ -425,6 +425,12 @@ export function AiInterviewShell({
   const [camPermission, setCamPermission]         = useState<"granted" | "denied" | "unknown">("unknown");
   const [micPermission, setMicPermission]         = useState<"granted" | "denied" | "unknown">("unknown");
   const [showModeIndicator, setShowModeIndicator] = useState(true);
+  const [activeViolation, setActiveViolation] = useState<{type: string, message: string} | null>(null);
+
+  const triggerViolation = useCallback((type: string, message: string) => {
+    setActiveViolation({ type, message });
+    setTimeout(() => setActiveViolation(null), 5000);
+  }, []);
 
   // ── Step 252: Mode indicator timer ──────────────────────────────────────────
   useEffect(() => {
@@ -444,19 +450,23 @@ export function AiInterviewShell({
     const onVisibility = () => {
       if (document.visibilityState === "hidden") {
         setTabSwitchCount((n) => n + 1);
+        triggerViolation("TAB_SWITCH", "You switched tabs or minimized the browser.");
       }
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, []);
+  }, [triggerViolation]);
 
   // Track paste events during listening phase
   useEffect(() => {
     if (phase !== "listening") return;
-    const onPaste = () => setPasteCount((n) => n + 1);
+    const onPaste = () => {
+      setPasteCount((n) => n + 1);
+      triggerViolation("PASTE_ATTEMPT", "Attempted to paste text into the interview.");
+    };
     document.addEventListener("paste", onPaste);
     return () => document.removeEventListener("paste", onPaste);
-  }, [phase]);
+  }, [phase, triggerViolation]);
 
   // Check camera + microphone permissions once on mount
   useEffect(() => {
@@ -1051,6 +1061,20 @@ export function AiInterviewShell({
           <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold flex items-center gap-2 animate-in fade-in">
             <Wifi className="w-4 h-4" />
             Connection recovered
+          </div>
+        )}
+
+        {/* ── Active Violation Warning Toast ──────────────────────────────── */}
+        {activeViolation && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 bg-red-950/90 backdrop-blur-md border border-red-500/50 text-white px-6 py-4 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-top-4 duration-300 w-max">
+            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+              <span className="text-xl">⚠️</span>
+            </div>
+            <div>
+              <p className="text-sm font-black text-red-400 tracking-wide uppercase">Security Violation Recorded</p>
+              <p className="text-xs text-red-200/80 mt-0.5">{activeViolation.message}</p>
+              <p className="text-[9px] text-red-400/60 mt-1 uppercase tracking-widest font-bold">This has been logged to your report.</p>
+            </div>
           </div>
         )}
 

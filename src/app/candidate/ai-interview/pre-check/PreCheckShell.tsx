@@ -247,7 +247,17 @@ export function PreCheckShell({
               )}
             </button>
 
-            <p className="text-zinc-600 text-xs">
+            <div className="text-zinc-500 text-xs mt-4 p-4 bg-red-950/20 border border-red-900/30 rounded-xl text-left space-y-2">
+               <p><strong className="text-red-400">Security & Proctoring Active:</strong> This is a strict proctored session.</p>
+               <ul className="list-disc pl-4 text-zinc-400 space-y-1">
+                 <li>Do not switch tabs or minimize the browser.</li>
+                 <li>Do not use secondary monitors or applications.</li>
+                 <li>Do not exit fullscreen mode or open developer tools.</li>
+               </ul>
+               <p>Violations will trigger visible warnings and be explicitly logged in your final interview report.</p>
+            </div>
+
+            <p className="text-zinc-600 text-xs mt-4">
               By starting, you agree that your voice responses will be transcribed and scored by AI.
             </p>
           </div>
