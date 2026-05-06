@@ -1300,7 +1300,7 @@ function SmartPollConfigurator({
           onDragStart={(e) => e.preventDefault()}
         >
           <CoachMark
-            id="schedule-drawer-grid"
+            id="schedule-drawer-drag-tutorial"
             show={selectedDays.size === 0}
             preset="grid-drag"
             message="Click & drag across days to select them"
