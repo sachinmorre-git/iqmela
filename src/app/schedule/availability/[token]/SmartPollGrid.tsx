@@ -516,12 +516,12 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
             {/* Animated content */}
             <div className="relative flex flex-col items-center gap-4 animate-fade-in">
               {/* Tap ripple effect */}
-              <div className="relative w-12 h-12">
+              <div className="relative w-16 h-16">
                 <div className="absolute inset-0 rounded-full bg-rose-400/20 animate-coach-ring" />
-                <div className="absolute inset-1 rounded-full bg-rose-400/10 animate-coach-ring" style={{ animationDelay: '0.3s' }} />
+                <div className="absolute inset-2 rounded-full bg-rose-400/10 animate-coach-ring" style={{ animationDelay: '0.3s' }} />
                 {/* Hand pointer emoji */}
                 <div className="absolute inset-0 flex items-center justify-center animate-coach-tap">
-                  <span className="text-2xl select-none" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>👆</span>
+                  <span className="text-4xl select-none" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>👆</span>
                 </div>
               </div>
 
