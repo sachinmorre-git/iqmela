@@ -324,24 +324,28 @@ export function HelpBeacon() {
 
   return (
     <>
-      {/* Floating Action Button */}
-      <button
-        type="button"
-        onClick={handleClick}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+      {/* Draggable Container */}
+      <div
+        className="fixed bottom-6 right-6 z-[9999]"
         style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)`, touchAction: 'none' }}
-        className={`fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full shadow-2xl transition-all duration-300 group ${
-          isDragging ? "cursor-grabbing transition-none" : "cursor-pointer"
-        } ${
-          issueCount > 0
-            ? "bg-gradient-to-br from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 shadow-rose-500/30"
-            : "bg-gradient-to-br from-rose-500 to-indigo-600 hover:from-rose-400 hover:to-indigo-500 shadow-rose-500/20"
-        } ${showPulse && !isDragging ? "animate-bounce" : !isDragging ? "hover:scale-110" : ""}`}
-        title={issueCount > 0 ? `${issueCount} issue(s) detected — click to report` : "Need help? Report an issue"}
       >
+        {/* Floating Action Button */}
+        <button
+          type="button"
+          onClick={handleClick}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className={`relative w-14 h-14 rounded-full shadow-2xl transition-all duration-300 group ${
+            isDragging ? "cursor-grabbing transition-none" : "cursor-pointer"
+          } ${
+            issueCount > 0
+              ? "bg-gradient-to-br from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 shadow-rose-500/30"
+              : "bg-gradient-to-br from-rose-500 to-indigo-600 hover:from-rose-400 hover:to-indigo-500 shadow-rose-500/20"
+          } ${showPulse && !isDragging ? "animate-bounce" : !isDragging ? "hover:scale-110" : ""}`}
+          title={issueCount > 0 ? `${issueCount} issue(s) detected — click to report` : "Need help? Report an issue"}
+        >
         {/* Icon */}
         <div className="flex items-center justify-center w-full h-full text-white">
           {issueCount > 0 ? (
@@ -362,11 +366,12 @@ export function HelpBeacon() {
           </span>
         )}
 
-        {/* Tooltip */}
-        <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 dark:bg-zinc-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
-          {issueCount > 0 ? "Issues detected — Report" : "Need help?"}
-        </span>
-      </button>
+          {/* Tooltip */}
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 dark:bg-zinc-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
+            {issueCount > 0 ? "Issues detected — Report" : "Need help?"}
+          </span>
+        </button>
+      </div>
 
       {/* Slide-up Panel */}
       {isOpen && (
