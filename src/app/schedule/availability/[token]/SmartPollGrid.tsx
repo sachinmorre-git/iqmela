@@ -148,11 +148,16 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
   const weekdaysLeft = getDeadlineWeekdays(poll.deadline);
   const isExpiredOrCanceled = poll.status === "EXPIRED" || poll.status === "CANCELED";
 
-  // Pre-populate my selections from server data
+  // Pre-populate my selections from server data (filter to current grid times)
   useEffect(() => {
     const mine = participants.find((p) => p.isMe);
     if (mine?.slots?.length) {
-      const keys = new Set(mine.slots.map((s) => slotKey(s.date, s.startTime)));
+      const validTimes = new Set(buildTimeSlots(poll.durationMinutes));
+      const keys = new Set(
+        mine.slots
+          .filter((s) => validTimes.has(s.startTime))
+          .map((s) => slotKey(s.date, s.startTime))
+      );
       setMySelections(keys);
     }
   }, []);
