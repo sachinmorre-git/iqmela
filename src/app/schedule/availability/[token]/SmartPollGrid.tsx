@@ -467,7 +467,10 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
 
                       {/* Participant color dots & Blank Dot */}
                       <div className="absolute inset-0 flex items-center justify-center gap-[3px] px-1">
-                        {/* Removed the tiny blank dot because the whole cell now looks like a button */}
+                        {/* Blank dot for unselected state (helps user understand it's clickable) */}
+                        {!isSelected && inRange && othersInCell.length === 0 && (
+                          <div className="w-2.5 h-2.5 rounded-full border border-gray-200 dark:border-zinc-700 bg-white/50 dark:bg-zinc-800/50 group-hover:border-rose-300 dark:group-hover:border-rose-600 transition-colors" />
+                        )}
 
                         {othersInCell.slice(0, 4).map((p) => {
                           const c = colorMap.current.get(p.userId);
