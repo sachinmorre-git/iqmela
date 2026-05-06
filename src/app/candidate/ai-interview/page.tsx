@@ -34,18 +34,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function recommendationLabel(rec: string | null) {
-  if (!rec) return null;
-  const map: Record<string, { label: string; cls: string }> = {
-    STRONG_HIRE: { label: "Strong Hire", cls: "text-emerald-600 dark:text-emerald-400" },
-    HIRE: { label: "Hire", cls: "text-blue-600 dark:text-blue-400" },
-    MAYBE: { label: "Maybe", cls: "text-amber-600 dark:text-amber-400" },
-    NO_HIRE: { label: "No Hire", cls: "text-red-600 dark:text-red-400" },
-  };
-  const entry = map[rec];
-  if (!entry) return null;
-  return <span className={`font-bold text-xs ${entry.cls}`}>{entry.label}</span>;
-}
+
 
 export default async function CandidateAiInterviewPage() {
   const { userId } = await auth();
@@ -119,15 +108,6 @@ export default async function CandidateAiInterviewPage() {
                     </p>
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
                       <StatusBadge status={session.status} />
-                      {session.overallScore !== null && (
-                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                          Score:{" "}
-                          <span className="text-gray-900 dark:text-white font-bold">
-                            {session.overallScore}/100
-                          </span>
-                        </span>
-                      )}
-                      {recommendationLabel(session.recommendation)}
                     </div>
                   </div>
                 </div>

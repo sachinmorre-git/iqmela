@@ -181,11 +181,6 @@ export default async function CandidateDashboard() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {s.overallScore != null && (
-                      <span className={`text-sm font-black ${
-                        s.overallScore >= 70 ? "text-emerald-400" : s.overallScore >= 50 ? "text-amber-400" : "text-red-400"
-                      }`}>{s.overallScore}%</span>
-                    )}
                     {s.status === "IN_PROGRESS" && s.magicLinkToken && (
                       <Link href={`/ai-interview/${s.magicLinkToken}`}
                         className="text-xs font-bold text-rose-400 hover:text-rose-300 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 transition-colors">
