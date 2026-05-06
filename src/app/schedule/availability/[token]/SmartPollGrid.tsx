@@ -507,51 +507,98 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
           ))}
         </div>
 
-        {/* ── Coach Mark: Gesture Hint (only when no slots selected) ──── */}
+        {/* ── Coach Mark: Monday.com-style cursor journey ────────────── */}
         {mySelections.size === 0 && !submitted && !isExpiredOrCanceled && (
           <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
-            {/* Light scrim */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-white/30 dark:from-zinc-900/60 dark:to-zinc-900/30 rounded-2xl" />
+            {/* Scrim */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/50 to-white/70 dark:from-zinc-900/70 dark:via-zinc-900/50 dark:to-zinc-900/70 rounded-2xl" />
 
-            {/* Animated content */}
-            <div className="relative flex flex-col items-center gap-4 animate-fade-in">
-              {/* Tap ripple effect */}
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 rounded-full bg-rose-400/20 animate-coach-ring" />
-                <div className="absolute inset-2 rounded-full bg-rose-400/10 animate-coach-ring" style={{ animationDelay: '0.3s' }} />
-                {/* Hand pointer emoji */}
-                <div className="absolute inset-0 flex items-center justify-center animate-coach-tap">
-                  <span className="text-4xl select-none" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>👆</span>
+            {/* Demo area */}
+            <div className="relative animate-cm-fadein">
+              {/* Mock cells that light up */}
+              <div className="flex gap-2 mb-2">
+                <div className="w-20 h-10 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center animate-cm-cell1">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div className="w-20 h-10 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center animate-cm-cell2">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div className="w-20 h-10 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center animate-cm-cell3">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
                 </div>
               </div>
 
-              {/* Glassmorphism tooltip */}
-              <div className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-md text-gray-800 dark:text-zinc-200 text-[13px] font-semibold px-5 py-2.5 rounded-2xl shadow-lg border border-white/50 dark:border-zinc-700/50">
-                Click the slots when you&apos;re available
+              {/* Travelling cursor */}
+              <div className="absolute top-0 left-0 animate-cm-cursor" style={{ width: 0, height: 0 }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }}>
+                  <path d="M5 3l14 8-6.5 1.5L11 19z" fill="#111827" stroke="#fff" strokeWidth="1" />
+                </svg>
+              </div>
+
+              {/* Tooltip */}
+              <div className="mt-4 bg-gray-900/90 dark:bg-white/90 text-white dark:text-gray-900 text-[13px] font-semibold px-5 py-2.5 rounded-2xl shadow-xl text-center backdrop-blur-sm">
+                Click your available time slots
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Coach mark CSS animations */}
+      {/* Coach mark animations */}
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes coach-tap {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
+        @keyframes cm-fadein {
+          0% { opacity: 0; transform: scale(0.95) translateY(8px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
         }
-        @keyframes coach-ring {
-          0% { transform: scale(0.8); opacity: 0.6; }
-          50% { transform: scale(1.4); opacity: 0; }
-          100% { transform: scale(0.8); opacity: 0; }
+        @keyframes cm-cursor {
+          0%   { transform: translate(-10px, -10px); opacity: 0; }
+          8%   { transform: translate(30px, 20px); opacity: 1; }
+          15%  { transform: translate(30px, 20px); }
+          18%  { transform: translate(30px, 24px); }
+          20%  { transform: translate(30px, 20px); }
+          30%  { transform: translate(30px, 20px); }
+          38%  { transform: translate(118px, 20px); }
+          42%  { transform: translate(118px, 20px); }
+          45%  { transform: translate(118px, 24px); }
+          47%  { transform: translate(118px, 20px); }
+          57%  { transform: translate(118px, 20px); }
+          65%  { transform: translate(208px, 20px); }
+          68%  { transform: translate(208px, 20px); }
+          71%  { transform: translate(208px, 24px); }
+          73%  { transform: translate(208px, 20px); }
+          85%  { transform: translate(208px, 20px); opacity: 1; }
+          92%  { opacity: 0; }
+          100% { transform: translate(208px, 20px); opacity: 0; }
         }
-        @keyframes coach-fade-in {
-          0% { opacity: 0; transform: translateY(12px); }
-          100% { opacity: 1; transform: translateY(0); }
+        @keyframes cm-cell1 {
+          0%, 19%   { opacity: 0; transform: scale(0.5); }
+          22%       { opacity: 1; transform: scale(1.08); }
+          26%, 88%  { opacity: 1; transform: scale(1); }
+          94%, 100% { opacity: 0; transform: scale(1); }
         }
-        .animate-coach-tap { animation: coach-tap 1.8s ease-in-out infinite; }
-        .animate-coach-ring { animation: coach-ring 2s ease-out infinite; }
-        .animate-fade-in { animation: coach-fade-in 0.6s ease-out both; }
+        @keyframes cm-cell2 {
+          0%, 44%   { opacity: 0; transform: scale(0.5); }
+          47%       { opacity: 1; transform: scale(1.08); }
+          51%, 88%  { opacity: 1; transform: scale(1); }
+          94%, 100% { opacity: 0; transform: scale(1); }
+        }
+        @keyframes cm-cell3 {
+          0%, 70%   { opacity: 0; transform: scale(0.5); }
+          73%       { opacity: 1; transform: scale(1.08); }
+          77%, 88%  { opacity: 1; transform: scale(1); }
+          94%, 100% { opacity: 0; transform: scale(1); }
+        }
+        .animate-cm-fadein  { animation: cm-fadein 0.5s ease-out both; }
+        .animate-cm-cursor  { animation: cm-cursor 4.5s cubic-bezier(0.4,0,0.2,1) infinite; }
+        .animate-cm-cell1   { animation: cm-cell1 4.5s ease-out infinite; }
+        .animate-cm-cell2   { animation: cm-cell2 4.5s ease-out infinite; }
+        .animate-cm-cell3   { animation: cm-cell3 4.5s ease-out infinite; }
       ` }} />
 
       </div>
