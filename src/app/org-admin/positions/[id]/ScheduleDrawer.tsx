@@ -689,7 +689,7 @@ export function ScheduleDrawer({
                     <button
                       type="button"
                       onClick={() => setMode("quick")}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all border ${
                         mode === "quick"
                           ? "bg-rose-50 border-rose-300 text-rose-700 dark:bg-rose-900/30 dark:border-rose-700 dark:text-rose-400 shadow-sm"
                           : "bg-transparent border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800"
@@ -701,7 +701,7 @@ export function ScheduleDrawer({
                     <button
                       type="button"
                       onClick={() => setMode("poll")}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all border ${
                         mode === "poll"
                           ? "bg-pink-50 border-pink-300 text-pink-700 dark:bg-pink-900/30 dark:border-pink-700 dark:text-pink-400 shadow-sm"
                           : "bg-transparent border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800"
@@ -1252,10 +1252,10 @@ function SmartPollConfigurator({
     <div className="space-y-4">
       {/* How it works */}
       <div className="bg-pink-50 dark:bg-pink-900/10 rounded-xl p-3 border border-pink-200 dark:border-pink-800/40">
-        <p className="text-[10px] text-pink-600 dark:text-pink-400 font-bold uppercase tracking-wider mb-1">
+        <p className="text-xs text-pink-600 dark:text-pink-400 font-bold uppercase tracking-wider mb-1">
           How Smart Poll works
         </p>
-        <ol className="text-[10px] text-pink-500 dark:text-pink-400/80 space-y-0.5 list-decimal list-inside leading-relaxed">
+        <ol className="text-xs text-pink-500 dark:text-pink-400/80 space-y-0.5 list-decimal list-inside leading-relaxed">
           <li>Select the days you want to open for availability</li>
           <li>Panel members mark 9AM–5PM slots they&apos;re free</li>
           <li>AI finds common windows · Candidate picks a time</li>
@@ -1276,19 +1276,19 @@ function SmartPollConfigurator({
           </label>
           <div className="flex items-center gap-2">
             <button type="button" onClick={selectAll}
-              className="text-[10px] font-semibold text-pink-600 dark:text-pink-400 hover:underline">
+              className="text-xs font-semibold text-pink-600 dark:text-pink-400 hover:underline">
               All weekdays
             </button>
             <span className="text-gray-300 dark:text-zinc-600">·</span>
             <button type="button" onClick={clearAll}
-              className="text-[10px] font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 hover:underline">
+              className="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 hover:underline">
               Clear
             </button>
           </div>
         </div>
 
         {/* Drag-to-select hint */}
-        <p className="text-[9px] text-gray-400 dark:text-zinc-600 mb-2 flex items-center gap-1">
+        <p className="text-[11px] text-gray-400 dark:text-zinc-600 mb-2 flex items-center gap-1">
           <span>💡</span>
           Click a day or <strong>click &amp; drag</strong> to select a range
         </p>
