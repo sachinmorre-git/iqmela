@@ -6,9 +6,11 @@ import { Sparkles, X, Loader2 } from "lucide-react"
 import { IntelligenceHubClient } from "../../candidates/[resumeId]/intelligence/IntelligenceHubClient"
 import { getFullResumeData } from "./actions"
 
-export function DeepAiDrawer({ resume, userRoles, compactMode = false, children }: { resume: any; userRoles: string[]; compactMode?: boolean; children?: React.ReactNode }) {
+export function DeepAiDrawer({ resume, userRoles, compactMode = false, children, openProp, onOpenChangeProp, focusedRoundId }: { resume: any; userRoles: string[]; compactMode?: boolean; children?: React.ReactNode; openProp?: boolean; onOpenChangeProp?: (open: boolean) => void; focusedRoundId?: string; }) {
   const isHiringManager = userRoles.some((r) => ["ORG_ADMIN", "DEPT_ADMIN", "HIRING_MANAGER"].includes(r));
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp !== undefined ? openProp : internalOpen;
+  const setOpen = onOpenChangeProp || setInternalOpen;
   const [fullResume, setFullResume] = useState(resume);
   const [loading, setLoading] = useState(false);
   const isFailed = resume?.parsingStatus === "FAILED";
@@ -94,6 +96,7 @@ export function DeepAiDrawer({ resume, userRoles, compactMode = false, children 
                   canOffer={isHiringManager}
                   userRoles={userRoles}
                   embeddedMode={true}
+                  focusedRoundId={focusedRoundId}
                 />
               )}
             </div>

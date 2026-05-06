@@ -16,6 +16,7 @@ import { CandidateJourneyTracker, JourneyStage, JourneyStageState } from "@/comp
 import { CandidateDecisionBar } from "@/components/ui/CandidateDecisionBar"
 import { CandidateDecisionHistoryModal } from "./CandidateDecisionHistoryModal"
 import { DeepAiDrawer } from "./DeepAiDrawer"
+import { InteractiveJourneyTracker } from "./InteractiveJourneyTracker"
 
 export async function generateMetadata({
   params,
@@ -307,7 +308,11 @@ export default async function ResumeDetailPage({
         </div>
       </div>
       </div>
-      <CandidateJourneyTracker stages={journeyStages} />
+      <InteractiveJourneyTracker 
+        stages={journeyStages} 
+        resume={resume}
+        userRoles={perms.roles ?? []}
+      />
       
       {/* ── Decision Bar — pipeline roles only ── */}
       {perms.canManagePositions && (

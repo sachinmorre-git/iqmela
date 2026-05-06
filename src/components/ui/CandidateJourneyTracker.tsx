@@ -17,7 +17,7 @@ export interface JourneyStage {
   reportLink?: string;
 }
 
-export function CandidateJourneyTracker({ stages }: { stages: JourneyStage[] }) {
+export function CandidateJourneyTracker({ stages, onNodeClick }: { stages: JourneyStage[], onNodeClick?: (stage: JourneyStage) => void }) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const router = useRouter();
 
@@ -84,7 +84,10 @@ export function CandidateJourneyTracker({ stages }: { stages: JourneyStage[] }) 
                 onMouseEnter={() => setHoveredNode(stage.id)}
                 onMouseLeave={() => setHoveredNode(null)}
                 onClick={() => {
-                  if (stage.reportLink) router.push(stage.reportLink);
+                  if (stage.reportLink) {
+                    if (onNodeClick) onNodeClick(stage);
+                    else router.push(stage.reportLink);
+                  }
                 }}
               >
                 {/* Visual Node */}
@@ -140,9 +143,18 @@ export function CandidateJourneyTracker({ stages }: { stages: JourneyStage[] }) 
                   </div>
 
                   {stage.reportLink ? (
-                    <Link href={stage.reportLink} className="block w-full py-1.5 text-center text-[10px] font-bold bg-white/10 dark:bg-black/5 hover:bg-white/20 dark:hover:bg-black/10 rounded-xl transition-colors">
-                      View Report →
-                    </Link>
+                    onNodeClick ? (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onNodeClick(stage); }} 
+                        className="block w-full py-1.5 text-center text-[10px] font-bold bg-white/10 dark:bg-black/5 hover:bg-white/20 dark:hover:bg-black/10 rounded-xl transition-colors"
+                      >
+                        View Report →
+                      </button>
+                    ) : (
+                      <Link href={stage.reportLink} className="block w-full py-1.5 text-center text-[10px] font-bold bg-white/10 dark:bg-black/5 hover:bg-white/20 dark:hover:bg-black/10 rounded-xl transition-colors">
+                        View Report →
+                      </Link>
+                    )
                   ) : (
                     <div className="w-full py-1.5 text-center text-[10px] font-medium text-gray-500 dark:text-gray-400 bg-white/5 dark:bg-black/5 rounded-xl">
                       No report available
