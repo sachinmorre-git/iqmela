@@ -424,4 +424,29 @@ export async function cancelPollAction(pollId: string): Promise<{ success: boole
   }
 }
 
+// ── Nudge Panelist ────────────────────────────────────────────────────────────
+
+export async function nudgePanelistAction(pollId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const perms = await getCallerPermissions();
+    if (!perms || !perms.canManageInvites) return { success: false, error: "Unauthorized" };
+
+    const response = await prisma.availabilityResponse.findUnique({
+      where: { pollId_userId: { pollId, userId } },
+      include: { poll: true }
+    });
+
+    if (!response) return { success: false, error: "Panelist not found in this poll" };
+
+    await prisma.availabilityResponse.update({
+      where: { pollId_userId: { pollId, userId } },
+      data: { lastNudgedAt: new Date() },
+    });
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Failed to nudge panelist" };
+  }
+}
+
 

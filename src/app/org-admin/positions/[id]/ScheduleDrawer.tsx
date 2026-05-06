@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import { scheduleRoundAction, completeRoundAction } from "./pipeline-actions";
 import { createAiInterviewSessionAction } from "./ai-interview-actions";
-import { createAvailabilityPollAction, getPollStatusAction } from "./poll-actions";
+import { createAvailabilityPollAction, getPollStatusAction, nudgePanelistAction } from "./poll-actions";
+import { toast } from "sonner";
 import { CoachMark } from "@/components/ui/CoachMark";
 import { CompletedRoundView } from "./CompletedRoundView";
 import { BgvDrawerView } from "./BgvDrawerView";
@@ -1435,7 +1436,37 @@ function SmartPollConfigurator({
 // ── Active Poll Summary (Elegant UI Mockup) ─────────────────────────────────
 
 function ActivePollSummary({ poll }: { poll: any }) {
+  const [isNudging, setIsNudging] = useState<string | null>(null);
+
   if (!poll) return null;
+
+  const handleNudge = async (userId: string) => {
+    setIsNudging(userId);
+    try {
+      const res = await nudgePanelistAction(poll.id, userId);
+      if (res.success) {
+        toast.success("Nudge sent to panelist!");
+      } else {
+        toast.error(res.error || "Failed to send nudge");
+      }
+    } catch (e) {
+      toast.error("An error occurred");
+    } finally {
+      setIsNudging(null);
+    }
+  };
+
+  const handleViewSlots = (slots: any[]) => {
+    if (!slots || slots.length === 0) {
+      toast.info("No slots provided yet");
+      return;
+    }
+    const formatted = slots.map(s => {
+      const start = new Date(s.start);
+      return `${start.toLocaleDateString()} at ${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }).join('\n');
+    alert(`Available Slots:\n\n${formatted}`);
+  };
 
   const responses = poll.responses || [];
   const total = poll.totalPanelists || responses.length;
@@ -1514,13 +1545,27 @@ function ActivePollSummary({ poll }: { poll: any }) {
                 </div>
                 
                 {hasResponded ? (
-                  <button type="button" className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 transition-colors rounded-lg border border-emerald-100 dark:border-emerald-800/30">
+                  <button 
+                    type="button" 
+                    onClick={() => handleViewSlots(p.slots)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 transition-colors rounded-lg border border-emerald-100 dark:border-emerald-800/30"
+                  >
                     <Calendar className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-bold uppercase tracking-wide">View Slots</span>
                   </button>
                 ) : (
-                  <button type="button" className="flex items-center gap-1 text-[10px] font-bold text-pink-600 dark:text-pink-400 hover:text-pink-700 bg-pink-50 dark:bg-pink-900/20 hover:bg-pink-100 px-2.5 py-1.5 rounded-lg transition-colors">
-                    <Send className="w-3 h-3" /> Nudge
+                  <button 
+                    type="button" 
+                    onClick={() => handleNudge(p.userId)}
+                    disabled={isNudging === p.userId}
+                    className="flex items-center gap-1 text-[10px] font-bold text-pink-600 dark:text-pink-400 hover:text-pink-700 bg-pink-50 dark:bg-pink-900/20 hover:bg-pink-100 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isNudging === p.userId ? (
+                      <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" className="opacity-75"/></svg>
+                    ) : (
+                      <Send className="w-3 h-3" />
+                    )}
+                    {isNudging === p.userId ? 'Nudging...' : 'Nudge'}
                   </button>
                 )}
               </div>
