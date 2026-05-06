@@ -1288,7 +1288,7 @@ function SmartPollConfigurator({
         </div>
 
         {/* Drag-to-select hint */}
-        <p className="text-[11px] text-gray-400 dark:text-zinc-600 mb-2 flex items-center gap-1">
+        <p className="text-[11px] text-gray-800 dark:text-zinc-200 mb-2 flex items-center gap-1">
           <span>💡</span>
           Click a day or <strong>click &amp; drag</strong> to select a range
         </p>
@@ -1302,7 +1302,7 @@ function SmartPollConfigurator({
           {/* Day header */}
           <div className="grid grid-cols-5 gap-1">
             {["Mon","Tue","Wed","Thu","Fri"].map(d => (
-              <div key={d} className="text-center text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase">
+              <div key={d} className="text-center text-xs font-bold text-gray-800 dark:text-zinc-200 uppercase">
                 {d}
               </div>
             ))}
@@ -1313,7 +1313,7 @@ function SmartPollConfigurator({
             const weekLabel = formatDate(week[0]);
             return (
               <div key={wi} className="flex items-center gap-2">
-                <span className="text-[10px] text-gray-400 dark:text-zinc-500 w-12 shrink-0 text-right leading-tight">
+                <span className="text-[10px] font-bold text-gray-800 dark:text-zinc-200 w-12 shrink-0 text-right leading-tight">
                   {weekLabel}
                 </span>
                 <div className="grid grid-cols-5 gap-1 flex-1">
