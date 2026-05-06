@@ -79,7 +79,7 @@ export function SupportDashboardClient({ initialTickets }: { initialTickets: Tic
         </select>
       </div>
 
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-auto max-h-[600px] relative shadow-inner">
         {filteredTickets.length === 0 ? (
           <div className="p-12 text-center">
             <AlertCircle className="w-10 h-10 text-zinc-600 mx-auto mb-3" />
@@ -87,7 +87,7 @@ export function SupportDashboardClient({ initialTickets }: { initialTickets: Tic
           </div>
         ) : (
           <table className="w-full text-sm text-left">
-            <thead className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800">
+            <thead className="bg-zinc-950/95 text-zinc-400 border-b border-zinc-800 sticky top-0 z-10 backdrop-blur-md shadow-sm">
               <tr>
                 <th className="px-6 py-4 font-semibold">Ticket</th>
                 <th className="px-6 py-4 font-semibold">Client</th>
