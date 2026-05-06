@@ -1252,10 +1252,10 @@ function SmartPollConfigurator({
     <div className="space-y-4">
       {/* How it works */}
       <div className="bg-pink-50 dark:bg-pink-900/10 rounded-xl p-3 border border-pink-200 dark:border-pink-800/40">
-        <p className="text-xs text-pink-600 dark:text-pink-400 font-bold uppercase tracking-wider mb-1">
+        <p className="text-sm text-pink-600 dark:text-pink-400 font-extrabold uppercase tracking-wider mb-2">
           How Smart Poll works
         </p>
-        <ol className="text-xs text-pink-500 dark:text-pink-400/80 space-y-0.5 list-decimal list-inside leading-relaxed">
+        <ol className="text-sm font-bold text-pink-500 dark:text-pink-400/80 space-y-1 list-decimal list-inside leading-relaxed">
           <li>Select the days you want to open for availability</li>
           <li>Panel members mark 9AM–5PM slots they&apos;re free</li>
           <li>AI finds common windows · Candidate picks a time</li>
