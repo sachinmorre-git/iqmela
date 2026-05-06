@@ -124,12 +124,9 @@
   36%  { transform: translate(20px, 58px); } /* press down c6 */
   50%  { transform: translate(204px, 58px); } /* drag to c10 */
   52%  { transform: translate(204px, 54px); } /* release */
-  65%  { transform: translate(112px, 106px); } /* move to button */
-  67%  { transform: translate(112px, 110px); } /* click down */
-  69%  { transform: translate(112px, 106px); } /* click up */
-  80%  { opacity: 1; transform: translate(112px, 106px); }
+  80%  { opacity: 1; transform: translate(204px, 54px); }
   90%  { opacity: 0; }
-  100% { opacity: 0; transform: translate(112px, 106px); }
+  100% { opacity: 0; transform: translate(204px, 54px); }
 }
 
 .cm-gd-c1 { animation: cm-gd-c1 9.5s ease-out infinite; }
@@ -187,16 +184,7 @@
   92%, 100% { opacity: 0; transform: scale(1); }
 }
 
-.cm-gd-btn {
-  animation: cm-gd-btn 9.5s ease-out infinite;
-}
-@keyframes cm-gd-btn {
-  0%, 65%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
-  67%       { transform: scale(0.95); }
-  70%       { transform: scale(1.02); box-shadow: 0 0 0 6px rgba(244, 63, 94, 0.3); }
-  78%       { transform: scale(1); box-shadow: 0 0 0 15px rgba(244, 63, 94, 0); }
-  85%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
-}
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PRESET: button-tap

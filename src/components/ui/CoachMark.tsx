@@ -159,7 +159,7 @@ function GridDragPreset({ accentColor, onGotIt }: { accentColor: string; onGotIt
       <button
         type="button"
         onClick={onGotIt}
-        className={`${bg} text-white text-[12px] font-bold px-6 py-2 rounded-xl shadow-md cm-gd-btn cursor-pointer pointer-events-auto hover:opacity-90 transition-opacity flex items-center gap-2`}
+        className={`${bg} text-white text-[12px] font-bold px-6 py-2 rounded-xl shadow-md cursor-pointer pointer-events-auto hover:opacity-90 transition-opacity flex items-center gap-2`}
       >
         <span>👍</span> Got It
       </button>
