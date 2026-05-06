@@ -11,6 +11,7 @@ import {
 import { scheduleRoundAction, completeRoundAction } from "./pipeline-actions";
 import { createAiInterviewSessionAction } from "./ai-interview-actions";
 import { createAvailabilityPollAction } from "./poll-actions";
+import { CoachMark } from "@/components/ui/CoachMark";
 import { CompletedRoundView } from "./CompletedRoundView";
 import { BgvDrawerView } from "./BgvDrawerView";
 import type { StageState } from "./CandidatePipelineBar";
@@ -833,11 +834,21 @@ export function ScheduleDrawer({
             )}
 
             {!isAI && (isAvailable || isEditing) && mode === "poll" && (
-              <button type="button" onClick={handleSmartPoll}
-                disabled={isPending || !dateRangeStart || !dateRangeEnd || selectedInterviewerIds.length === 0}
-                className="px-5 py-2 rounded-xl text-sm font-bold bg-pink-600 text-white hover:bg-pink-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
-                {isPending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending…</> : <>📨 Request Availability</>}
-              </button>
+              <div className="relative">
+                <button type="button" onClick={handleSmartPoll}
+                  disabled={isPending || !dateRangeStart || !dateRangeEnd || selectedInterviewerIds.length === 0}
+                  className="px-5 py-2 rounded-xl text-sm font-bold bg-pink-600 text-white hover:bg-pink-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
+                  {isPending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending…</> : <>📨 Request Availability</>}
+                </button>
+                <CoachMark
+                  id="schedule-smart-poll"
+                  show={mode === "poll"}
+                  preset="button-tap"
+                  message="Send poll to candidates so they can pick their slots"
+                  buttonLabel="Request Availability"
+                  accentColor="rose"
+                />
+              </div>
             )}
           </div>
         )}

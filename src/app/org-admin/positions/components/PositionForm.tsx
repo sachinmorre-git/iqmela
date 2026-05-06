@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { InterviewPlanConfigurator } from "../[id]/InterviewPlanConfigurator"
 import { StageInput } from "../[id]/pipeline-actions"
+import { CoachMark } from "@/components/ui/CoachMark"
 
 const INPUT_CLS =
   "w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-transparent px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition"
@@ -182,7 +183,7 @@ export default function PositionForm({
   ].join(" ")
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-2">
+    <div className="w-full max-w-7xl mx-auto px-2 relative">
       {/* Back link + header */}
       <div className="mb-6 mb-8">
         <Link
@@ -263,6 +264,17 @@ export default function PositionForm({
               )}
             </div>
           </div>
+          {/* Coach mark for first-time position creation */}
+          {!isEdit && (
+            <CoachMark
+              id="position-create-jd"
+              show={!fields.title && uploadState === "idle"}
+              preset="button-tap"
+              buttonLabel="Drop JD or Fill Manually"
+              message="Drag your job description file or start typing below"
+              accentColor="rose"
+            />
+          )}
 
           {/* ── Divider ─────────────────────────────────────────────────────── */}
           <div className="flex items-center gap-3 my-2">

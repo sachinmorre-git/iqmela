@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import { JobOffer } from "@prisma/client";
 import { renderOfferDocument, getExpirationLabel } from "@/lib/offer-utils";
+import { CoachMark } from "@/components/ui/CoachMark";
 
 interface CandidateOfferClientProps {
   offer: any; // Mapped from JobOffer relation tree
@@ -393,9 +394,19 @@ export function CandidateOfferClient({ offer, token }: CandidateOfferClientProps
       {view === "MAIN" && !hasDeclined && !expiration.expired && (
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 z-50 animate-in slide-in-from-bottom-12 duration-700 delay-500">
               <div className="bg-gray-900/90 backdrop-blur-xl p-2 rounded-2xl shadow-2xl flex items-center gap-2 border border-gray-800">
-                  <button onClick={() => handleAction("ACCEPT")} disabled={isSubmitting} className="flex-1 bg-white hover:bg-gray-100 text-gray-900 py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2">
-                      {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin text-gray-900" /> : <>Accept & Sign <ArrowRight className="w-4 h-4" /></>}
-                  </button>
+                  <div className="relative flex-1">
+                    <button onClick={() => handleAction("ACCEPT")} disabled={isSubmitting} className="w-full bg-white hover:bg-gray-100 text-gray-900 py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2">
+                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin text-gray-900" /> : <>Accept & Sign <ArrowRight className="w-4 h-4" /></>}
+                    </button>
+                    <CoachMark
+                      id="offer-accept-button"
+                      show={view === "MAIN" && !hasDeclined && !expiration.expired}
+                      preset="button-tap"
+                      message="Ready? Accept your offer to sign the official document"
+                      buttonLabel="Accept & Sign"
+                      accentColor="rose"
+                    />
+                  </div>
                   <button onClick={() => setView("QUESTION")} className="px-6 py-4 text-white hover:bg-white/10 rounded-xl font-bold text-sm transition-colors">
                       Ask Question
                   </button>

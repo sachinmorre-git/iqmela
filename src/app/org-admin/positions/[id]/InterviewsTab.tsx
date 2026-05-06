@@ -2,6 +2,7 @@ import React from "react";
 import { InterviewScheduler } from "./InterviewScheduler";
 import { Interview, User } from "@prisma/client";
 import { formatDate, formatTime } from "@/lib/locale-utils";
+import { CoachMark } from "@/components/ui/CoachMark";
 
 type InterviewData = Interview & {
   candidate: Pick<User, "name" | "email">;
@@ -23,7 +24,7 @@ export function InterviewsTab({
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm relative">
         <div>
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">Interviews</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -31,6 +32,14 @@ export function InterviewsTab({
           </p>
         </div>
         <InterviewScheduler positionId={positionId} resumes={resumes} interviewers={interviewers} />
+        <CoachMark
+          id="interviews-tab-schedule"
+          show={interviews.length === 0}
+          preset="button-tap"
+          message="Click here to schedule a human or AI interview"
+          buttonLabel="Schedule"
+          accentColor="rose"
+        />
       </div>
 
       <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">

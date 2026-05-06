@@ -15,6 +15,7 @@ import type { VisualProvider } from "@/lib/ai-interview/providers/visual/types";
 import { OrbDisplay } from "@/components/ai-interview/OrbDisplay";
 import { VideoAvatarDisplay } from "@/components/ai-interview/VideoAvatarDisplay";
 import { formatTime } from "@/lib/locale-utils"
+import { CoachMark } from "@/components/ui/CoachMark";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -1072,14 +1073,24 @@ export function AiInterviewShell({
                 or click <strong className="text-white">Submit Answer</strong> when done.
               </p>
               <div className="flex flex-col gap-2 w-full mt-4">
-                <button
-                  onClick={() => askQuestion(resumeFromIndex)}
-                  disabled={childCamState === "denied"}
-                  className="w-full px-10 py-4 bg-rose-600 hover:bg-rose-500 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-xl shadow-rose-600/30 text-lg flex items-center justify-center gap-2"
-                >
-                  {isResuming ? "Resume Interview" : "Begin Interview"}
-                  {childCamState === "denied" && <span className="text-xs ml-2 border border-zinc-600 px-2 py-0.5 rounded-full">Camera Blocked</span>}
-                </button>
+                <div className="relative w-full">
+                  <button
+                    onClick={() => askQuestion(resumeFromIndex)}
+                    disabled={childCamState === "denied"}
+                    className="w-full px-10 py-4 bg-rose-600 hover:bg-rose-500 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all hover:-translate-y-0.5 shadow-xl shadow-rose-600/30 text-lg flex items-center justify-center gap-2"
+                  >
+                    {isResuming ? "Resume Interview" : "Begin Interview"}
+                    {childCamState === "denied" && <span className="text-xs ml-2 border border-zinc-600 px-2 py-0.5 rounded-full">Camera Blocked</span>}
+                  </button>
+                  <CoachMark
+                    id="ai-interview-start"
+                    show={phase === "ready" && childCamState !== "denied"}
+                    preset="button-tap"
+                    message="Click here when you are ready to begin"
+                    buttonLabel="Begin"
+                    accentColor="rose"
+                  />
+                </div>
                 {childCamState === "denied" && (
                   <p className="text-xs font-bold text-amber-500 text-center animate-in fade-in">
                     You must resolve the camera issue to begin.

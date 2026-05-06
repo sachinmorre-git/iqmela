@@ -3,15 +3,18 @@
 import { useState, useTransition } from "react"
 import { createPortal } from "react-dom"
 import { toggleShortlistAction } from "./actions"
+import { CoachMark } from "@/components/ui/CoachMark"
 
 export function ShortlistAction({
   resumeId,
   isShortlisted,
-  initialNotes
+  initialNotes,
+  showCoachMark
 }: {
   resumeId: string
   isShortlisted: boolean
   initialNotes: string | null
+  showCoachMark?: boolean
 }) {
   const [isPending, startTransition] = useTransition()
   const [notes, setNotes] = useState(initialNotes || "")
@@ -32,7 +35,7 @@ export function ShortlistAction({
 
   return (
     <>
-      <div className="flex items-center gap-1.5 justify-end w-full">
+      <div className="flex items-center gap-1.5 justify-end w-full relative">
         <button
           onClick={handleToggle}
           disabled={isPending}
@@ -60,6 +63,16 @@ export function ShortlistAction({
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
+        {showCoachMark && (
+          <CoachMark
+            id="shortlist-action"
+            show={!isShortlisted}
+            preset="button-tap"
+            message="Shortlist top candidates to move them to the next round"
+            buttonLabel="Shortlist"
+            accentColor="amber"
+          />
+        )}
       </div>
 
       {isModalOpen && createPortal(

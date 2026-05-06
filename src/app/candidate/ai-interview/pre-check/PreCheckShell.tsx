@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, Mic, Camera, Globe, ChevronRight, Loader2, CheckCircle, Clock, Hash, AlertCircle } from "lucide-react";
 import { CameraConsentShell } from "@/components/ai-interview/CameraConsentShell";
+import { CoachMark } from "@/components/ui/CoachMark";
 
 interface Props {
   inviteId: string;
@@ -187,9 +188,19 @@ export function PreCheckShell({
               This interview requires camera access for integrity monitoring.
               Your feed is never recorded or shared.
             </p>
-            <CameraConsentShell
-              onConsentChange={(granted) => setCameraConsented(granted || true)}
-            />
+            <div className="relative">
+              <CameraConsentShell
+                onConsentChange={(granted) => setCameraConsented(granted || true)}
+              />
+              <CoachMark
+                id="camera-consent"
+                show={step === "camera"}
+                preset="button-tap"
+                message="Toggle to grant camera permissions for integrity monitoring"
+                buttonLabel="Toggle Camera"
+                accentColor="rose"
+              />
+            </div>
             <button
               onClick={() => setStep("ready")}
               className="w-full py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"

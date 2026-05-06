@@ -856,7 +856,7 @@ export default async function PositionDetailPage({
                                 </td>
                                 <td className="px-2 py-3 text-right relative">
                                   <div className="flex items-center justify-end gap-2 text-right relative z-10">
-                                    {canManage && <ShortlistAction resumeId={resume.id} isShortlisted={resume.isShortlisted} initialNotes={resume.recruiterNotes} />}
+                                    {canManage && <ShortlistAction resumeId={resume.id} isShortlisted={resume.isShortlisted} initialNotes={resume.recruiterNotes} showCoachMark={index === 0} />}
                                     {canManage && <DeleteResumeButton resumeId={resume.id} candidateName={finalName} />}
 
                                     <a href={`/api/org-admin/resumes/download?resumeId=${resume.id}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all border border-transparent hover:border-rose-200 dark:hover:border-rose-800" title="View Original Resume">
