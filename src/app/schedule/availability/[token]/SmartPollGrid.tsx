@@ -319,9 +319,9 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+    <div className="flex flex-col md:flex-row gap-8 items-start">
       {/* ── Left Column: Calendar ───────────────────────────────────────── */}
-      <div className="md:col-span-8 space-y-6">
+      <div className="flex-1 w-full min-w-0 space-y-6">
       {/* ── Deadline Banner ─────────────────────────────────────────────── */}
       <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border
         ${weekdaysLeft <= 1
@@ -450,7 +450,8 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
                     <div className={`
                       w-full h-full rounded-md flex items-center justify-center relative overflow-hidden transition-all duration-200
                       ${isSelected ? `${myColor?.light} ring-1 ring-inset ${myColor?.ring} shadow-sm` : ""}
-                      ${hot && !isSelected ? "bg-amber-50 dark:bg-amber-900/20" : ""}
+                      ${hot && !isSelected ? "bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800" : ""}
+                      ${!isSelected && !hot ? "bg-gray-50 dark:bg-zinc-800/40 border border-gray-200 dark:border-zinc-700 hover:border-rose-300 dark:hover:border-rose-600" : ""}
                     `}>
                       {/* Hot slot glow */}
                       {hot && (
@@ -466,10 +467,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
 
                       {/* Participant color dots & Blank Dot */}
                       <div className="absolute inset-0 flex items-center justify-center gap-[3px] px-1">
-                        {/* Blank dot for unselected state (helps user understand it's clickable) */}
-                        {!isSelected && inRange && othersInCell.length === 0 && (
-                          <div className="w-2.5 h-2.5 rounded-full border border-gray-200 dark:border-zinc-700 bg-white/50 dark:bg-zinc-800/50 group-hover:border-rose-300 dark:group-hover:border-rose-600 transition-colors" />
-                        )}
+                        {/* Removed the tiny blank dot because the whole cell now looks like a button */}
 
                         {othersInCell.slice(0, 4).map((p) => {
                           const c = colorMap.current.get(p.userId);
@@ -530,7 +528,7 @@ export function SmartPollGrid({ token, initialPoll, initialParticipants }: Props
       </div>
 
       {/* ── Right Column: Command Center ─────────────────────────────────── */}
-      <div className="md:col-span-4 space-y-6 md:sticky md:top-24">
+      <div className="w-full md:w-[320px] shrink-0 space-y-6 md:sticky md:top-24">
       {/* ── Panel Progress ──────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
