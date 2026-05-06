@@ -1410,11 +1410,11 @@ function SmartPollConfigurator({
       </div>
 
       {/* Deadline preview */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700">
-        <span className="text-base">⏳</span>
-        <p className="text-xs text-gray-600 dark:text-zinc-400">
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700">
+        <span className="text-lg">⏳</span>
+        <p className="text-sm font-semibold text-gray-700 dark:text-zinc-300">
           Panelists must respond by{" "}
-          <strong className="text-gray-900 dark:text-white">{deadlineLabel}</strong>
+          <strong className="font-extrabold text-gray-900 dark:text-white">{deadlineLabel}</strong>
           {" "}· Hourly reminders sent 9AM–5PM on weekdays.
         </p>
       </div>
