@@ -7,17 +7,17 @@ import { getCircuitBreaker, type CircuitBreaker } from "./circuit-breaker";
 import { getModelChain, getProviderForModel } from "./model-router";
 import type { AiModelId } from "./models";
 
-function resolveProvider(forceName?: string): HiringAiProvider {
+function resolveProvider(forceName?: string, modelId?: string): HiringAiProvider {
   if (forceName === "mock") return new MockHiringAiProvider();
-  if (forceName === "gemini") return new GeminiHiringAiProvider();
-  if (forceName === "deepseek") return new DeepSeekHiringAiProvider();
+  if (forceName === "gemini") return new GeminiHiringAiProvider(modelId);
+  if (forceName === "deepseek") return new DeepSeekHiringAiProvider(modelId);
 
   if (aiConfig.provider === "deepseek" && aiConfig.deepseek.apiKey) {
-    return new DeepSeekHiringAiProvider();
+    return new DeepSeekHiringAiProvider(modelId);
   }
 
   if (aiConfig.provider === "gemini" && aiConfig.gemini.apiKey) {
-    return new GeminiHiringAiProvider();
+    return new GeminiHiringAiProvider(modelId);
   }
 
   if (!aiConfig.fallbackEnabled) {
@@ -27,10 +27,10 @@ function resolveProvider(forceName?: string): HiringAiProvider {
   return new MockHiringAiProvider();
 }
 
-/** Instantiate a provider for a specific model ID */
+/** Instantiate a provider for a specific model ID, passing the model through */
 function resolveProviderForModel(modelId: AiModelId): HiringAiProvider {
   const providerName = getProviderForModel(modelId);
-  return resolveProvider(providerName);
+  return resolveProvider(providerName, modelId);
 }
 
 /**

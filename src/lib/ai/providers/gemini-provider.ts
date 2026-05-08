@@ -21,9 +21,6 @@ import type {
   RecommendationResult,
 } from "../types";
 
-const MODEL_EXTRACTION = aiConfig.gemini.model;
-const MODEL_RANKING    = aiConfig.gemini.model;
-const MODEL_SUMMARY    = aiConfig.gemini.model;
 const TEMPERATURE      = aiConfig.temperature;
 
 /**
@@ -34,8 +31,10 @@ const TEMPERATURE      = aiConfig.temperature;
 export class GeminiHiringAiProvider implements HiringAiProvider {
   readonly providerName = "gemini";
   private ai = geminiClient;
+  private modelId: string;
 
-  constructor() {
+  constructor(modelOverride?: string) {
+    this.modelId = modelOverride ?? aiConfig.gemini.model;
     if (!aiConfig.gemini.apiKey) {
       console.warn("[GeminiAI] GEMINI_API_KEY is not set — calls will fail at runtime.");
     }
@@ -354,7 +353,7 @@ export class GeminiHiringAiProvider implements HiringAiProvider {
   // ── Internal ─────────────────────────────────────────────────────────────
 
   private async _generate(prompt: string, schema: Schema, promptVersion: string, modelOverride?: string): Promise<{ raw: string, usage: import("../types").AiUsageData }> {
-    const finalModel = modelOverride ?? MODEL_EXTRACTION;
+    const finalModel = modelOverride ?? this.modelId;
     
     // Attempt standard parse/repair from Gemini
     try {

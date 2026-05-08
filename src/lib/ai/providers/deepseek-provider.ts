@@ -10,9 +10,6 @@ import type {
   RecommendationResult,
 } from "../types";
 
-const MODEL_EXTRACTION = aiConfig.deepseek.chatModel;
-const MODEL_RANKING    = aiConfig.deepseek.reasonerModel;
-const MODEL_SUMMARY    = aiConfig.deepseek.chatModel;
 const TEMPERATURE      = aiConfig.temperature;
 
 /**
@@ -22,8 +19,10 @@ const TEMPERATURE      = aiConfig.temperature;
 export class DeepSeekHiringAiProvider implements HiringAiProvider {
   readonly providerName = "deepseek";
   private ai: OpenAI;
+  private chatModelId: string;
+  private reasonerModelId: string;
 
-  constructor() {
+  constructor(modelOverride?: string) {
     const apiKey = aiConfig.deepseek.apiKey ?? "";
     if (!apiKey) {
       console.warn("[DeepSeekAI] DEEPSEEK_API_KEY is not set — calls will fail at runtime.");
@@ -32,6 +31,10 @@ export class DeepSeekHiringAiProvider implements HiringAiProvider {
       baseURL: "https://api.deepseek.com",
       apiKey,
     });
+    // If a specific model is provided (e.g. "deepseek-chat" or "deepseek-reasoner"),
+    // use it for BOTH chat and reasoner roles. Otherwise, use env-configured defaults.
+    this.chatModelId = modelOverride ?? aiConfig.deepseek.chatModel;
+    this.reasonerModelId = modelOverride ?? aiConfig.deepseek.reasonerModel;
   }
 
   // ── Helper for parsing potentially markdown-wrapped JSON ─────────────────
@@ -96,7 +99,7 @@ Return only factual information visible in the text — do not infer or hallucin
 Resume text:
 ${rawText}`;
 
-    const { raw, usage } = await this._generate(prompt, MODEL_EXTRACTION, true, "ext-v1");
+    const { raw, usage } = await this._generate(prompt, this.chatModelId, true, "ext-v1");
     const parsed = this.parseJsonFromOutput(raw);
 
     return {
@@ -144,7 +147,7 @@ Return only factual information visible in the text. Do not infer or hallucinate
 Job Description:
 ${rawText}`;
 
-    const { raw, usage } = await this._generate(prompt, MODEL_EXTRACTION, true, "jd-autofill-v1");
+    const { raw, usage } = await this._generate(prompt, this.chatModelId, true, "jd-autofill-v1");
     const parsed = this.parseJsonFromOutput(raw);
 
     const validTypes = ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP"];
@@ -180,7 +183,7 @@ ${rawText}`;
 Job Description:
 ${jdText}`;
 
-    const { raw, usage } = await this._generate(prompt, MODEL_EXTRACTION, true, "jd-v1");
+    const { raw, usage } = await this._generate(prompt, this.chatModelId, true, "jd-v1");
     const parsed = this.parseJsonFromOutput(raw);
 
     return {
@@ -238,7 +241,7 @@ Return MUST BE STRICT JSON object matching this schema EXACTLY:
 }`;
 
     // reasoner might not support response_format strict json natively, so we pass false
-    const { raw, usage } = await this._generate(prompt, MODEL_RANKING, false, "rank-v1");
+    const { raw, usage } = await this._generate(prompt, this.reasonerModelId, false, "rank-v1");
     const parsed = this.parseJsonFromOutput(raw);
     const score = Number(parsed.matchScore) || 0;
     const label = parsed.matchLabel || (score >= 80 ? "STRONG_MATCH" : score >= 50 ? "GOOD_MATCH" : "WEAK_MATCH");
@@ -276,7 +279,7 @@ Return strictly a JSON object matching this schema:
   "overallProfile": string
 }`;
 
-    const { raw, usage } = await this._generate(prompt, MODEL_SUMMARY, true, "sum-v1");
+    const { raw, usage } = await this._generate(prompt, this.chatModelId, true, "sum-v1");
     const parsed = this.parseJsonFromOutput(raw);
 
     return {
@@ -310,7 +313,7 @@ Return MUST BE STRICT JSON object matching this schema EXACTLY:
   "confidenceScore": number
 }`;
 
-    const { raw, usage } = await this._generate(prompt, MODEL_RANKING, false, "adv-judge-v1");
+    const { raw, usage } = await this._generate(prompt, this.reasonerModelId, false, "adv-judge-v1");
     const parsed = this.parseJsonFromOutput(raw);
 
     return {
@@ -345,7 +348,7 @@ Return strictly a JSON object matching this schema:
 }
 Category should be one of "Technical", "Behavioral", or "Verification".`;
 
-    const { raw, usage } = await this._generate(prompt, MODEL_EXTRACTION, true, "int-prep-v1");
+    const { raw, usage } = await this._generate(prompt, this.chatModelId, true, "int-prep-v1");
     const parsed = this.parseJsonFromOutput(raw);
 
     return {
@@ -375,7 +378,7 @@ Return strictly a JSON object matching this schema:
 }
 Severity should be HIGH, MEDIUM, or LOW.`;
 
-    const { raw, usage } = await this._generate(prompt, MODEL_EXTRACTION, true, "red-flags-v1");
+    const { raw, usage } = await this._generate(prompt, this.chatModelId, true, "red-flags-v1");
     const parsed = this.parseJsonFromOutput(raw);
 
     return {
@@ -388,7 +391,7 @@ Severity should be HIGH, MEDIUM, or LOW.`;
 
   private async _generate(prompt: string, model: string, allowJsonFormat: boolean, promptVersion: string): Promise<{ raw: string, usage: import("../types").AiUsageData }> {
     const hasJsonFormatStr = allowJsonFormat && model.includes("chat");
-    const finalModel = model ?? MODEL_EXTRACTION;
+    const finalModel = model ?? this.chatModelId;
 
     try {
       const response = await this.ai.chat.completions.create({
