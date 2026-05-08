@@ -1686,14 +1686,25 @@ model InterviewQuestion {
 model PlatformConfig {
   id String @id @default("GLOBAL")
 
-  // AI Provider Selection (per task type)
-  defaultAiProvider      String @default("GEMINI") // GEMINI | DEEPSEEK | OPENAI
-  extractionProvider     String @default("GEMINI") // Resume extraction
-  rankingProvider        String @default("GEMINI") // Candidate ranking
-  judgmentProvider       String @default("DEEPSEEK") // Advanced judgment
-  interviewScoreProvider String @default("GEMINI") // AI interview scoring
-  jdAnalysisProvider     String @default("GEMINI") // JD analysis
-  codingGenProvider      String @default("GEMINI") // Coding question generation
+  // ── Legacy AI Provider Selection (kept for backward compat) ────────────────
+  defaultAiProvider      String @default("GEMINI")
+  extractionProvider     String @default("GEMINI")
+  rankingProvider        String @default("GEMINI")
+  judgmentProvider       String @default("DEEPSEEK")
+  interviewScoreProvider String @default("GEMINI")
+  jdAnalysisProvider     String @default("GEMINI")
+  codingGenProvider      String @default("GEMINI")
+
+  // ── AI Model Routing Chains (JSON: { primary, fallback1, fallback2 }) ──────
+  extractionModels       Json?  // Resume extraction
+  rankingModels          Json?  // Candidate ranking
+  judgmentModels         Json?  // Advanced judgment
+  jdAnalysisModels       Json?  // JD analysis
+  interviewScoreModels   Json?  // AI interview scoring
+  codingGenModels        Json?  // Coding question generation
+  interviewPrepModels    Json?  // Interview prep question generation
+  redFlagModels          Json?  // Red flag analysis
+  candidateSummaryModels Json?  // Candidate summary generation
 
   // AI Interview Mode
   defaultInterviewMode String @default("AI_AVATAR") // AI_AVATAR | AI_ORB
@@ -1725,6 +1736,31 @@ model PlatformConfig {
 
   updatedAt DateTime @updatedAt
   updatedBy String? // Clerk userId of last editor
+}
+
+// ── Per-Organization AI Configuration Overrides ─────────────────────────────
+// When set, these override the corresponding PlatformConfig global defaults.
+// Null fields inherit from the global PlatformConfig.
+
+model OrgAiConfig {
+  id             String @id @default(cuid())
+  organizationId String @unique
+
+  // Per-task model chain overrides (null = inherit from PlatformConfig global)
+  extractionModels       Json?
+  rankingModels          Json?
+  judgmentModels         Json?
+  jdAnalysisModels       Json?
+  interviewScoreModels   Json?
+  codingGenModels        Json?
+  interviewPrepModels    Json?
+  redFlagModels          Json?
+  candidateSummaryModels Json?
+
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@index([organizationId])
 }
 
 // ── Geo-Compliance Market Registry ───────────────────────────────────────────

@@ -4,6 +4,8 @@ import { MockHiringAiProvider } from "./providers/mock-provider";
 import { GeminiHiringAiProvider } from "./providers/gemini-provider";
 import { DeepSeekHiringAiProvider } from "./providers/deepseek-provider";
 import { getCircuitBreaker, type CircuitBreaker } from "./circuit-breaker";
+import { getModelChain, getProviderForModel } from "./model-router";
+import type { AiModelId } from "./models";
 
 function resolveProvider(forceName?: string): HiringAiProvider {
   if (forceName === "mock") return new MockHiringAiProvider();
@@ -23,6 +25,12 @@ function resolveProvider(forceName?: string): HiringAiProvider {
   }
 
   return new MockHiringAiProvider();
+}
+
+/** Instantiate a provider for a specific model ID */
+function resolveProviderForModel(modelId: AiModelId): HiringAiProvider {
+  const providerName = getProviderForModel(modelId);
+  return resolveProvider(providerName);
 }
 
 /**
@@ -55,8 +63,62 @@ class ProxyHiringAiProvider implements HiringAiProvider {
     });
   }
 
-  private async withFallback<T>(operation: (provider: HiringAiProvider) => Promise<T>, operationName: string): Promise<T> {
-    // ── Circuit Breaker: skip primary if circuit is OPEN ─────────────────
+  /**
+   * Execute an AI operation with model-chain-based fallback.
+   * 
+   * Resolution order:
+   *   1. Load the model chain for the given taskKey (primary → fallback1 → fallback2)
+   *   2. Try the primary model's provider
+   *   3. On failure → try fallback1's provider
+   *   4. On failure → try fallback2's provider
+   *   5. On all failures → throw with diagnostics
+   */
+  private async withModelChainFallback<T>(
+    operation: (provider: HiringAiProvider) => Promise<T>,
+    operationName: string,
+    taskKey?: string,
+    orgId?: string,
+  ): Promise<T> {
+    // If a taskKey is provided, use the model-chain routing
+    if (taskKey) {
+      try {
+        const chain = await getModelChain(taskKey, orgId);
+        const modelsToTry: AiModelId[] = [chain.primary];
+        if (chain.fallback1) modelsToTry.push(chain.fallback1);
+        if (chain.fallback2) modelsToTry.push(chain.fallback2);
+
+        let lastError: Error | null = null;
+        for (let i = 0; i < modelsToTry.length; i++) {
+          const modelId = modelsToTry[i];
+          const provider = resolveProviderForModel(modelId);
+          try {
+            const result = await operation(provider);
+            if (i > 0) {
+              console.warn(
+                `[HiringAI:ModelChain] ${operationName}: succeeded with fallback ${i} ` +
+                `(${modelId}) after primary (${chain.primary}) failed.`
+              );
+            }
+            return result;
+          } catch (err) {
+            lastError = err instanceof Error ? err : new Error(String(err));
+            console.warn(
+              `[HiringAI:ModelChain] ${operationName}: model "${modelId}" (slot ${i}) failed:`,
+              lastError.message
+            );
+          }
+        }
+        throw lastError ?? new Error(`[HiringAI] All models exhausted for ${operationName}`);
+      } catch (routerError) {
+        // If the model router itself fails (DB down), fall through to legacy
+        if ((routerError as Error)?.message?.includes("All models exhausted")) {
+          throw routerError;
+        }
+        console.warn(`[HiringAI:ModelRouter] Router failed for ${operationName}, using legacy fallback:`, routerError);
+      }
+    }
+
+    // Legacy fallback path (circuit breaker based)
     if (!this.breaker.isAllowed()) {
       console.warn(
         `[HiringAI:CircuitBreaker] ${operationName}: circuit OPEN for ${this.primary.providerName}, ` +
@@ -90,35 +152,35 @@ class ProxyHiringAiProvider implements HiringAiProvider {
   }
 
   async extractResumeJson(rawText: string, fileName?: string) {
-    return this.withFallback(p => p.extractResumeJson(rawText, fileName), "extractResumeJson");
+    return this.withModelChainFallback(p => p.extractResumeJson(rawText, fileName), "extractResumeJson", "extraction");
   }
 
   async extractJdFromText(rawText: string) {
-    return this.withFallback(p => p.extractJdFromText(rawText), "extractJdFromText");
+    return this.withModelChainFallback(p => p.extractJdFromText(rawText), "extractJdFromText", "jdAnalysis");
   }
 
   async analyzeJdJson(jdText: string, positionTitle?: string) {
-    return this.withFallback(p => p.analyzeJdJson(jdText, positionTitle), "analyzeJdJson");
+    return this.withModelChainFallback(p => p.analyzeJdJson(jdText, positionTitle), "analyzeJdJson", "jdAnalysis");
   }
 
   async rankCandidateAgainstJd(extracted: import("./types").ExtractedResumeData, rawResumeText: string, jdText: string, jdAnalysis?: import("./types").JdAnalysisResult) {
-    return this.withFallback(p => p.rankCandidateAgainstJd(extracted, rawResumeText, jdText, jdAnalysis), "rankCandidateAgainstJd");
+    return this.withModelChainFallback(p => p.rankCandidateAgainstJd(extracted, rawResumeText, jdText, jdAnalysis), "rankCandidateAgainstJd", "ranking");
   }
 
   async generateCandidateSummary(extracted: import("./types").ExtractedResumeData) {
-    return this.withFallback(p => p.generateCandidateSummary(extracted), "generateCandidateSummary");
+    return this.withModelChainFallback(p => p.generateCandidateSummary(extracted), "generateCandidateSummary", "candidateSummary");
   }
 
   async runAdvancedCandidateJudgment(ranking: import("./types").ResumeRankingResult, extracted: import("./types").ExtractedResumeData) {
-    return this.withFallback(p => p.runAdvancedCandidateJudgment(ranking, extracted), "runAdvancedCandidateJudgment");
+    return this.withModelChainFallback(p => p.runAdvancedCandidateJudgment(ranking, extracted), "runAdvancedCandidateJudgment", "judgment");
   }
 
   async generateInterviewPrep(extracted: import("./types").ExtractedResumeData, ranking: import("./types").ResumeRankingResult, jdText: string) {
-    return this.withFallback(p => p.generateInterviewPrep(extracted, ranking, jdText), "generateInterviewPrep");
+    return this.withModelChainFallback(p => p.generateInterviewPrep(extracted, ranking, jdText), "generateInterviewPrep", "interviewPrep");
   }
 
   async analyzeRedFlags(extracted: import("./types").ExtractedResumeData, rawText: string) {
-    return this.withFallback(p => p.analyzeRedFlags(extracted, rawText), "analyzeRedFlags");
+    return this.withModelChainFallback(p => p.analyzeRedFlags(extracted, rawText), "analyzeRedFlags", "redFlags");
   }
 }
 
@@ -145,4 +207,3 @@ export type {
 
 // Re-export circuit breaker for admin dashboard
 export { getCircuitBreaker, getAllCircuitBreakers } from "./circuit-breaker";
-

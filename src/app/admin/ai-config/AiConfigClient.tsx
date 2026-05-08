@@ -1,24 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Brain, Sparkles, Monitor, Terminal, Loader2, Check } from "lucide-react";
-import { updateAiProvider, updateInterviewMode, updateExecutionBackend } from "./actions";
-
-const AI_PROVIDERS = [
-  { value: "GEMINI", label: "Google Gemini", emoji: "🔵", desc: "Gemini 2.0 Flash — fast, cost-effective" },
-  { value: "DEEPSEEK", label: "DeepSeek", emoji: "🟣", desc: "DeepSeek V3 — deep reasoning, low cost" },
-  { value: "OPENAI", label: "OpenAI", emoji: "🟢", desc: "GPT-4o — premium quality, higher cost" },
-  { value: "ANTHROPIC", label: "Anthropic", emoji: "🟠", desc: "Claude 4 — nuanced analysis" },
-];
-
-const TASK_TYPES = [
-  { key: "extractionProvider", label: "Resume Extraction", desc: "Parse PDF/DOCX → structured candidate data", icon: "📄" },
-  { key: "rankingProvider", label: "Candidate Ranking", desc: "Score candidates against JD requirements", icon: "📊" },
-  { key: "judgmentProvider", label: "Advanced Judgment", desc: "Deep analysis, skill assessment, culture fit", icon: "🧠" },
-  { key: "jdAnalysisProvider", label: "JD Analysis", desc: "Parse job descriptions, extract requirements", icon: "📋" },
-  { key: "interviewScoreProvider", label: "Interview Scoring", desc: "Score AI interview answers", icon: "🎯" },
-  { key: "codingGenProvider", label: "Coding Questions", desc: "Generate coding challenges and test cases", icon: "💻" },
-];
+import { Brain, Sparkles, Terminal, Loader2, Check, ChevronDown, Zap, Gauge, DollarSign } from "lucide-react";
+import { updateTaskModelChain, updateInterviewMode, updateExecutionBackend } from "./actions";
+import { AI_MODELS, AI_TASK_TYPES, AI_MODEL_IDS, type AiModelId, type ModelChain } from "@/lib/ai/models";
 
 const INTERVIEW_MODES = [
   { value: "AI_AVATAR", label: "AI Avatar", desc: "Tavus-powered realistic video avatar", emoji: "👤" },
@@ -41,25 +26,133 @@ interface AiConfigData {
   defaultInterviewMode: string;
   codeExecutionBackend: string;
   pistonEndpoint: string | null;
+  // New model chain fields
+  extractionModels: ModelChain | null;
+  rankingModels: ModelChain | null;
+  judgmentModels: ModelChain | null;
+  jdAnalysisModels: ModelChain | null;
+  interviewScoreModels: ModelChain | null;
+  codingGenModels: ModelChain | null;
+  interviewPrepModels: ModelChain | null;
+  redFlagModels: ModelChain | null;
+  candidateSummaryModels: ModelChain | null;
 }
 
+// ── Model Selector Dropdown ──────────────────────────────────────────────────
+
+function ModelSelect({
+  value,
+  onChange,
+  slot,
+  allowNone = false,
+  disabled = false,
+}: {
+  value: AiModelId | null;
+  onChange: (v: AiModelId | null) => void;
+  slot: number;
+  allowNone?: boolean;
+  disabled?: boolean;
+}) {
+  const slotLabels = ["① Primary", "② Fallback 1", "③ Fallback 2"];
+  const slotColors = [
+    "text-emerald-400 border-emerald-500/30",
+    "text-amber-400 border-amber-500/30",
+    "text-zinc-400 border-zinc-600/30",
+  ];
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`text-[10px] font-black uppercase tracking-wider w-20 shrink-0 ${slotColors[slot]?.split(" ")[0] ?? "text-zinc-500"}`}>
+        {slotLabels[slot]}
+      </span>
+      <div className="relative flex-1">
+        <select
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value ? (e.target.value as AiModelId) : null)}
+          disabled={disabled}
+          className={`w-full appearance-none pl-3 pr-8 py-2 rounded-lg text-xs font-medium transition-all border bg-zinc-900/60 outline-none focus:ring-1 focus:ring-indigo-500/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+            value
+              ? `${slotColors[slot]} text-white`
+              : "border-zinc-700/40 text-zinc-500"
+          }`}
+        >
+          {allowNone && <option value="">None</option>}
+          {!allowNone && !value && <option value="">Select model…</option>}
+          {AI_MODEL_IDS.map((id) => {
+            const m = AI_MODELS[id];
+            return (
+              <option key={id} value={id}>
+                {m.emoji} {m.label} — {m.cost} · {m.speed}
+              </option>
+            );
+          })}
+        </select>
+        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500 pointer-events-none" />
+      </div>
+    </div>
+  );
+}
+
+// ── Cost/Speed Badge for selected model ──────────────────────────────────────
+
+function ModelBadges({ modelId }: { modelId: AiModelId | null }) {
+  if (!modelId) return null;
+  const m = AI_MODELS[modelId];
+  if (!m) return null;
+
+  return (
+    <div className="flex items-center gap-2 mt-2 flex-wrap">
+      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <DollarSign className="w-2.5 h-2.5" />
+        ${m.inputCostPer1M}/1M in · ${m.outputCostPer1M}/1M out
+      </span>
+      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+        <Zap className="w-2.5 h-2.5" />
+        {m.speed}
+      </span>
+      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+        <Gauge className="w-2.5 h-2.5" />
+        {m.intelligence}
+      </span>
+    </div>
+  );
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
+
 export function AiConfigClient({ config }: { config: AiConfigData }) {
-  const [localConfig, setLocalConfig] = useState(config);
   const [isPending, startTransition] = useTransition();
   const [savedKey, setSavedKey] = useState<string | null>(null);
   const [endpoint, setEndpoint] = useState(config.pistonEndpoint || "");
+  const [localMode, setLocalMode] = useState(config.defaultInterviewMode);
+  const [localBackend, setLocalBackend] = useState(config.codeExecutionBackend);
 
-  const handleProviderChange = (key: string, value: string) => {
-    setLocalConfig((prev) => ({ ...prev, [key]: value }));
+  // Build initial chain state from config (with defaults from models.ts)
+  const { DEFAULT_MODEL_CHAINS } = require("@/lib/ai/models");
+  const buildInitialChains = (): Record<string, ModelChain> => {
+    const chains: Record<string, ModelChain> = {};
+    for (const task of AI_TASK_TYPES) {
+      const configValue = (config as any)[task.schemaField] as ModelChain | null;
+      chains[task.key] = configValue ?? DEFAULT_MODEL_CHAINS[task.key] ?? { primary: "gemini-2.5-flash", fallback1: null, fallback2: null };
+    }
+    return chains;
+  };
+  const [chains, setChains] = useState<Record<string, ModelChain>>(buildInitialChains);
+
+  const handleChainChange = (taskKey: string, slot: "primary" | "fallback1" | "fallback2", value: AiModelId | null) => {
+    const updated = { ...chains[taskKey], [slot]: value } as ModelChain;
+    if (!updated.primary) return; // Primary is required
+    setChains((prev) => ({ ...prev, [taskKey]: updated }));
+
     startTransition(async () => {
-      await updateAiProvider({ [key]: value } as any);
-      setSavedKey(key);
+      await updateTaskModelChain(taskKey, updated);
+      setSavedKey(taskKey);
       setTimeout(() => setSavedKey(null), 1500);
     });
   };
 
   const handleModeChange = (mode: string) => {
-    setLocalConfig((prev) => ({ ...prev, defaultInterviewMode: mode }));
+    setLocalMode(mode);
     startTransition(async () => {
       await updateInterviewMode(mode);
       setSavedKey("mode");
@@ -68,7 +161,7 @@ export function AiConfigClient({ config }: { config: AiConfigData }) {
   };
 
   const handleBackendChange = (backend: string) => {
-    setLocalConfig((prev) => ({ ...prev, codeExecutionBackend: backend }));
+    setLocalBackend(backend);
     startTransition(async () => {
       await updateExecutionBackend(backend, backend === "PISTON_SELF_HOSTED" ? endpoint : undefined);
       setSavedKey("backend");
@@ -78,7 +171,7 @@ export function AiConfigClient({ config }: { config: AiConfigData }) {
 
   return (
     <div className="space-y-8">
-      {/* ── Section A: AI Provider Selection ── */}
+      {/* ── Section A: AI Model Routing Engine ── */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
         <div className="p-6 border-b border-zinc-800">
           <div className="flex items-center gap-3">
@@ -86,51 +179,59 @@ export function AiConfigClient({ config }: { config: AiConfigData }) {
               <Brain className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">AI Provider per Task Type</h2>
-              <p className="text-xs text-zinc-500 mt-0.5">Choose which AI model handles each pipeline stage</p>
+              <h2 className="text-lg font-bold text-white">AI Model Routing Engine</h2>
+              <p className="text-xs text-zinc-500 mt-0.5">Configure primary + fallback models per task · Auto-failover when a model is unavailable</p>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-6">
-          {TASK_TYPES.map((task) => {
-            const currentProvider = (localConfig as any)[task.key] as string;
+          {AI_TASK_TYPES.map((task) => {
+            const chain = chains[task.key];
             return (
               <div
                 key={task.key}
-                className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-4 transition-all hover:border-indigo-500/30"
+                className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-4 transition-all hover:border-indigo-500/30 relative"
               >
-                <div className="flex items-center gap-2 mb-3">
+                {/* Saved indicator */}
+                {savedKey === task.key && (
+                  <div className="absolute top-3 right-3 animate-in fade-in zoom-in duration-200">
+                    <Check className="w-4 h-4 text-green-500" />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 mb-4">
                   <span className="text-xl">{task.icon}</span>
                   <div>
                     <p className="text-sm font-bold text-white">{task.label}</p>
-                    <p className="text-[10px] text-zinc-500">{task.desc}</p>
+                    <p className="text-[10px] text-zinc-500 leading-tight">{task.desc}</p>
                   </div>
-                  {savedKey === task.key && (
-                    <Check className="w-4 h-4 text-green-500 ml-auto animate-in fade-in" />
-                  )}
                 </div>
 
-                <div className="space-y-1.5">
-                  {AI_PROVIDERS.map((p) => (
-                    <button
-                      key={p.value}
-                      onClick={() => handleProviderChange(task.key, p.value)}
-                      disabled={isPending}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
-                        currentProvider === p.value
-                          ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-300"
-                          : "border-transparent bg-zinc-900/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
-                      }`}
-                    >
-                      <span className="text-sm">{p.emoji}</span>
-                      <span className="flex-1 text-left">{p.label}</span>
-                      {currentProvider === p.value && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                      )}
-                    </button>
-                  ))}
+                <div className="space-y-2">
+                  <ModelSelect
+                    value={chain?.primary ?? null}
+                    onChange={(v) => v && handleChainChange(task.key, "primary", v)}
+                    slot={0}
+                    disabled={isPending}
+                  />
+                  <ModelSelect
+                    value={chain?.fallback1 ?? null}
+                    onChange={(v) => handleChainChange(task.key, "fallback1", v)}
+                    slot={1}
+                    allowNone
+                    disabled={isPending}
+                  />
+                  <ModelSelect
+                    value={chain?.fallback2 ?? null}
+                    onChange={(v) => handleChainChange(task.key, "fallback2", v)}
+                    slot={2}
+                    allowNone
+                    disabled={isPending}
+                  />
                 </div>
+
+                <ModelBadges modelId={chain?.primary ?? null} />
               </div>
             );
           })}
@@ -159,7 +260,7 @@ export function AiConfigClient({ config }: { config: AiConfigData }) {
               onClick={() => handleModeChange(mode.value)}
               disabled={isPending}
               className={`flex items-center gap-4 p-5 rounded-xl border transition-all text-left ${
-                localConfig.defaultInterviewMode === mode.value
+                localMode === mode.value
                   ? "border-rose-500/40 bg-rose-500/[0.08] shadow-lg shadow-rose-500/10"
                   : "border-zinc-700 bg-zinc-800/40 hover:border-zinc-600"
               }`}
@@ -167,13 +268,13 @@ export function AiConfigClient({ config }: { config: AiConfigData }) {
               <span className="text-4xl">{mode.emoji}</span>
               <div>
                 <p className={`text-base font-bold ${
-                  localConfig.defaultInterviewMode === mode.value ? "text-rose-300" : "text-white"
+                  localMode === mode.value ? "text-rose-300" : "text-white"
                 }`}>
                   {mode.label}
                 </p>
                 <p className="text-xs text-zinc-500 mt-0.5">{mode.desc}</p>
               </div>
-              {localConfig.defaultInterviewMode === mode.value && (
+              {localMode === mode.value && (
                 <div className="ml-auto w-3 h-3 rounded-full bg-rose-500 animate-pulse" />
               )}
             </button>
@@ -204,7 +305,7 @@ export function AiConfigClient({ config }: { config: AiConfigData }) {
                 onClick={() => handleBackendChange(b.value)}
                 disabled={isPending}
                 className={`flex items-center gap-4 p-5 rounded-xl border transition-all text-left ${
-                  localConfig.codeExecutionBackend === b.value
+                  localBackend === b.value
                     ? "border-emerald-500/40 bg-emerald-500/[0.08]"
                     : "border-zinc-700 bg-zinc-800/40 hover:border-zinc-600"
                 }`}
@@ -212,7 +313,7 @@ export function AiConfigClient({ config }: { config: AiConfigData }) {
                 <span className="text-3xl">{b.emoji}</span>
                 <div>
                   <p className={`text-base font-bold ${
-                    localConfig.codeExecutionBackend === b.value ? "text-emerald-300" : "text-white"
+                    localBackend === b.value ? "text-emerald-300" : "text-white"
                   }`}>
                     {b.label}
                   </p>
@@ -222,7 +323,7 @@ export function AiConfigClient({ config }: { config: AiConfigData }) {
             ))}
           </div>
 
-          {localConfig.codeExecutionBackend === "PISTON_SELF_HOSTED" && (
+          {localBackend === "PISTON_SELF_HOSTED" && (
             <div className="flex items-center gap-3">
               <input
                 type="url"

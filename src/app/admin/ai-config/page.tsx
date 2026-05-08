@@ -25,7 +25,7 @@ export default async function AiConfigPage() {
         <p className="text-zinc-400 mt-2">Configure AI providers per task type, interview mode, and code execution backend.</p>
       </div>
 
-      <AiConfigClient config={config} />
+      <AiConfigClient config={config as any} />
     </div>
   );
 }
