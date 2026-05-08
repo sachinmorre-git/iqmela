@@ -3,10 +3,8 @@ import { redirect } from "next/navigation"
 import { AiTestButton } from "./AiTestButton"
 import { AiCostDashboard } from "./AiCostDashboard"
 import IntegrationsPanel from "./IntegrationsPanel"
-import { OrgAiConfigPanel } from "./OrgAiConfigPanel"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@clerk/nextjs/server"
-import { getAllModelChains } from "@/lib/ai/model-router"
 
 export const metadata = {
   title: "System Settings | Org Admin",
@@ -37,12 +35,6 @@ export default async function OrgAdminSettingsPage() {
     ...i,
     createdAt: i.createdAt.toISOString(),
   }))
-
-  // Fetch AI model configs (global + org override)
-  const [globalChains, orgAiConfig] = await Promise.all([
-    getAllModelChains(),
-    orgId ? prisma.orgAiConfig.findUnique({ where: { organizationId: orgId } }) : null,
-  ])
 
   // Read environment variables directly (Server Component, secure)
   const providerType = process.env.EMAIL_PROVIDER?.toLowerCase() || "mock"
@@ -237,12 +229,6 @@ export default async function OrgAdminSettingsPage() {
         </div>
 
       </div>
-
-      {/* AI Model Configuration Override */}
-      <OrgAiConfigPanel
-        orgConfig={orgAiConfig ? (orgAiConfig as unknown as Record<string, any>) : null}
-        globalChains={globalChains}
-      />
 
       <AiCostDashboard orgId={perms.orgId} />
     </div>

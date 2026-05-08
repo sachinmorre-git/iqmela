@@ -44,8 +44,7 @@ export async function updateAiProvider(
 }
 
 /**
- * Update the model chain for a specific task type.
- * This is the new model-routing API.
+ * Update the model chain for a specific task type (global defaults).
  */
 export async function updateTaskModelChain(
   taskKey: string,
@@ -75,6 +74,75 @@ export async function updateTaskModelChain(
   });
 
   invalidateModelRouterCache();
+  revalidatePath("/admin/ai-config");
+}
+
+// ── Per-Organization Override Actions (Admin-only) ───────────────────────────
+
+/**
+ * List all organizations for the org selector dropdown.
+ */
+export async function listOrganizations() {
+  await requireSysAdmin();
+  return prisma.organization.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+/**
+ * Get a specific org's AI config overrides.
+ */
+export async function getOrgAiConfig(orgId: string) {
+  await requireSysAdmin();
+  return prisma.orgAiConfig.findUnique({ where: { organizationId: orgId } });
+}
+
+/**
+ * Update a single task's model chain for a specific org (admin-controlled).
+ */
+export async function updateOrgTaskModelChain(orgId: string, taskKey: string, chain: ModelChain) {
+  const { userId } = await requireSysAdmin();
+
+  const FIELD_MAP: Record<string, string> = {
+    extraction:       "extractionModels",
+    ranking:          "rankingModels",
+    judgment:         "judgmentModels",
+    jdAnalysis:       "jdAnalysisModels",
+    interviewScore:   "interviewScoreModels",
+    codingGen:        "codingGenModels",
+    interviewPrep:    "interviewPrepModels",
+    redFlags:         "redFlagModels",
+    candidateSummary: "candidateSummaryModels",
+  };
+
+  const field = FIELD_MAP[taskKey];
+  if (!field) throw new Error(`Unknown task key: ${taskKey}`);
+
+  await prisma.orgAiConfig.upsert({
+    where: { organizationId: orgId },
+    create: {
+      organizationId: orgId,
+      [field]: chain,
+      updatedBy: userId,
+    },
+    update: {
+      [field]: chain,
+      updatedBy: userId,
+    },
+  });
+
+  invalidateModelRouterCache(orgId);
+  revalidatePath("/admin/ai-config");
+}
+
+/**
+ * Reset an org's AI config back to platform defaults.
+ */
+export async function resetOrgAiConfig(orgId: string) {
+  await requireSysAdmin();
+  await prisma.orgAiConfig.deleteMany({ where: { organizationId: orgId } });
+  invalidateModelRouterCache(orgId);
   revalidatePath("/admin/ai-config");
 }
 

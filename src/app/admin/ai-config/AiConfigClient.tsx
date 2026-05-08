@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Brain, Sparkles, Terminal, Loader2, Check, ChevronDown, Zap, Gauge, DollarSign } from "lucide-react";
-import { updateTaskModelChain, updateInterviewMode, updateExecutionBackend } from "./actions";
-import { AI_MODELS, AI_TASK_TYPES, AI_MODEL_IDS, type AiModelId, type ModelChain } from "@/lib/ai/models";
+import { useState, useTransition, useEffect } from "react";
+import { Brain, Sparkles, Terminal, Loader2, Check, ChevronDown, Zap, Gauge, DollarSign, Building2, RotateCcw } from "lucide-react";
+import { updateTaskModelChain, updateInterviewMode, updateExecutionBackend, listOrganizations, getOrgAiConfig, updateOrgTaskModelChain, resetOrgAiConfig } from "./actions";
+import { AI_MODELS, AI_TASK_TYPES, AI_MODEL_IDS, DEFAULT_MODEL_CHAINS, type AiModelId, type ModelChain } from "@/lib/ai/models";
 
 const INTERVIEW_MODES = [
   { value: "AI_AVATAR", label: "AI Avatar", desc: "Tavus-powered realistic video avatar", emoji: "👤" },
@@ -342,6 +342,180 @@ export function AiConfigClient({ config }: { config: AiConfigData }) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Section D: Per-Organization Overrides ── */}
+      <OrgOverrideSection />
+    </div>
+  );
+}
+
+// ── Org Override Section (Admin-Only) ────────────────────────────────────────
+
+function OrgOverrideSection() {
+  const [isPending, startTransition] = useTransition();
+  const [orgs, setOrgs] = useState<{ id: string; name: string }[]>([]);
+  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
+  const [orgChains, setOrgChains] = useState<Record<string, ModelChain> | null>(null);
+  const [savedKey, setSavedKey] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load org list on mount
+  useEffect(() => {
+    listOrganizations().then((list) => {
+      setOrgs(list);
+      setLoaded(true);
+    });
+  }, []);
+
+  // Load org config when selected
+  const handleOrgSelect = (orgId: string) => {
+    setSelectedOrgId(orgId);
+    setOrgChains(null);
+    if (!orgId) return;
+
+    startTransition(async () => {
+      const config = await getOrgAiConfig(orgId);
+      if (config) {
+        const chains: Record<string, ModelChain> = {};
+        for (const task of AI_TASK_TYPES) {
+          const val = (config as any)[task.schemaField];
+          chains[task.key] = val ?? DEFAULT_MODEL_CHAINS[task.key];
+        }
+        setOrgChains(chains);
+      } else {
+        // No overrides — show defaults as starting point
+        const chains: Record<string, ModelChain> = {};
+        for (const task of AI_TASK_TYPES) {
+          chains[task.key] = DEFAULT_MODEL_CHAINS[task.key];
+        }
+        setOrgChains(chains);
+      }
+    });
+  };
+
+  const handleOrgChainChange = (taskKey: string, slot: "primary" | "fallback1" | "fallback2", value: AiModelId | null) => {
+    if (!selectedOrgId || !orgChains) return;
+    const updated = { ...orgChains[taskKey], [slot]: value } as ModelChain;
+    if (!updated.primary) return;
+    setOrgChains((prev) => prev ? { ...prev, [taskKey]: updated } : null);
+
+    startTransition(async () => {
+      await updateOrgTaskModelChain(selectedOrgId, taskKey, updated);
+      setSavedKey(taskKey);
+      setTimeout(() => setSavedKey(null), 1500);
+    });
+  };
+
+  const handleReset = () => {
+    if (!selectedOrgId) return;
+    startTransition(async () => {
+      await resetOrgAiConfig(selectedOrgId);
+      // Reset to defaults
+      const chains: Record<string, ModelChain> = {};
+      for (const task of AI_TASK_TYPES) {
+        chains[task.key] = DEFAULT_MODEL_CHAINS[task.key];
+      }
+      setOrgChains(chains);
+      setSavedKey("reset");
+      setTimeout(() => setSavedKey(null), 1500);
+    });
+  };
+
+  return (
+    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="p-6 border-b border-zinc-800">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-600 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+            <Building2 className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-white">Organization Overrides</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Override AI models for a specific client organization · Internal admin only</p>
+          </div>
+          {savedKey === "reset" && (
+            <span className="text-xs text-green-400 font-medium animate-in fade-in">Reset to defaults ✓</span>
+          )}
+        </div>
+      </div>
+
+      <div className="p-6 space-y-5">
+        {/* Org Selector */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <select
+              value={selectedOrgId}
+              onChange={(e) => handleOrgSelect(e.target.value)}
+              disabled={!loaded}
+              className="w-full appearance-none pl-4 pr-10 py-3 rounded-xl border border-zinc-700 bg-zinc-800/60 text-sm font-medium text-white outline-none focus:ring-2 focus:ring-amber-500/30 cursor-pointer disabled:opacity-40"
+            >
+              <option value="">Select an organization…</option>
+              {orgs.map((org) => (
+                <option key={org.id} value={org.id}>{org.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+          </div>
+
+          {selectedOrgId && (
+            <button
+              onClick={handleReset}
+              disabled={isPending}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-800/40 text-xs font-bold text-zinc-400 hover:text-white hover:border-amber-500/30 transition-all disabled:opacity-40"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset to Defaults
+            </button>
+          )}
+        </div>
+
+        {/* Org Task Cards */}
+        {selectedOrgId && orgChains && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {AI_TASK_TYPES.map((task) => {
+              const chain = orgChains[task.key];
+              return (
+                <div
+                  key={task.key}
+                  className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-4 transition-all hover:border-amber-500/30 relative"
+                >
+                  {savedKey === task.key && (
+                    <div className="absolute top-3 right-3 animate-in fade-in zoom-in duration-200">
+                      <Check className="w-4 h-4 text-green-500" />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">{task.icon}</span>
+                    <div>
+                      <p className="text-sm font-bold text-white">{task.label}</p>
+                      <p className="text-[10px] text-zinc-500 leading-tight">{task.desc}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <ModelSelect value={chain?.primary ?? null} onChange={(v) => v && handleOrgChainChange(task.key, "primary", v)} slot={0} disabled={isPending} />
+                    <ModelSelect value={chain?.fallback1 ?? null} onChange={(v) => handleOrgChainChange(task.key, "fallback1", v)} slot={1} allowNone disabled={isPending} />
+                    <ModelSelect value={chain?.fallback2 ?? null} onChange={(v) => handleOrgChainChange(task.key, "fallback2", v)} slot={2} allowNone disabled={isPending} />
+                  </div>
+                  <ModelBadges modelId={chain?.primary ?? null} />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!selectedOrgId && (
+          <div className="text-center py-8 text-zinc-500 text-sm">
+            Select an organization above to configure custom AI model overrides.
+          </div>
+        )}
+
+        {selectedOrgId && !orgChains && isPending && (
+          <div className="flex items-center justify-center py-8 gap-2 text-zinc-500">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">Loading configuration…</span>
+          </div>
+        )}
       </div>
     </div>
   );
